@@ -246,8 +246,8 @@ function App() {
                         <td className="player-name">{pick.playerName}</td>
                         {currentWeekData.games.map(game => (
                           <React.Fragment key={game.id}>
-                            <td className="score">{pick.predictions[game.id]?.team1 || '-'}</td>
-                            <td className="score">{pick.predictions[game.id]?.team2 || '-'}</td>
+                            <td className="score">{pick.predictions[game.id]?.team1 ?? '-'}</td>
+                            <td className="score">{pick.predictions[game.id]?.team2 ?? '-'}</td>
                           </React.Fragment>
                         ))}
                         <td className="timestamp">
