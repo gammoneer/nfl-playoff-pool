@@ -102,6 +102,19 @@ function App() {
       return;
     }
 
+    // Check for tied scores (not allowed in playoffs)
+    const gamesWithTies = weekGames.filter(game => 
+    predictions[game.id]?.team1 && 
+    predictions[game.id]?.team2 && 
+    predictions[game.id].team1 === predictions[game.id].team2
+    );
+
+    if (gamesWithTies.length > 0) {
+    const tiedGames = gamesWithTies.map(g => `Game ${g.id}`).join(', ');
+    alert(`NFL playoff games cannot end in a tie!\n\nPlease change your scores for: ${tiedGames}\n\nOne team must win each game.`);
+    return;
+    }
+    
     const pickData = {
       playerName: playerName.trim(),
       week: currentWeek,
