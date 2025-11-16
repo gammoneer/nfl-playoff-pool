@@ -349,3 +349,26 @@ footer {
     font-size: 1.4rem;
   }
 }
+
+/* Closed Warning Banner */
+.closed-warning {
+  background: #ff6b6b;
+  color: white;
+  padding: 15px;
+  border-radius: 8px;
+  text-align: center;
+  font-weight: bold;
+  font-size: 1.1rem;
+  margin-bottom: 20px;
+  border: 3px solid #d63031;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}

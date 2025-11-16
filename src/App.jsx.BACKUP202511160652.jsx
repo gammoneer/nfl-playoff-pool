@@ -84,41 +84,6 @@ function App() {
     }));
   };
 
-  // Check if submissions are allowed based on day/time (PST)
-  const isSubmissionAllowed = () => {
-    const now = new Date();
-    
-    // Convert to Pacific Time
-    const pstTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
-    
-    const day = pstTime.getDay(); // 0=Sunday, 1=Monday, ..., 5=Friday, 6=Saturday
-    const hours = pstTime.getHours();
-    const minutes = pstTime.getMinutes();
-    
-    // Block on Friday after 11:59 PM (starting Saturday 00:00)
-    if (day === 5 && (hours === 23 && minutes >= 59)) {
-      return false;
-    }
-    
-    // Block all day Saturday (day 6)
-    if (day === 6) {
-      return false;
-    }
-    
-    // Block all day Sunday (day 0)
-    if (day === 0) {
-      return false;
-    }
-    
-    // Block Monday until 12:01 AM (first minute of Monday)
-    if (day === 1 && hours === 0 && minutes === 0) {
-      return false;
-    }
-    
-    // All other times are allowed
-    return true;
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -126,25 +91,6 @@ function App() {
       alert('Please enter your name');
       return;
     }
-
-  // Check if submissions are allowed (time-based restriction)
-  if (!isSubmissionAllowed()) {
-    const now = new Date();
-    const pstTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
-    const day = pstTime.getDay();
-    
-    let reopenTime = '';
-    if (day === 5 || day === 6) {
-      reopenTime = 'Monday at 12:01 AM PST';
-    } else if (day === 0) {
-      reopenTime = 'Monday at 12:01 AM PST';
-    } else if (day === 1) {
-      reopenTime = 'Monday at 12:01 AM PST';
-    }
-    
-    alert(`🔒 SUBMISSIONS CLOSED\n\nPick submissions are not allowed from Friday 11:59 PM PST through Sunday.\n\nSubmissions will reopen: ${reopenTime}\n\nPlease submit your picks during the week.`);
-    return;
-  }
 
     const weekGames = PLAYOFF_WEEKS[currentWeek].games;
     const incompletePredictions = weekGames.some(game => 
@@ -233,11 +179,6 @@ function App() {
         {/* Prediction Form */}
         <div className="prediction-form">
           <h2>{currentWeekData.name}</h2>
-          {!isSubmissionAllowed() && (
-            <div className="closed-warning">
-              ⚠️ SUBMISSIONS CLOSED - Pool reopens Monday 12:01 AM PST
-            </div>
-          )}
           
           <form onSubmit={handleSubmit}>
             <div className="form-group">
@@ -282,21 +223,8 @@ function App() {
               </div>
             ))}
 
-            <button 
-              type="submit" 
-              className="submit-btn"
-              disabled={!isSubmissionAllowed()}
-              style={!isSubmissionAllowed() ? {
-                backgroundColor: '#ccc',
-                cursor: 'not-allowed'
-              } : {}}
-            >
-              {!isSubmissionAllowed() 
-                ? '🔒 Closed - Reopens Monday' 
-                : submitted 
-                ? '✓ Submitted!' 
-                : 'Submit Picks'
-              }
+            <button type="submit" className="submit-btn">
+              {submitted ? '✓ Submitted!' : 'Submit Picks'}
             </button>
           </form>
         </div>
