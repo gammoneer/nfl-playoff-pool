@@ -21,7 +21,7 @@ const database = getDatabase(app);
 // Playoff structure - update these with actual matchups when known
 const PLAYOFF_WEEKS = {
   wildcard: {
-    name: "Wild Card Round",
+    name: "Wild Card Round January 13, 2026",
     games: [
       { id: 1, team1: "AFC #7", team2: "AFC #2" },
       { id: 2, team1: "AFC #6", team2: "AFC #3" },
