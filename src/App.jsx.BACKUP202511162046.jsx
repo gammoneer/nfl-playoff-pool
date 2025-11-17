@@ -329,23 +329,12 @@ function App() {
                     .map((pick, idx) => (
                       <tr key={idx}>
                         <td className="player-name">{pick.playerName}</td>
-                        {currentWeekData.games.map(game => {
-                          const team1Score = pick.predictions[game.id]?.team1;
-                          const team2Score = pick.predictions[game.id]?.team2;
-                          const team1Wins = team1Score && team2Score && parseInt(team1Score) > parseInt(team2Score);
-                          const team2Wins = team1Score && team2Score && parseInt(team2Score) > parseInt(team1Score);
-                          
-                          return (
-                            <React.Fragment key={game.id}>
-                              <td className={team1Wins ? "score score-winner" : "score"}>
-                                {team1Score ?? '-'}
-                              </td>
-                              <td className={team2Wins ? "score score-winner" : "score"}>
-                                {team2Score ?? '-'}
-                              </td>
-                            </React.Fragment>
-                          );
-                        })}
+                        {currentWeekData.games.map(game => (
+                          <React.Fragment key={game.id}>
+                            <td className="score">{pick.predictions[game.id]?.team1 ?? '-'}</td>
+                            <td className="score">{pick.predictions[game.id]?.team2 ?? '-'}</td>
+                          </React.Fragment>
+                        ))}
                         <td className="timestamp">
                           {new Date(pick.timestamp).toLocaleString('en-US', {
                             month: '2-digit',

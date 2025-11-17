@@ -278,14 +278,6 @@ header p {
   font-size: 1rem;
 }
 
-.picks-table .score-winner {
-  background: #d4edda;
-  color: #155724;
-  font-weight: 900;
-  border: 2px solid #28a745;
-  box-shadow: 0 0 5px rgba(40, 167, 69, 0.3);
-}
-
 .picks-table .timestamp {
   font-size: 0.85rem;
   color: #999;
