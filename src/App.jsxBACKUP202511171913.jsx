@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { initializeApp } from 'firebase/app';
-import { getDatabase, ref, push, onValue, set } from 'firebase/database';
+import { getDatabase, ref, push, onValue } from 'firebase/database';
 import './App.css';
 
-// Firebase configuration
+// Firebase configuration - USER WILL NEED TO REPLACE THESE
 const firebaseConfig = {
   apiKey: "AIzaSyDr3PPXC90wvQW_LG8TkAyR9K-7e0loQ3A",
   authDomain: "nfl-playoff-pool-2025-scores.firebaseapp.com",
@@ -18,7 +18,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const database = getDatabase(app);
 
-// Player codes system - Code maps to player name
+// Player codes system - Code maps to player name AUTHORIZED_PLAYERS AS NOTED BELOW
 // Pool Manager: Add entries as players pay
 // Format: "code": "First Name Last Name"
 const PLAYER_CODES = {
@@ -27,7 +27,6 @@ const PLAYER_CODES = {
   "1002": "Mike Johnson",
   "1003": "Sarah Williams",
   "1004": "David Brown",
-  "9904": "Neema Dadmand",
   // Add more as people pay...
   // Codes can be 1000-9999
 };
@@ -71,8 +70,8 @@ const PLAYOFF_WEEKS = {
 
 function App() {
   const [playerName, setPlayerName] = useState('');
-  const [playerCode, setPlayerCode] = useState('');
-  const [codeValidated, setCodeValidated] = useState(false);
+  const [playerCode, setPlayerCode] = useState(''); // NEW
+  const [codeValidated, setCodeValidated] = useState(false); // NEW
   const [currentWeek, setCurrentWeek] = useState('wildcard');
   const [predictions, setPredictions] = useState({});
   const [allPicks, setAllPicks] = useState([]);
@@ -84,14 +83,8 @@ function App() {
     onValue(picksRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
-        // Convert to array and include Firebase keys for updating
-        const picksArray = Object.keys(data).map(key => ({
-          ...data[key],
-          firebaseKey: key
-        }));
+        const picksArray = Object.values(data);
         setAllPicks(picksArray);
-      } else {
-        setAllPicks([]);
       }
     });
   }, []);
@@ -162,15 +155,14 @@ function App() {
       return;
     }
     
-    // Check if this player already has picks for this week
-    const existingPick = allPicks.find(
+    // Check if this player already submitted for this week
+    const alreadySubmitted = allPicks.some(
       pick => pick.playerName === playerNameForCode && pick.week === currentWeek
     );
     
-    if (existingPick) {
-      // Load their existing picks into the form
-      setPredictions(existingPick.predictions || {});
-      alert(`Welcome back, ${playerNameForCode}!\n\nYour existing picks for ${PLAYOFF_WEEKS[currentWeek].name} have been loaded.\n\nYou can edit and resubmit as many times as you want until Friday 11:59 PM PST.`);
+    if (alreadySubmitted) {
+      alert(`This player has already submitted picks for this week!\n\nPlayer: ${playerNameForCode}\nWeek: ${PLAYOFF_WEEKS[currentWeek].name}\n\nOnly ONE submission per player is allowed.`);
+      return;
     }
     
     // Code is valid!
@@ -186,24 +178,24 @@ function App() {
       return;
     }
 
-    // Check if submissions are allowed (time-based restriction)
-    if (!isSubmissionAllowed()) {
-      const now = new Date();
-      const pstTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
-      const day = pstTime.getDay();
-      
-      let reopenTime = '';
-      if (day === 5 || day === 6) {
-        reopenTime = 'Monday at 12:01 AM PST';
-      } else if (day === 0) {
-        reopenTime = 'Monday at 12:01 AM PST';
-      } else if (day === 1) {
-        reopenTime = 'Monday at 12:01 AM PST';
-      }
-      
-      alert(`🔒 SUBMISSIONS CLOSED\n\nPick submissions are not allowed from Friday 11:59 PM PST through Sunday.\n\nYour picks are now locked for this week.\n\nSubmissions will reopen: ${reopenTime}`);
-      return;
+  // Check if submissions are allowed (time-based restriction)
+  if (!isSubmissionAllowed()) {
+    const now = new Date();
+    const pstTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
+    const day = pstTime.getDay();
+    
+    let reopenTime = '';
+    if (day === 5 || day === 6) {
+      reopenTime = 'Monday at 12:01 AM PST';
+    } else if (day === 0) {
+      reopenTime = 'Monday at 12:01 AM PST';
+    } else if (day === 1) {
+      reopenTime = 'Monday at 12:01 AM PST';
     }
+    
+    alert(`🔒 SUBMISSIONS CLOSED\n\nPick submissions are not allowed from Friday 11:59 PM PST through Sunday.\n\nSubmissions will reopen: ${reopenTime}\n\nPlease submit your picks during the week.`);
+    return;
+  }
 
     const weekGames = PLAYOFF_WEEKS[currentWeek].games;
     const incompletePredictions = weekGames.some(game => 
@@ -217,47 +209,34 @@ function App() {
 
     // Check for tied scores (not allowed in playoffs)
     const gamesWithTies = weekGames.filter(game => 
-      predictions[game.id]?.team1 && 
-      predictions[game.id]?.team2 && 
-      predictions[game.id].team1 === predictions[game.id].team2
+    predictions[game.id]?.team1 && 
+    predictions[game.id]?.team2 && 
+    predictions[game.id].team1 === predictions[game.id].team2
     );
 
     if (gamesWithTies.length > 0) {
-      const tiedGames = gamesWithTies.map(g => `Game ${g.id}`).join(', ');
-      alert(`NFL playoff games cannot end in a tie!\n\nPlease change your scores for: ${tiedGames}\n\nOne team must win each game.`);
-      return;
+    const tiedGames = gamesWithTies.map(g => `Game ${g.id}`).join(', ');
+    alert(`NFL playoff games cannot end in a tie!\n\nPlease change your scores for: ${tiedGames}\n\nOne team must win each game.`);
+    return;
     }
-
+    
     const pickData = {
       playerName: playerName.trim(),
       week: currentWeek,
       weekName: PLAYOFF_WEEKS[currentWeek].name,
       predictions: predictions,
-      timestamp: Date.now(),
-      lastUpdated: Date.now()
+      timestamp: Date.now()
     };
 
     try {
       const picksRef = ref(database, 'picks');
+      await push(picksRef, pickData);
+      setSubmitted(true);
+      alert('Picks submitted successfully!');
       
-      // Check if player already has an entry for this week
-      const existingPick = allPicks.find(
-        pick => pick.playerName === playerName && pick.week === currentWeek
-      );
-      
-      if (existingPick && existingPick.firebaseKey) {
-        // UPDATE existing entry
-        const pickRef = ref(database, `picks/${existingPick.firebaseKey}`);
-        await set(pickRef, pickData);
-        setSubmitted(true);
-        alert('✓ Picks updated successfully!\n\nYou can edit and resubmit as many times as you want until Friday 11:59 PM PST.');
-      } else {
-        // CREATE new entry
-        await push(picksRef, pickData);
-        setSubmitted(true);
-        alert('✓ Picks submitted successfully!\n\nYou can edit and resubmit as many times as you want until Friday 11:59 PM PST.');
-      }
-      
+      // Reset form
+      setPredictions({});
+      setPlayerName('');
       setTimeout(() => setSubmitted(false), 3000);
     } catch (error) {
       alert('Error submitting picks: ' + error.message);
@@ -305,122 +284,72 @@ function App() {
         {/* Prediction Form */}
         <div className="prediction-form">
           <h2>{currentWeekData.name}</h2>
-          
           {!isSubmissionAllowed() && (
             <div className="closed-warning">
               ⚠️ SUBMISSIONS CLOSED - Pool reopens Monday 12:01 AM PST
             </div>
           )}
           
-          {!codeValidated ? (
-            // STEP 1: Code Entry
-            <div className="code-entry-section">
-              <h3>🔐 Enter Your Player Code</h3>
-              <p style={{color: '#666', marginBottom: '20px'}}>
-                Enter the 4-digit code you received after paying your $20 entry fee.
-              </p>
-              
-              <div className="code-input-group">
-                <label>Player Code:</label>
-                <input
-                  type="text"
-                  value={playerCode}
-                  onChange={(e) => setPlayerCode(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                  placeholder="1234"
-                  maxLength="4"
-                  className="code-input"
-                  autoFocus
-                />
-                <button 
-                  onClick={handleCodeValidation} 
-                  className="validate-btn"
-                  type="button"
-                >
-                  Validate Code
-                </button>
-              </div>
-              
-              <div style={{marginTop: '20px', padding: '15px', background: '#f8f9fa', borderRadius: '8px', fontSize: '0.9rem', color: '#666'}}>
-                <strong>Don't have a code?</strong>
-                <br />
-                You must pay $20 to receive your player code.
-                <br />
-                Contact: <strong>biletskifamily@shaw.ca</strong>
-              </div>
+          <form onSubmit={handleSubmit}>
+            <div className="form-group">
+              <label>Your Name:</label>
+              <input
+                type="text"
+                value={playerName}
+                onChange={(e) => setPlayerName(e.target.value)}
+                placeholder="Enter your name"
+                required
+              />
             </div>
-          ) : (
-            // STEP 2: Confirmation & Pick Entry
-            <>
-              <div className="player-confirmed">
-                <div className="confirmation-badge">
-                  ✓ Code Validated
-                </div>
-                <h3>Playing as: <span className="player-name-highlight">{playerName}</span></h3>
-                
-                {allPicks.some(pick => pick.playerName === playerName && pick.week === currentWeek) && (
-                  <p style={{color: '#856404', fontWeight: 'bold', marginTop: '10px', background: '#fff3cd', padding: '10px', borderRadius: '5px'}}>
-                    ✏️ You are editing your existing picks. You can update them as many times as you want until Friday 11:59 PM PST.
-                  </p>
-                )}
-                
-                <p style={{color: '#666', fontSize: '0.9rem', marginTop: '5px'}}>
-                  If this is not you, refresh the page and enter the correct code.
-                </p>
-              </div>
-              
-              <form onSubmit={handleSubmit}>
-                {currentWeekData.games.map(game => (
-                  <div key={game.id} className="game-prediction">
-                    <h3>Game {game.id}</h3>
-                    <div className="score-inputs">
-                      <div className="team-score">
-                        <label>{game.team1}</label>
-                        <input
-                          type="number"
-                          min="0"
-                          max="99"
-                          value={predictions[game.id]?.team1 || ''}
-                          onChange={(e) => handleScoreChange(game.id, 'team1', e.target.value)}
-                          required
-                        />
-                      </div>
-                      <span className="vs">vs</span>
-                      <div className="team-score">
-                        <label>{game.team2}</label>
-                        <input
-                          type="number"
-                          min="0"
-                          max="99"
-                          value={predictions[game.id]?.team2 || ''}
-                          onChange={(e) => handleScoreChange(game.id, 'team2', e.target.value)}
-                          required
-                        />
-                      </div>
-                    </div>
-                  </div>
-                ))}
 
-                <button 
-                  type="submit" 
-                  className="submit-btn"
-                  disabled={!isSubmissionAllowed()}
-                  style={!isSubmissionAllowed() ? {
-                    backgroundColor: '#ccc',
-                    cursor: 'not-allowed'
-                  } : {}}
-                >
-                  {!isSubmissionAllowed() 
-                    ? '🔒 Locked - Picks Finalized' 
-                    : submitted 
-                    ? '✓ Saved!' 
-                    : allPicks.some(pick => pick.playerName === playerName && pick.week === currentWeek)
-                    ? '💾 Update My Picks'
-                    : '✓ Submit My Picks'
-                  }
-                </button>
-              </form>
-            </>
-          )}
+            {currentWeekData.games.map(game => (
+              <div key={game.id} className="game-prediction">
+                <h3>Game {game.id}</h3>
+                <div className="score-inputs">
+                  <div className="team-score">
+                    <label>{game.team1}</label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="99"
+                      value={predictions[game.id]?.team1 || ''}
+                      onChange={(e) => handleScoreChange(game.id, 'team1', e.target.value)}
+                      required
+                    />
+                  </div>
+                  <span className="vs">vs</span>
+                  <div className="team-score">
+                    <label>{game.team2}</label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="99"
+                      value={predictions[game.id]?.team2 || ''}
+                      onChange={(e) => handleScoreChange(game.id, 'team2', e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            <button 
+              type="submit" 
+              className="submit-btn"
+              disabled={!isSubmissionAllowed()}
+              style={!isSubmissionAllowed() ? {
+                backgroundColor: '#ccc',
+                cursor: 'not-allowed'
+              } : {}}
+            >
+              {!isSubmissionAllowed() 
+                ? '🔒 Closed - Reopens Monday' 
+                : submitted 
+                ? '✓ Submitted!' 
+                : 'Submit Picks'
+              }
+            </button>
+          </form>
         </div>
 
         {/* Display All Picks */}
@@ -441,13 +370,13 @@ function App() {
                         <small>{game.team1} vs {game.team2}</small>
                       </th>
                     ))}
-                    <th>Last Updated</th>
+                    <th>Submitted</th>
                   </tr>
                 </thead>
                 <tbody>
                   {allPicks
                     .filter(pick => pick.week === currentWeek)
-                    .sort((a, b) => (b.lastUpdated || b.timestamp) - (a.lastUpdated || a.timestamp))
+                    .sort((a, b) => a.timestamp - b.timestamp)
                     .map((pick, idx) => (
                       <tr key={idx}>
                         <td className="player-name">{pick.playerName}</td>
@@ -469,7 +398,7 @@ function App() {
                           );
                         })}
                         <td className="timestamp">
-                          {new Date(pick.lastUpdated || pick.timestamp).toLocaleString('en-US', {
+                          {new Date(pick.timestamp).toLocaleString('en-US', {
                             month: '2-digit',
                             day: '2-digit',
                             year: 'numeric',
