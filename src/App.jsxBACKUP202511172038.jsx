@@ -27,6 +27,7 @@ const PLAYER_CODES = {
   "1002": "Mike Johnson",
   "1003": "Sarah Williams",
   "1004": "David Brown",
+  "9904": "Neema Dadmand",
   // Add more as people pay...
   // Codes can be 1000-9999
 };
@@ -249,21 +250,12 @@ function App() {
         const pickRef = ref(database, `picks/${existingPick.firebaseKey}`);
         await set(pickRef, pickData);
         setSubmitted(true);
-        alert('✅ PICKS UPDATED SUCCESSFULLY!\n\n' +
-              '✓ Your updated picks have been saved\n' +
-              '✓ You can see them in the table below\n' +
-              '✓ You can edit and resubmit anytime until Friday 11:59 PM PST\n\n' +
-              'Your picks are now visible to all players!');
+        alert('✓ Picks updated successfully!\n\nYou can edit and resubmit as many times as you want until Friday 11:59 PM PST.');
       } else {
         // CREATE new entry
         await push(picksRef, pickData);
         setSubmitted(true);
-        alert('✅ PICKS SUBMITTED SUCCESSFULLY!\n\n' +
-              '✓ Your picks have been saved\n' +
-              '✓ You can see them in the table below\n' +
-              '✓ You can edit and resubmit anytime until Friday 11:59 PM PST\n' +
-              '✓ Your picks are locked Friday 11:59 PM PST\n\n' +
-              'Good luck!');
+        alert('✓ Picks submitted successfully!\n\nYou can edit and resubmit as many times as you want until Friday 11:59 PM PST.');
       }
       
       setTimeout(() => setSubmitted(false), 3000);
@@ -361,94 +353,52 @@ function App() {
             <>
               <div className="player-confirmed">
                 <div className="confirmation-badge">
-                  ✓ Code Validated - You're Logged In!
+                  ✓ Code Validated
                 </div>
                 <h3>Playing as: <span className="player-name-highlight">{playerName}</span></h3>
                 
-                {allPicks.some(pick => pick.playerName === playerName && pick.week === currentWeek) ? (
-                  <div style={{color: '#856404', fontWeight: 'bold', marginTop: '15px', background: '#fff3cd', padding: '15px', borderRadius: '8px', border: '2px solid #ffc107'}}>
-                    <div style={{fontSize: '1.1rem', marginBottom: '8px'}}>✏️ EDITING YOUR PICKS</div>
-                    <div style={{fontSize: '0.95rem', fontWeight: 'normal'}}>
-                      Your previous picks have been loaded below. You can change any scores and resubmit as many times as you want until <strong>Friday 11:59 PM PST</strong>.
-                    </div>
-                  </div>
-                ) : (
-                  <div style={{color: '#155724', fontWeight: 'bold', marginTop: '15px', background: '#d1ecf1', padding: '15px', borderRadius: '8px', border: '2px solid #17a2b8'}}>
-                    <div style={{fontSize: '1.1rem', marginBottom: '8px'}}>📝 ENTER YOUR PICKS</div>
-                    <div style={{fontSize: '0.95rem', fontWeight: 'normal'}}>
-                      Fill in your predicted final score for each game below. <strong>Away team</strong> is on the left, <strong>Home team</strong> is on the right. You can edit and resubmit until <strong>Friday 11:59 PM PST</strong>.
-                    </div>
-                  </div>
+                {allPicks.some(pick => pick.playerName === playerName && pick.week === currentWeek) && (
+                  <p style={{color: '#856404', fontWeight: 'bold', marginTop: '10px', background: '#fff3cd', padding: '10px', borderRadius: '5px'}}>
+                    ✏️ You are editing your existing picks. You can update them as many times as you want until Friday 11:59 PM PST.
+                  </p>
                 )}
                 
-                <p style={{color: '#666', fontSize: '0.85rem', marginTop: '10px', fontStyle: 'italic'}}>
-                  Wrong player? Refresh the page and enter the correct code.
+                <p style={{color: '#666', fontSize: '0.9rem', marginTop: '5px'}}>
+                  If this is not you, refresh the page and enter the correct code.
                 </p>
               </div>
               
               <form onSubmit={handleSubmit}>
                 {currentWeekData.games.map(game => (
                   <div key={game.id} className="game-prediction">
-                    <h3>
-                      Game {game.id}
-                      <span style={{fontSize: '0.85rem', fontWeight: 'normal', color: '#666', marginLeft: '10px'}}>
-                        {game.team1} @ {game.team2}
-                      </span>
-                    </h3>
+                    <h3>Game {game.id}</h3>
                     <div className="score-inputs">
                       <div className="team-score">
-                        <label>
-                          <span className="team-designation">AWAY TEAM</span>
-                          <span className="team-name-label">{game.team1}</span>
-                        </label>
+                        <label>{game.team1}</label>
                         <input
                           type="number"
                           min="0"
                           max="99"
                           value={predictions[game.id]?.team1 || ''}
                           onChange={(e) => handleScoreChange(game.id, 'team1', e.target.value)}
-                          placeholder="Score"
                           required
                         />
                       </div>
-                      <span className="vs">@</span>
+                      <span className="vs">vs</span>
                       <div className="team-score">
-                        <label>
-                          <span className="team-designation">HOME TEAM</span>
-                          <span className="team-name-label">{game.team2}</span>
-                        </label>
+                        <label>{game.team2}</label>
                         <input
                           type="number"
                           min="0"
                           max="99"
                           value={predictions[game.id]?.team2 || ''}
                           onChange={(e) => handleScoreChange(game.id, 'team2', e.target.value)}
-                          placeholder="Score"
                           required
                         />
                       </div>
                     </div>
                   </div>
                 ))}
-
-                {/* Progress Indicator */}
-                <div className="progress-indicator">
-                  <div style={{fontSize: '0.95rem', color: '#666', marginBottom: '5px'}}>
-                    <strong>Progress:</strong> {Object.keys(predictions).filter(gameId => 
-                      predictions[gameId]?.team1 && predictions[gameId]?.team2
-                    ).length} of {currentWeekData.games.length} games completed
-                  </div>
-                  <div className="progress-bar">
-                    <div 
-                      className="progress-fill" 
-                      style={{
-                        width: `${(Object.keys(predictions).filter(gameId => 
-                          predictions[gameId]?.team1 && predictions[gameId]?.team2
-                        ).length / currentWeekData.games.length) * 100}%`
-                      }}
-                    ></div>
-                  </div>
-                </div>
 
                 <button 
                   type="submit" 
@@ -460,22 +410,14 @@ function App() {
                   } : {}}
                 >
                   {!isSubmissionAllowed() 
-                    ? '🔒 Picks Locked Until Monday' 
+                    ? '🔒 Locked - Picks Finalized' 
                     : submitted 
-                    ? '✓ Picks Saved Successfully!' 
+                    ? '✓ Saved!' 
                     : allPicks.some(pick => pick.playerName === playerName && pick.week === currentWeek)
-                    ? '💾 Update My Picks (You Can Edit Anytime Until Friday 11:59 PM PST)'
-                    : '✓ Submit My Picks (You Can Edit Later Until Friday 11:59 PM PST)'
+                    ? '💾 Update My Picks'
+                    : '✓ Submit My Picks'
                   }
                 </button>
-                
-                {!isSubmissionAllowed() && (
-                  <p style={{textAlign: 'center', color: '#d63031', marginTop: '15px', fontWeight: 'bold'}}>
-                    Submissions are closed. Your picks for this week are final.
-                    <br />
-                    Reopens Monday 12:01 AM PST for next round.
-                  </p>
-                )}
               </form>
             </>
           )}
