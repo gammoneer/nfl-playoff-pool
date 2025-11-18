@@ -439,9 +439,6 @@ header p {
 .picks-table thead {
   background: #667eea;
   color: white;
-  position: sticky;
-  top: 0;
-  z-index: 10;
 }
 
 .picks-table th {
