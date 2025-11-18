@@ -22,11 +22,11 @@ const database = getDatabase(app);
 // Pool Manager: Add entries as players pay
 // Format: "code": "First Name Last Name"
 const PLAYER_CODES = {
-  "1000": "John Smith",
-  "1001": "Jane Doe",
-  "1002": "Mike Johnson",
-  "1003": "Sarah Williams",
-  "1004": "David Brown",
+  "100099": "John Smith",
+  "100199": "Jane Doe",
+  "100299": "Mike Johnson",
+  "100399": "Sarah Williams",
+  "100499": "David Brown",
   "9904": "Neema Dadmand",
   // Add more as people pay...
   // Codes can be 1000-9999
