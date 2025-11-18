@@ -27,7 +27,7 @@ const PLAYER_CODES = {
   "100299": "Mike Johnson",
   "100399": "Sarah Williams",
   "100499": "David Brown",
-  "9904": "Neema Dadmand",
+  "990499": "Neema Dadmand",
   // Add more as people pay...
   // Codes can be 1000-9999
 };
@@ -146,12 +146,12 @@ function App() {
     const code = playerCode.trim();
     
     if (!code) {
-      alert('Please enter your 4-digit player code');
+      alert('Please enter your 6-digit player code');
       return;
     }
     
-    if (code.length !== 4 || !/^\d{4}$/.test(code)) {
-      alert('Invalid code format!\n\nPlayer codes must be exactly 4 digits.\nExample: 1234');
+    if (code.length !== 6 || !/^\d{6}$/.test(code)) {
+      alert('Invalid code format!\n\nPlayer codes must be exactly 6 digits.\nExample: 123456');
       return;
     }
     
