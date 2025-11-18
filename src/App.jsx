@@ -365,6 +365,26 @@ function App() {
                   ✓ Code Validated - You're Logged In!
                 </div>
                 <h3>Playing as: <span className="player-name-highlight">{playerName}</span></h3>
+                <button 
+                  onClick={() => {
+                    setCodeValidated(false);
+                    setPlayerCode('');
+                    setPlayerName('');
+                    setPredictions({});
+                  }}
+                  style={{
+                    marginTop: '10px',
+                    padding: '8px 16px',
+                    background: '#667eea',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '5px',
+                    cursor: 'pointer',
+                    fontSize: '0.9rem'
+                  }}
+                >
+                  🔄 Enter Different Code
+                </button>
                 
                 {allPicks.some(pick => pick.playerName === playerName && pick.week === currentWeek) ? (
                   <div style={{color: '#856404', fontWeight: 'bold', marginTop: '15px', background: '#fff3cd', padding: '15px', borderRadius: '8px', border: '2px solid #ffc107'}}>
@@ -485,6 +505,35 @@ function App() {
         {/* Display All Picks */}
         <div className="all-picks">
           <h2>All Player Picks - {currentWeekData.name}</h2>
+                    <button 
+                      onClick={() => {
+                        const picksRef = ref(database, 'picks');
+                        onValue(picksRef, (snapshot) => {
+                          const data = snapshot.val();
+                          if (data) {
+                            const picksArray = Object.keys(data).map(key => ({
+                              ...data[key],
+                              firebaseKey: key
+                            }));
+                            setAllPicks(picksArray);
+                          }
+                        });
+                      }}
+                      style={{
+                        padding: '10px 20px',
+                        background: '#4caf50',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        fontSize: '1rem',
+                        marginBottom: '20px',
+                        display: 'block',
+                        margin: '0 auto 20px auto'
+                      }}
+                    >
+                      🔄 Refresh Picks Table
+                    </button>
           
           {allPicks.filter(pick => pick.week === currentWeek).length === 0 ? (
             <p className="no-picks">No picks submitted yet for this week.</p>
