@@ -29,6 +29,7 @@ const PLAYER_CODES = {
   "100499": "David Brown",
   "990499": "Neema Dadmand",
   "990099": "Richard Biletski",
+  "999000": "Dallas Pylypow",
   // Add more as people pay...
   // Codes can be 1000-9999
 };
