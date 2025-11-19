@@ -338,7 +338,7 @@ function App() {
     <div className="App">
       <header>
         <h1>🏈 Richard's NFL Playoff Pool 2025</h1>
-        <p>Enter your score predictions for each game</p>
+        <p>Enter your score predictions for each NFL Playoff 2025 game</p>
       </header>
 
       <div className="container">
