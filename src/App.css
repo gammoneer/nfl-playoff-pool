@@ -428,6 +428,9 @@ header p {
 /* Picks Table */
 .picks-table-container {
   overflow-x: auto;
+  max-height: 600px;
+  overflow-y: auto;
+  position: relative;
 }
 
 .picks-table {
@@ -441,7 +444,14 @@ header p {
   color: white;
   position: sticky;
   top: 0;
-  z-index: 10;
+  z-index: 100;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+.picks-table thead th {
+  position: sticky;
+  top: 0;
+  background: #667eea;
 }
 
 .picks-table th {
@@ -562,6 +572,22 @@ footer {
   
   .player-name-highlight {
     font-size: 1.2rem;
+  }
+
+  /* Mobile sticky header fix */
+  .picks-table-container {
+    max-height: 500px;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .picks-table thead {
+    position: sticky;
+    top: -1px;
+    z-index: 999;
+  }
+  
+  .picks-table thead th {
+    background: #667eea !important;
   }
 }
 

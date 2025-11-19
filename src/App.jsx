@@ -28,6 +28,7 @@ const PLAYER_CODES = {
   "100399": "Sarah Williams",
   "100499": "David Brown",
   "990499": "Neema Dadmand",
+  "990099": "Richard Biletski",
   // Add more as people pay...
   // Codes can be 1000-9999
 };
@@ -326,7 +327,7 @@ function App() {
             <div className="code-entry-section">
               <h3>🔐 Enter Your Player Code</h3>
               <p style={{color: '#666', marginBottom: '20px'}}>
-                Enter the 4-digit code you received after paying your $20 entry fee.
+                Enter the 6-digit code you received after paying your $20 entry fee.
               </p>
               
               <div className="code-input-group">
@@ -334,9 +335,9 @@ function App() {
                 <input
                   type="text"
                   value={playerCode}
-                  onChange={(e) => setPlayerCode(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                  placeholder="1234"
-                  maxLength="4"
+                  onChange={(e) => setPlayerCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  placeholder="123456"
+                  maxLength="6"
                   className="code-input"
                   autoFocus
                 />
