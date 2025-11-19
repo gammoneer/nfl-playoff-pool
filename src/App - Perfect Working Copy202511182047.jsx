@@ -188,15 +188,8 @@ function App() {
       return;
     }
 
-    // Create CSV header - First row with game numbers
-    let csv = ','; // Empty cell for player name column
-    currentWeekData.games.forEach(game => {
-      csv += `Game ${game.id},Game ${game.id},`;
-    });
-    csv += '\n';
-
-    // Second header row with team names
-    csv += 'Player Name,';
+    // Create CSV header
+    let csv = 'Player Name,';
     currentWeekData.games.forEach(game => {
       csv += `${game.team1} Score,${game.team2} Score,`;
     });
