@@ -647,13 +647,10 @@ function App() {
                         <td className="total-points">
                           {(() => {
                             let sum = 0;
-                            currentWeekData.games.forEach(game => {
-                              const pred = pick.predictions[game.id];
-                              if (pred) {
-                                sum += Number(pred.team1 || 0);
-                                sum += Number(pred.team2 || 0);
-                              }
-                            });
+                            for (let gameId in pick.predictions) {
+                              sum += Number(pick.predictions[gameId].team1 || 0);
+                              sum += Number(pick.predictions[gameId].team2 || 0);
+                            }
                             return sum;
                           })()}
                         </td>
