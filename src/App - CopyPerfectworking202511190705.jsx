@@ -201,8 +201,7 @@ function App() {
     currentWeekData.games.forEach(game => {
       csv += `${game.team1} Score,${game.team2} Score,`;
     });
-    // csv += 'Submitted At\n';
-    csv += 'Total Points,Submitted At\n';
+    csv += 'Submitted At\n';
 
     // Add data rows
     weekPicks
@@ -223,14 +222,7 @@ function App() {
           second: '2-digit',
           hour12: true
         });
-        // Calculate total points
-        const totalPoints = currentWeekData.games.reduce((total, game) => {
-          const team1Score = parseInt(pick.predictions[game.id]?.team1) || 0;
-          const team2Score = parseInt(pick.predictions[game.id]?.team2) || 0;
-          return total + team1Score + team2Score;
-        }, 0);
-        
-        csv += `${totalPoints},"${date}"\n`;
+        csv += `"${date}"\n`;
       });
 
     // Create download
@@ -616,7 +608,6 @@ function App() {
                         <small>{game.team1} vs {game.team2}</small>
                       </th>
                     ))}
-                    <th>Total<br/><small>Points</small></th>
                     <th>Last Updated</th>
                   </tr>
                 </thead>
@@ -644,16 +635,6 @@ function App() {
                             </React.Fragment>
                           );
                         })}
-                        <td className="total-points">
-                          {(() => {
-                            let sum = 0;
-                            for (let gameId in pick.predictions) {
-                              sum += Number(pick.predictions[gameId].team1 || 0);
-                              sum += Number(pick.predictions[gameId].team2 || 0);
-                            }
-                            return sum;
-                          })()}
-                        </td>
                         <td className="timestamp">
                           {new Date(pick.lastUpdated || pick.timestamp).toLocaleString('en-US', {
                             month: '2-digit',
