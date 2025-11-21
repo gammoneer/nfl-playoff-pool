@@ -405,9 +405,6 @@ function App() {
       <header>
         <h1>🏈 Richard's NFL Playoff Pool 2025</h1>
         <p>Enter your score predictions for each NFL Playoff 2025 game</p>
-        <p style={{fontSize: '12px', color: 'rgba(255,255,255,0.7)', marginTop: '10px'}}>
-          Version: 202511211241 | Build: FIX-PRECALC-v3
-        </p>
       </header>
 
       <div className="container">
@@ -692,95 +689,10 @@ function App() {
                   </tr>
                 </thead>
                 <tbody>
-                  {(() => {
-                    // PRE-CALCULATE ALL TOTALS BEFORE RENDERING
-                    const playerTotals = {};
-                    
-                    // Get all unique player names
-                    const uniquePlayers = [...new Set(allPicks.map(p => p.playerName))];
-                    
-                    uniquePlayers.forEach(playerName => {
-                      playerTotals[playerName] = {
-                        week1: 0,
-                        week2: 0,
-                        week3: 0,
-                        week4: 0,
-                        grand: 0
-                      };
-                      
-                      // Calculate Week 1 (Wild Card) - games 1-6
-                      const w1Picks = allPicks.find(p => p.playerName === playerName && p.week === 'wildcard');
-                      if (w1Picks && w1Picks.predictions) {
-                        PLAYOFF_WEEKS.wildcard.games.forEach(game => {
-                          const pred = w1Picks.predictions[game.id];
-                          if (pred && pred.team1 && pred.team2) {
-                            playerTotals[playerName].week1 += parseInt(pred.team1) + parseInt(pred.team2);
-                          }
-                        });
-                      }
-                      
-                      // Calculate Week 2 (Divisional) - games 7-10
-                      const w2Picks = allPicks.find(p => p.playerName === playerName && p.week === 'divisional');
-                      if (w2Picks && w2Picks.predictions) {
-                        PLAYOFF_WEEKS.divisional.games.forEach(game => {
-                          const pred = w2Picks.predictions[game.id];
-                          if (pred && pred.team1 && pred.team2) {
-                            playerTotals[playerName].week2 += parseInt(pred.team1) + parseInt(pred.team2);
-                          }
-                        });
-                      }
-                      
-                      // Calculate Week 3 (Conference) - games 11-12
-                      const w3Picks = allPicks.find(p => p.playerName === playerName && p.week === 'conference');
-                      if (w3Picks && w3Picks.predictions) {
-                        PLAYOFF_WEEKS.conference.games.forEach(game => {
-                          const pred = w3Picks.predictions[game.id];
-                          if (pred && pred.team1 && pred.team2) {
-                            playerTotals[playerName].week3 += parseInt(pred.team1) + parseInt(pred.team2);
-                          }
-                        });
-                      }
-                      
-                      // Calculate Week 4 (Super Bowl) - game 13
-                      const w4Picks = allPicks.find(p => p.playerName === playerName && p.week === 'superbowl');
-                      if (w4Picks && w4Picks.predictions) {
-                        PLAYOFF_WEEKS.superbowl.games.forEach(game => {
-                          const pred = w4Picks.predictions[game.id];
-                          if (pred && pred.team1 && pred.team2) {
-                            playerTotals[playerName].week4 += parseInt(pred.team1) + parseInt(pred.team2);
-                          }
-                        });
-                      }
-                      
-                      // Calculate GRAND TOTAL (all weeks)
-                      playerTotals[playerName].grand = 
-                        playerTotals[playerName].week1 +
-                        playerTotals[playerName].week2 +
-                        playerTotals[playerName].week3 +
-                        playerTotals[playerName].week4;
-                    });
-                    
-                    // DEBUG: Log the totals
-                    console.log('=== PLAYER TOTALS CALCULATED ===');
-                    console.log(JSON.stringify(playerTotals, null, 2));
-                    
-                    // NOW RENDER THE TABLE WITH PRE-CALCULATED TOTALS
-                    return allPicks
+                  {allPicks
                     .filter(pick => pick.week === currentWeek)
                     .sort((a, b) => (b.lastUpdated || b.timestamp) - (a.lastUpdated || a.timestamp))
-                    .map((pick, idx) => {
-                      // Get current week total for this pick
-                      let currentWeekTotal = 0;
-                      if (pick.predictions) {
-                        currentWeekData.games.forEach(game => {
-                          const pred = pick.predictions[game.id];
-                          if (pred && pred.team1 && pred.team2) {
-                            currentWeekTotal += parseInt(pred.team1) + parseInt(pred.team2);
-                          }
-                        });
-                      }
-                      
-                      return (
+                    .map((pick, idx) => (
                       <tr key={idx}>
                         <td className="player-name">{pick.playerName}</td>
                         {currentWeekData.games.map(game => {
@@ -803,33 +715,33 @@ function App() {
                         {currentWeek === 'superbowl' ? (
                           <>
                             {/* Week 4 Total (Super Bowl) */}
-                            <td className="total-points" style={{backgroundColor: '#fff3cd', fontWeight: 'bold', fontSize: '16px'}}>
-                              <span style={{color: '#000'}}>{playerTotals[pick.playerName]?.week4 || 0}</span>
+                            <td style={{backgroundColor: 'red', color: 'white', fontSize: '24px', fontWeight: 'bold', padding: '20px'}}>
+                              TEST 999
                             </td>
                             
                             {/* Week 3 Total (Conference) */}
-                            <td className="total-points" style={{backgroundColor: '#d1ecf1', fontWeight: 'bold', fontSize: '16px'}}>
-                              <span style={{color: '#000'}}>{playerTotals[pick.playerName]?.week3 || 0}</span>
+                            <td style={{backgroundColor: 'blue', color: 'white', fontSize: '24px', fontWeight: 'bold', padding: '20px'}}>
+                              TEST 888
                             </td>
                             
                             {/* Week 2 Total (Divisional) */}
-                            <td className="total-points" style={{backgroundColor: '#d4edda', fontWeight: 'bold', fontSize: '16px'}}>
-                              <span style={{color: '#000'}}>{playerTotals[pick.playerName]?.week2 || 0}</span>
+                            <td style={{backgroundColor: 'green', color: 'white', fontSize: '24px', fontWeight: 'bold', padding: '20px'}}>
+                              TEST 777
                             </td>
                             
                             {/* Week 1 Total (Wild Card) */}
-                            <td className="total-points" style={{backgroundColor: '#f8d7da', fontWeight: 'bold', fontSize: '16px'}}>
-                              <span style={{color: '#000'}}>{playerTotals[pick.playerName]?.week1 || 0}</span>
+                            <td style={{backgroundColor: 'orange', color: 'black', fontSize: '24px', fontWeight: 'bold', padding: '20px'}}>
+                              TEST 666
                             </td>
                             
                             {/* GRAND TOTAL (All 4 Weeks) */}
-                            <td className="grand-total" style={{fontWeight: 'bold', fontSize: '18px'}}>
-                              <span style={{color: '#fff'}}>{playerTotals[pick.playerName]?.grand || 0}</span>
+                            <td style={{backgroundColor: 'purple', color: 'white', fontSize: '28px', fontWeight: 'bold', padding: '20px'}}>
+                              TEST 555
                             </td>
                           </>
                         ) : (
-                          <td className="total-points" style={{backgroundColor: '#e2e3e5', fontWeight: 'bold', fontSize: '16px'}}>
-                            <span style={{color: '#000'}}>{currentWeekTotal}</span>
+                          <td style={{backgroundColor: 'yellow', color: 'black', fontSize: '24px', fontWeight: 'bold', padding: '20px'}}>
+                            TEST 444
                           </td>
                         )}
                         <td className="timestamp">
@@ -845,9 +757,7 @@ function App() {
                           })}
                         </td>
                       </tr>
-                    );
-                    });
-                  })()}
+                    ))}
                 </tbody>
               </table>
                     
