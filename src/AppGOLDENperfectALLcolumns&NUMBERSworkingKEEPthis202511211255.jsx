@@ -405,8 +405,8 @@ function App() {
       <header>
         <h1>🏈 Richard's NFL Playoff Pool 2025</h1>
         <p>Enter your score predictions for each NFL Playoff 2025 game</p>
-        <p style={{fontSize: '11px', color: 'rgba(255,255,255,0.6)', marginTop: '5px'}}>
-          v1.0-FINAL-20251121-1845
+        <p style={{fontSize: '12px', color: 'rgba(255,255,255,0.7)', marginTop: '10px'}}>
+          Version: 202511211241 | Build: FIX-PRECALC-v3
         </p>
       </header>
 
@@ -760,6 +760,10 @@ function App() {
                         playerTotals[playerName].week4;
                     });
                     
+                    // DEBUG: Log the totals
+                    console.log('=== PLAYER TOTALS CALCULATED ===');
+                    console.log(JSON.stringify(playerTotals, null, 2));
+                    
                     // NOW RENDER THE TABLE WITH PRE-CALCULATED TOTALS
                     return allPicks
                     .filter(pick => pick.week === currentWeek)
@@ -799,22 +803,22 @@ function App() {
                         {currentWeek === 'superbowl' ? (
                           <>
                             {/* Week 4 Total (Super Bowl) */}
-                            <td className="total-points" style={{backgroundColor: '#f8f9fa', fontWeight: 'bold', fontSize: '16px'}}>
+                            <td className="total-points" style={{backgroundColor: '#fff3cd', fontWeight: 'bold', fontSize: '16px'}}>
                               <span style={{color: '#000'}}>{playerTotals[pick.playerName]?.week4 || 0}</span>
                             </td>
                             
                             {/* Week 3 Total (Conference) */}
-                            <td className="total-points" style={{backgroundColor: '#f8f9fa', fontWeight: 'bold', fontSize: '16px'}}>
+                            <td className="total-points" style={{backgroundColor: '#d1ecf1', fontWeight: 'bold', fontSize: '16px'}}>
                               <span style={{color: '#000'}}>{playerTotals[pick.playerName]?.week3 || 0}</span>
                             </td>
                             
                             {/* Week 2 Total (Divisional) */}
-                            <td className="total-points" style={{backgroundColor: '#f8f9fa', fontWeight: 'bold', fontSize: '16px'}}>
+                            <td className="total-points" style={{backgroundColor: '#d4edda', fontWeight: 'bold', fontSize: '16px'}}>
                               <span style={{color: '#000'}}>{playerTotals[pick.playerName]?.week2 || 0}</span>
                             </td>
                             
                             {/* Week 1 Total (Wild Card) */}
-                            <td className="total-points" style={{backgroundColor: '#f8f9fa', fontWeight: 'bold', fontSize: '16px'}}>
+                            <td className="total-points" style={{backgroundColor: '#f8d7da', fontWeight: 'bold', fontSize: '16px'}}>
                               <span style={{color: '#000'}}>{playerTotals[pick.playerName]?.week1 || 0}</span>
                             </td>
                             
@@ -824,7 +828,7 @@ function App() {
                             </td>
                           </>
                         ) : (
-                          <td className="total-points" style={{backgroundColor: '#f8f9fa', fontWeight: 'bold', fontSize: '16px'}}>
+                          <td className="total-points" style={{backgroundColor: '#e2e3e5', fontWeight: 'bold', fontSize: '16px'}}>
                             <span style={{color: '#000'}}>{currentWeekTotal}</span>
                           </td>
                         )}

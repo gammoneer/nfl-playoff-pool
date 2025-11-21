@@ -405,9 +405,6 @@ function App() {
       <header>
         <h1>🏈 Richard's NFL Playoff Pool 2025</h1>
         <p>Enter your score predictions for each NFL Playoff 2025 game</p>
-        <p style={{fontSize: '11px', color: 'rgba(255,255,255,0.6)', marginTop: '5px'}}>
-          v1.0-FINAL-20251121-1845
-        </p>
       </header>
 
       <div className="container">
