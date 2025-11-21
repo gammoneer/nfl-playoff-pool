@@ -98,74 +98,6 @@ function App() {
     });
   }, []);
 
-  // Calculate all player totals - this runs whenever allPicks changes
-  const playerTotals = React.useMemo(() => {
-    const totals = {};
-    
-    // Get unique player names
-    const playerNames = [...new Set(allPicks.map(p => p.playerName))];
-    
-    playerNames.forEach(playerName => {
-      // Find all picks for this player
-      const w1Pick = allPicks.find(p => p.playerName === playerName && p.week === 'wildcard');
-      const w2Pick = allPicks.find(p => p.playerName === playerName && p.week === 'divisional');
-      const w3Pick = allPicks.find(p => p.playerName === playerName && p.week === 'conference');
-      const w4Pick = allPicks.find(p => p.playerName === playerName && p.week === 'superbowl');
-      
-      // Calculate Week 1 total
-      let week1Total = 0;
-      if (w1Pick && w1Pick.predictions) {
-        Object.values(w1Pick.predictions).forEach(pred => {
-          if (pred && pred.team1 && pred.team2) {
-            week1Total += parseInt(pred.team1) + parseInt(pred.team2);
-          }
-        });
-      }
-      
-      // Calculate Week 2 total
-      let week2Total = 0;
-      if (w2Pick && w2Pick.predictions) {
-        Object.values(w2Pick.predictions).forEach(pred => {
-          if (pred && pred.team1 && pred.team2) {
-            week2Total += parseInt(pred.team1) + parseInt(pred.team2);
-          }
-        });
-      }
-      
-      // Calculate Week 3 total
-      let week3Total = 0;
-      if (w3Pick && w3Pick.predictions) {
-        Object.values(w3Pick.predictions).forEach(pred => {
-          if (pred && pred.team1 && pred.team2) {
-            week3Total += parseInt(pred.team1) + parseInt(pred.team2);
-          }
-        });
-      }
-      
-      // Calculate Week 4 total
-      let week4Total = 0;
-      if (w4Pick && w4Pick.predictions) {
-        Object.values(w4Pick.predictions).forEach(pred => {
-          if (pred && pred.team1 && pred.team2) {
-            week4Total += parseInt(pred.team1) + parseInt(pred.team2);
-          }
-        });
-      }
-      
-      // Store all totals for this player
-      totals[playerName] = {
-        week1: week1Total,
-        week2: week2Total,
-        week3: week3Total,
-        week4: week4Total,
-        grand: week1Total + week2Total + week3Total + week4Total,
-        currentWeek: w1Pick ? week1Total : w2Pick ? week2Total : w3Pick ? week3Total : w4Pick ? week4Total : 0
-      };
-    });
-    
-    return totals;
-  }, [allPicks]);
-
   const handleScoreChange = (gameId, team, score) => {
     setPredictions(prev => ({
       ...prev,
@@ -760,7 +692,18 @@ function App() {
                   {allPicks
                     .filter(pick => pick.week === currentWeek)
                     .sort((a, b) => (b.lastUpdated || b.timestamp) - (a.lastUpdated || a.timestamp))
-                    .map((pick, idx) => (
+                    .map((pick, idx) => {
+                      // Calculate total for this pick BEFORE rendering
+                      let weekTotal = 0;
+                      if (pick.predictions) {
+                        Object.values(pick.predictions).forEach(pred => {
+                          if (pred && pred.team1 && pred.team2) {
+                            weekTotal += parseInt(pred.team1) + parseInt(pred.team2);
+                          }
+                        });
+                      }
+                      
+                      return (
                       <tr key={idx}>
                         <td className="player-name">{pick.playerName}</td>
                         {currentWeekData.games.map(game => {
@@ -784,34 +727,106 @@ function App() {
                           <>
                             {/* Week 4 Total (Super Bowl) */}
                             <td className="total-points">
-                              {playerTotals[pick.playerName]?.week4 || 0}
+                              {(() => {
+                                const playerWeekPicks = allPicks.filter(p => 
+                                  p.playerName === pick.playerName && p.week === 'superbowl'
+                                );
+                                let total = 0;
+                                playerWeekPicks.forEach(weekPick => {
+                                  if (weekPick.predictions) {
+                                    Object.values(weekPick.predictions).forEach(pred => {
+                                      if (pred && pred.team1 && pred.team2) {
+                                        total += parseInt(pred.team1) + parseInt(pred.team2);
+                                      }
+                                    });
+                                  }
+                                });
+                                return total;
+                              })()}
                             </td>
                             
                             {/* Week 3 Total (Conference) */}
                             <td className="total-points">
-                              {playerTotals[pick.playerName]?.week3 || 0}
+                              {(() => {
+                                const playerWeekPicks = allPicks.filter(p => 
+                                  p.playerName === pick.playerName && p.week === 'conference'
+                                );
+                                let total = 0;
+                                playerWeekPicks.forEach(weekPick => {
+                                  if (weekPick.predictions) {
+                                    Object.values(weekPick.predictions).forEach(pred => {
+                                      if (pred && pred.team1 && pred.team2) {
+                                        total += parseInt(pred.team1) + parseInt(pred.team2);
+                                      }
+                                    });
+                                  }
+                                });
+                                return total;
+                              })()}
                             </td>
                             
                             {/* Week 2 Total (Divisional) */}
                             <td className="total-points">
-                              {playerTotals[pick.playerName]?.week2 || 0}
+                              {(() => {
+                                const playerWeekPicks = allPicks.filter(p => 
+                                  p.playerName === pick.playerName && p.week === 'divisional'
+                                );
+                                let total = 0;
+                                playerWeekPicks.forEach(weekPick => {
+                                  if (weekPick.predictions) {
+                                    Object.values(weekPick.predictions).forEach(pred => {
+                                      if (pred && pred.team1 && pred.team2) {
+                                        total += parseInt(pred.team1) + parseInt(pred.team2);
+                                      }
+                                    });
+                                  }
+                                });
+                                return total;
+                              })()}
                             </td>
                             
                             {/* Week 1 Total (Wild Card) */}
                             <td className="total-points">
-                              {playerTotals[pick.playerName]?.week1 || 0}
+                              {(() => {
+                                const playerWeekPicks = allPicks.filter(p => 
+                                  p.playerName === pick.playerName && p.week === 'wildcard'
+                                );
+                                let total = 0;
+                                playerWeekPicks.forEach(weekPick => {
+                                  if (weekPick.predictions) {
+                                    Object.values(weekPick.predictions).forEach(pred => {
+                                      if (pred && pred.team1 && pred.team2) {
+                                        total += parseInt(pred.team1) + parseInt(pred.team2);
+                                      }
+                                    });
+                                  }
+                                });
+                                return total;
+                              })()}
                             </td>
                             
                             {/* GRAND TOTAL (All 4 Weeks) */}
                             <td className="grand-total">
-                              {playerTotals[pick.playerName]?.grand || 0}
+                              {(() => {
+                                let grandTotal = 0;
+                                allPicks
+                                  .filter(p => p.playerName === pick.playerName)
+                                  .forEach(weekPick => {
+                                    if (weekPick.predictions) {
+                                      Object.values(weekPick.predictions).forEach(pred => {
+                                        if (pred && pred.team1 && pred.team2) {
+                                          grandTotal += parseInt(pred.team1) + parseInt(pred.team2);
+                                        }
+                                      });
+                                    }
+                                  });
+                                return grandTotal;
+                              })()}
                             </td>
                           </>
                         ) : (
                           <td className="total-points">
-                            {currentWeek === 'wildcard' ? (playerTotals[pick.playerName]?.week1 || 0) :
-                             currentWeek === 'divisional' ? (playerTotals[pick.playerName]?.week2 || 0) :
-                             currentWeek === 'conference' ? (playerTotals[pick.playerName]?.week3 || 0) : 0}
+                            {weekTotal}
                           </td>
                         )}
                         <td className="timestamp">
@@ -827,7 +842,8 @@ function App() {
                           })}
                         </td>
                       </tr>
-                    ))}
+                    );
+                  })}
                 </tbody>
               </table>
                     
