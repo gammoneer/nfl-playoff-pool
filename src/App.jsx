@@ -718,14 +718,14 @@ function App() {
                             <td className="total-points">
                               {(() => {
                                 const w4Pick = allPicks.find(p => p.playerName === pick.playerName && p.week === 'superbowl');
-                                if (!w4Pick) return 0;
-                                if (!w4Pick.predictions) return 0;
+                                if (!w4Pick) return <span>0</span>;
+                                if (!w4Pick.predictions) return <span>0</span>;
                                 let sum = 0;
                                 PLAYOFF_WEEKS.superbowl.games.forEach(game => {
                                   const pred = w4Pick.predictions[game.id];
                                   if (pred) sum += (Number(pred.team1) || 0) + (Number(pred.team2) || 0);
                                 });
-                                return sum;
+                                return <span>{sum}</span>;
                               })()}
                             </td>
                             
@@ -733,14 +733,14 @@ function App() {
                             <td className="total-points">
                               {(() => {
                                 const w3Pick = allPicks.find(p => p.playerName === pick.playerName && p.week === 'conference');
-                                if (!w3Pick) return 0;
-                                if (!w3Pick.predictions) return 0;
+                                if (!w3Pick) return <span>0</span>;
+                                if (!w3Pick.predictions) return <span>0</span>;
                                 let sum = 0;
                                 PLAYOFF_WEEKS.conference.games.forEach(game => {
                                   const pred = w3Pick.predictions[game.id];
                                   if (pred) sum += (Number(pred.team1) || 0) + (Number(pred.team2) || 0);
                                 });
-                                return sum;
+                                return <span>{sum}</span>;
                               })()}
                             </td>
                             
@@ -748,14 +748,14 @@ function App() {
                             <td className="total-points">
                               {(() => {
                                 const w2Pick = allPicks.find(p => p.playerName === pick.playerName && p.week === 'divisional');
-                                if (!w2Pick) return 0;
-                                if (!w2Pick.predictions) return 0;
+                                if (!w2Pick) return <span>0</span>;
+                                if (!w2Pick.predictions) return <span>0</span>;
                                 let sum = 0;
                                 PLAYOFF_WEEKS.divisional.games.forEach(game => {
                                   const pred = w2Pick.predictions[game.id];
                                   if (pred) sum += (Number(pred.team1) || 0) + (Number(pred.team2) || 0);
                                 });
-                                return sum;
+                                return <span>{sum}</span>;
                               })()}
                             </td>
                             
@@ -763,14 +763,14 @@ function App() {
                             <td className="total-points">
                               {(() => {
                                 const w1Pick = allPicks.find(p => p.playerName === pick.playerName && p.week === 'wildcard');
-                                if (!w1Pick) return 0;
-                                if (!w1Pick.predictions) return 0;
+                                if (!w1Pick) return <span>0</span>;
+                                if (!w1Pick.predictions) return <span>0</span>;
                                 let sum = 0;
                                 PLAYOFF_WEEKS.wildcard.games.forEach(game => {
                                   const pred = w1Pick.predictions[game.id];
                                   if (pred) sum += (Number(pred.team1) || 0) + (Number(pred.team2) || 0);
                                 });
-                                return sum;
+                                return <span>{sum}</span>;
                               })()}
                             </td>
                             
@@ -814,7 +814,7 @@ function App() {
                                   });
                                 }
                                 
-                                return week4Total + week3Total + week2Total + week1Total;
+                                return <span>{week4Total + week3Total + week2Total + week1Total}</span>;
                               })()}
                             </td>
                           </>
@@ -822,14 +822,14 @@ function App() {
                           <td className="total-points">
                             {(() => {
                               const weekPick = allPicks.find(p => p.playerName === pick.playerName && p.week === currentWeek);
-                              if (!weekPick) return 0;
-                              if (!weekPick.predictions) return 0;
+                              if (!weekPick) return <span>0</span>;
+                              if (!weekPick.predictions) return <span>0</span>;
                               let sum = 0;
                               PLAYOFF_WEEKS[currentWeek].games.forEach(game => {
                                 const pred = weekPick.predictions[game.id];
                                 if (pred) sum += (Number(pred.team1) || 0) + (Number(pred.team2) || 0);
                               });
-                              return sum;
+                              return <span>{sum}</span>;
                             })()}
                           </td>
                         )}
