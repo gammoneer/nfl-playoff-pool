@@ -80,6 +80,38 @@ function App() {
   const [allPicks, setAllPicks] = useState([]);
   const [submitted, setSubmitted] = useState(false);
 
+  // Helper function to calculate total points for a player in a specific week
+  // This matches the CSV download logic exactly
+  const calculateWeekTotal = (playerName, weekName) => {
+    const weekPick = allPicks.find(p => 
+      p.playerName === playerName && p.week === weekName
+    );
+    
+    if (!weekPick || !weekPick.predictions) return 0;
+    
+    let total = 0;
+    const weekGames = PLAYOFF_WEEKS[weekName].games;
+    
+    weekGames.forEach(game => {
+      const pred = weekPick.predictions[game.id];
+      if (pred) {
+        total += (Number(pred.team1) || 0) + (Number(pred.team2) || 0);
+      }
+    });
+    
+    return total;
+  };
+
+  // Helper function to calculate grand total for a player (all weeks)
+  const calculateGrandTotal = (playerName) => {
+    const week4Total = calculateWeekTotal(playerName, 'superbowl');
+    const week3Total = calculateWeekTotal(playerName, 'conference');
+    const week2Total = calculateWeekTotal(playerName, 'divisional');
+    const week1Total = calculateWeekTotal(playerName, 'wildcard');
+    
+    return week4Total + week3Total + week2Total + week1Total;
+  };
+
   // Load all picks from Firebase
   useEffect(() => {
     const picksRef = ref(database, 'picks');
@@ -716,121 +748,32 @@ function App() {
                           <>
                             {/* Week 4 Total (Super Bowl) */}
                             <td className="total-points">
-                              {(() => {
-                                const w4Pick = allPicks.find(p => p.playerName === pick.playerName && p.week === 'superbowl');
-                                if (!w4Pick) return <span>0</span>;
-                                if (!w4Pick.predictions) return <span>0</span>;
-                                let sum = 0;
-                                PLAYOFF_WEEKS.superbowl.games.forEach(game => {
-                                  const pred = w4Pick.predictions[game.id];
-                                  if (pred) sum += (Number(pred.team1) || 0) + (Number(pred.team2) || 0);
-                                });
-                                return <span>{sum}</span>;
-                              })()}
+                              {calculateWeekTotal(pick.playerName, 'superbowl')}
                             </td>
                             
                             {/* Week 3 Total (Conference) */}
                             <td className="total-points">
-                              {(() => {
-                                const w3Pick = allPicks.find(p => p.playerName === pick.playerName && p.week === 'conference');
-                                if (!w3Pick) return <span>0</span>;
-                                if (!w3Pick.predictions) return <span>0</span>;
-                                let sum = 0;
-                                PLAYOFF_WEEKS.conference.games.forEach(game => {
-                                  const pred = w3Pick.predictions[game.id];
-                                  if (pred) sum += (Number(pred.team1) || 0) + (Number(pred.team2) || 0);
-                                });
-                                return <span>{sum}</span>;
-                              })()}
+                              {calculateWeekTotal(pick.playerName, 'conference')}
                             </td>
                             
                             {/* Week 2 Total (Divisional) */}
                             <td className="total-points">
-                              {(() => {
-                                const w2Pick = allPicks.find(p => p.playerName === pick.playerName && p.week === 'divisional');
-                                if (!w2Pick) return <span>0</span>;
-                                if (!w2Pick.predictions) return <span>0</span>;
-                                let sum = 0;
-                                PLAYOFF_WEEKS.divisional.games.forEach(game => {
-                                  const pred = w2Pick.predictions[game.id];
-                                  if (pred) sum += (Number(pred.team1) || 0) + (Number(pred.team2) || 0);
-                                });
-                                return <span>{sum}</span>;
-                              })()}
+                              {calculateWeekTotal(pick.playerName, 'divisional')}
                             </td>
                             
                             {/* Week 1 Total (Wild Card) */}
                             <td className="total-points">
-                              {(() => {
-                                const w1Pick = allPicks.find(p => p.playerName === pick.playerName && p.week === 'wildcard');
-                                if (!w1Pick) return <span>0</span>;
-                                if (!w1Pick.predictions) return <span>0</span>;
-                                let sum = 0;
-                                PLAYOFF_WEEKS.wildcard.games.forEach(game => {
-                                  const pred = w1Pick.predictions[game.id];
-                                  if (pred) sum += (Number(pred.team1) || 0) + (Number(pred.team2) || 0);
-                                });
-                                return <span>{sum}</span>;
-                              })()}
+                              {calculateWeekTotal(pick.playerName, 'wildcard')}
                             </td>
                             
                             {/* GRAND TOTAL (All 4 Weeks) */}
                             <td className="grand-total">
-                              {(() => {
-                                const w4Pick = allPicks.find(p => p.playerName === pick.playerName && p.week === 'superbowl');
-                                const w3Pick = allPicks.find(p => p.playerName === pick.playerName && p.week === 'conference');
-                                const w2Pick = allPicks.find(p => p.playerName === pick.playerName && p.week === 'divisional');
-                                const w1Pick = allPicks.find(p => p.playerName === pick.playerName && p.week === 'wildcard');
-                                
-                                let week4Total = 0;
-                                if (w4Pick && w4Pick.predictions) {
-                                  PLAYOFF_WEEKS.superbowl.games.forEach(game => {
-                                    const pred = w4Pick.predictions[game.id];
-                                    if (pred) week4Total += (Number(pred.team1) || 0) + (Number(pred.team2) || 0);
-                                  });
-                                }
-                                
-                                let week3Total = 0;
-                                if (w3Pick && w3Pick.predictions) {
-                                  PLAYOFF_WEEKS.conference.games.forEach(game => {
-                                    const pred = w3Pick.predictions[game.id];
-                                    if (pred) week3Total += (Number(pred.team1) || 0) + (Number(pred.team2) || 0);
-                                  });
-                                }
-                                
-                                let week2Total = 0;
-                                if (w2Pick && w2Pick.predictions) {
-                                  PLAYOFF_WEEKS.divisional.games.forEach(game => {
-                                    const pred = w2Pick.predictions[game.id];
-                                    if (pred) week2Total += (Number(pred.team1) || 0) + (Number(pred.team2) || 0);
-                                  });
-                                }
-                                
-                                let week1Total = 0;
-                                if (w1Pick && w1Pick.predictions) {
-                                  PLAYOFF_WEEKS.wildcard.games.forEach(game => {
-                                    const pred = w1Pick.predictions[game.id];
-                                    if (pred) week1Total += (Number(pred.team1) || 0) + (Number(pred.team2) || 0);
-                                  });
-                                }
-                                
-                                return <span>{week4Total + week3Total + week2Total + week1Total}</span>;
-                              })()}
+                              {calculateGrandTotal(pick.playerName)}
                             </td>
                           </>
                         ) : (
                           <td className="total-points">
-                            {(() => {
-                              const weekPick = allPicks.find(p => p.playerName === pick.playerName && p.week === currentWeek);
-                              if (!weekPick) return <span>0</span>;
-                              if (!weekPick.predictions) return <span>0</span>;
-                              let sum = 0;
-                              PLAYOFF_WEEKS[currentWeek].games.forEach(game => {
-                                const pred = weekPick.predictions[game.id];
-                                if (pred) sum += (Number(pred.team1) || 0) + (Number(pred.team2) || 0);
-                              });
-                              return <span>{sum}</span>;
-                            })()}
+                            {calculateWeekTotal(pick.playerName, currentWeek)}
                           </td>
                         )}
                         <td className="timestamp">
