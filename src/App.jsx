@@ -81,43 +81,35 @@ function App() {
   const [submitted, setSubmitted] = useState(false);
 
   // Helper function to calculate total points for a player in a specific week
+  // This matches the CSV download logic exactly
   const calculateWeekTotal = (playerName, weekName) => {
-    const playerWeekPicks = allPicks.filter(p => 
+    const weekPick = allPicks.find(p => 
       p.playerName === playerName && p.week === weekName
     );
     
+    if (!weekPick || !weekPick.predictions) return 0;
+    
     let total = 0;
-    playerWeekPicks.forEach(weekPick => {
-      if (weekPick.predictions) {
-        Object.values(weekPick.predictions).forEach(pred => {
-          if (pred && pred.team1 && pred.team2) {
-            const score1 = parseInt(pred.team1) || 0;
-            const score2 = parseInt(pred.team2) || 0;
-            total += score1 + score2;
-          }
-        });
+    const weekGames = PLAYOFF_WEEKS[weekName].games;
+    
+    weekGames.forEach(game => {
+      const pred = weekPick.predictions[game.id];
+      if (pred) {
+        total += (Number(pred.team1) || 0) + (Number(pred.team2) || 0);
       }
     });
+    
     return total;
   };
 
   // Helper function to calculate grand total for a player (all weeks)
   const calculateGrandTotal = (playerName) => {
-    let grandTotal = 0;
-    allPicks
-      .filter(p => p.playerName === playerName)
-      .forEach(weekPick => {
-        if (weekPick.predictions) {
-          Object.values(weekPick.predictions).forEach(pred => {
-            if (pred && pred.team1 && pred.team2) {
-              const score1 = parseInt(pred.team1) || 0;
-              const score2 = parseInt(pred.team2) || 0;
-              grandTotal += score1 + score2;
-            }
-          });
-        }
-      });
-    return grandTotal;
+    const week4Total = calculateWeekTotal(playerName, 'superbowl');
+    const week3Total = calculateWeekTotal(playerName, 'conference');
+    const week2Total = calculateWeekTotal(playerName, 'divisional');
+    const week1Total = calculateWeekTotal(playerName, 'wildcard');
+    
+    return week4Total + week3Total + week2Total + week1Total;
   };
 
   // Load all picks from Firebase
