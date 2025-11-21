@@ -692,7 +692,17 @@ function App() {
                   {allPicks
                     .filter(pick => pick.week === currentWeek)
                     .sort((a, b) => (b.lastUpdated || b.timestamp) - (a.lastUpdated || a.timestamp))
-                    .map((pick, idx) => (
+                    .map((pick, idx) => {
+                      let weekTotal = 0;
+                      if (pick.predictions) {
+                        Object.values(pick.predictions).forEach(pred => {
+                          if (pred && pred.team1 && pred.team2) {
+                            weekTotal += parseInt(pred.team1) + parseInt(pred.team2);
+                          }
+                        });
+                      }
+                      
+                      return (
                       <tr key={idx}>
                         <td className="player-name">{pick.playerName}</td>
                         {currentWeekData.games.map(game => {
@@ -815,17 +825,7 @@ function App() {
                           </>
                         ) : (
                           <td className="total-points">
-                            {(() => {
-                              let total = 0;
-                              if (pick.predictions) {
-                                Object.values(pick.predictions).forEach(pred => {
-                                  if (pred && pred.team1 && pred.team2) {
-                                    total += parseInt(pred.team1) + parseInt(pred.team2);
-                                  }
-                                });
-                              }
-                              return total;
-                            })()}
+                            <div style={{textAlign: 'center', padding: '4px'}}>{weekTotal}</div>
                           </td>
                         )}
                         <td className="timestamp">
@@ -841,7 +841,8 @@ function App() {
                           })}
                         </td>
                       </tr>
-                    ))}
+                    );
+                  })}
                 </tbody>
               </table>
                     
