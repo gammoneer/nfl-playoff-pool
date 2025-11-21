@@ -509,14 +509,13 @@ header p {
   color: #999;
 }
 
-.picks-table .grand-total {
-  font-size: 1.3rem;
+.picks-table .total-points {
+  font-size: 1.1rem;
   font-weight: 900;
-  color: #ffffff;
-  background: #4caf50;
-  border-left: 4px solid #2e7d32;
-  border-right: 4px solid #2e7d32;
-  box-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
+  color: #667eea;
+  background: #f0f4ff;
+  border-left: 3px solid #667eea;
+  border-right: 3px solid #667eea;
 }
 
 /* Footer */
