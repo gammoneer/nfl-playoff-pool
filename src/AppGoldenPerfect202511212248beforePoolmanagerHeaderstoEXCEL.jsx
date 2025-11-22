@@ -19,22 +19,6 @@ const app = initializeApp(firebaseConfig);
 const database = getDatabase(app);
 
 // ============================================
-// 📅 AUTOMATIC WEEK LOCK DATES
-// ============================================
-// Weeks automatically lock on these dates at 12:00 AM PST
-// Pool Manager can override manually anytime
-// Format: YYYY-MM-DD (midnight PST)
-const AUTO_LOCK_DATES = {
-  wildcard: "2026-01-11",    // Saturday - Wild Card games start
-  divisional: "2026-01-18",  // Saturday - Divisional games start
-  conference: "2026-01-26",  // Sunday - Conference games start
-  superbowl: "2026-02-09"    // Sunday - Super Bowl
-};
-// TO CHANGE: Just edit the dates above!
-// User will update with actual NFL playoff dates later
-// ============================================
-
-// ============================================
 // 🔧 POOL MANAGER CONFIGURATION
 // ============================================
 // TO CHANGE POOL MANAGER CODE:
@@ -127,94 +111,9 @@ function App() {
     superbowl_grand: ''  // Grand total for all 4 weeks combined
   });
 
-  // 🔒 NEW: Week lock status state
-  const [weekLockStatus, setWeekLockStatus] = useState({
-    wildcard: { locked: false, lockDate: null, autoLockDate: AUTO_LOCK_DATES.wildcard },
-    divisional: { locked: false, lockDate: null, autoLockDate: AUTO_LOCK_DATES.divisional },
-    conference: { locked: false, lockDate: null, autoLockDate: AUTO_LOCK_DATES.conference },
-    superbowl: { locked: false, lockDate: null, autoLockDate: AUTO_LOCK_DATES.superbowl }
-  });
-
   // Check if current user is Pool Manager
   const isPoolManager = () => {
     return playerCode === POOL_MANAGER_CODE && codeValidated;
-  };
-
-  // 🔒 NEW: Check if a week should be automatically locked based on date
-  const shouldAutoLock = (weekKey) => {
-    const autoLockDate = AUTO_LOCK_DATES[weekKey];
-    if (!autoLockDate) return false;
-    
-    const now = new Date();
-    const pstTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
-    const lockDate = new Date(autoLockDate + 'T00:00:00');
-    
-    return pstTime >= lockDate;
-  };
-
-  // 🔒 NEW: Check if a week is locked (manual lock OR auto lock)
-  const isWeekLocked = (weekKey) => {
-    // Pool Manager bypasses all locks
-    if (isPoolManager()) {
-      return false;
-    }
-    
-    // Check manual lock
-    if (weekLockStatus[weekKey]?.locked) {
-      return true;
-    }
-    
-    // Check automatic lock based on date
-    return shouldAutoLock(weekKey);
-  };
-
-  // 🔒 NEW: Load week lock status from Firebase
-  useEffect(() => {
-    const weekLockRef = ref(database, 'weekLockStatus');
-    onValue(weekLockRef, (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        // Merge with auto-lock dates
-        const mergedStatus = {};
-        Object.keys(AUTO_LOCK_DATES).forEach(weekKey => {
-          mergedStatus[weekKey] = {
-            locked: data[weekKey]?.locked || false,
-            lockDate: data[weekKey]?.lockDate || null,
-            autoLockDate: AUTO_LOCK_DATES[weekKey]
-          };
-        });
-        setWeekLockStatus(mergedStatus);
-      }
-    });
-  }, []);
-
-  // 🔒 NEW: Pool Manager function to manually lock/unlock a week
-  const handleWeekLockToggle = (weekKey) => {
-    const newLockStatus = !weekLockStatus[weekKey].locked;
-    const lockDate = newLockStatus ? new Date().toISOString() : null;
-    
-    const updatedStatus = {
-      ...weekLockStatus,
-      [weekKey]: {
-        ...weekLockStatus[weekKey],
-        locked: newLockStatus,
-        lockDate: lockDate
-      }
-    };
-    
-    setWeekLockStatus(updatedStatus);
-    
-    // Save to Firebase
-    set(ref(database, `weekLockStatus/${weekKey}`), {
-      locked: newLockStatus,
-      lockDate: lockDate,
-      autoLockDate: AUTO_LOCK_DATES[weekKey]
-    });
-    
-    alert(newLockStatus 
-      ? `✅ Week ${weekKey} is now LOCKED\n\nPlayers cannot edit picks for this week.`
-      : `🔓 Week ${weekKey} is now UNLOCKED\n\nPlayers can edit picks for this week.`
-    );
   };
 
   // Load all picks from Firebase
@@ -277,25 +176,6 @@ function App() {
       }
     });
   }, []);
-
-  // 🔧 FIX #3: Auto-load existing picks when week changes or player logs in
-  useEffect(() => {
-    if (codeValidated && playerName && allPicks.length > 0) {
-      // Find existing pick for current week and player
-      const existingPick = allPicks.find(
-        pick => pick.playerName === playerName && pick.week === currentWeek
-      );
-      
-      if (existingPick && existingPick.predictions) {
-        console.log('Loading existing picks for', playerName, 'week', currentWeek);
-        setPredictions(existingPick.predictions);
-      } else {
-        // No existing picks for this week - clear the form
-        console.log('No existing picks found - clearing form');
-        setPredictions({});
-      }
-    }
-  }, [currentWeek, allPicks, codeValidated, playerName]);
 
   const handleScoreChange = (gameId, team, score) => {
     setPredictions(prev => ({
@@ -437,19 +317,16 @@ function App() {
     );
     
     if (existingPick) {
-      // Alert will be shown, picks will load automatically via useEffect
+      // Load their existing picks into the form
+      setPredictions(existingPick.predictions || {});
+      
       if (code === POOL_MANAGER_CODE) {
-        alert(`Welcome, Pool Manager!\n\nYou have unrestricted access to:\n✓ Enter picks anytime (no lockout)\n✓ Enter team codes\n✓ Enter actual game scores\n✓ Set game status (LIVE/FINAL)\n✓ Lock/unlock weeks`);
+        alert(`Welcome, Pool Manager!\n\nYou have unrestricted access to:\n✓ Enter picks anytime (no lockout)\n✓ Enter team codes\n✓ Enter actual game scores\n✓ Set game status (LIVE/FINAL)`);
       } else {
-        const lockStatus = isWeekLocked(currentWeek);
-        if (lockStatus) {
-          alert(`Welcome back, ${playerNameForCode}!\n\n🔒 WARNING: This week is LOCKED!\n\nYour existing picks for ${PLAYOFF_WEEKS[currentWeek].name} will be loaded, but you cannot edit them because the games have been played.\n\nYou can only view your submitted picks.`);
-        } else {
-          alert(`Welcome back, ${playerNameForCode}!\n\nYour existing picks for ${PLAYOFF_WEEKS[currentWeek].name} will be loaded automatically.\n\nYou can edit and resubmit as many times as you want until Friday 11:59 PM PST.`);
-        }
+        alert(`Welcome back, ${playerNameForCode}!\n\nYour existing picks for ${PLAYOFF_WEEKS[currentWeek].name} have been loaded.\n\nYou can edit and resubmit as many times as you want until Friday 11:59 PM PST.`);
       }
     } else if (code === POOL_MANAGER_CODE) {
-      alert(`Welcome, Pool Manager!\n\nYou have unrestricted access to:\n✓ Enter picks anytime (no lockout)\n✓ Enter team codes\n✓ Enter actual game scores\n✓ Set game status (LIVE/FINAL)\n✓ Lock/unlock weeks`);
+      alert(`Welcome, Pool Manager!\n\nYou have unrestricted access to:\n✓ Enter picks anytime (no lockout)\n✓ Enter team codes\n✓ Enter actual game scores\n✓ Set game status (LIVE/FINAL)`);
     }
     
     // Code is valid!
@@ -458,7 +335,7 @@ function App() {
     setCodeValidated(true);
   };
 
-  // Download picks as CSV spreadsheet - ENHANCED with Pool Manager data
+  // Download picks as CSV spreadsheet (continued from original)
   const downloadPicksAsCSV = () => {
     const weekPicks = allPicks.filter(pick => pick.week === currentWeek);
     
@@ -469,81 +346,8 @@ function App() {
 
     const currentWeekData = PLAYOFF_WEEKS[currentWeek];
 
-    // ===== ENHANCED: Add Pool Manager data at the top =====
-    let csv = '';
-    
-    // Row 1: Team Codes
-    csv += 'TEAM CODES:,';
-    currentWeekData.games.forEach(game => {
-      const team1Code = teamCodes[currentWeek]?.[game.id]?.team1 || '-';
-      const team2Code = teamCodes[currentWeek]?.[game.id]?.team2 || '-';
-      csv += `${team1Code},${team2Code},`;
-    });
-    if (currentWeek === 'superbowl') {
-      csv += ',,,,'; // Empty cells for week totals columns
-    }
-    csv += '\n';
-    
-    // Row 2: Actual Scores
-    csv += 'ACTUAL SCORES:,';
-    currentWeekData.games.forEach(game => {
-      const actualTeam1 = actualScores[currentWeek]?.[game.id]?.team1 || '-';
-      const actualTeam2 = actualScores[currentWeek]?.[game.id]?.team2 || '-';
-      csv += `${actualTeam1},${actualTeam2},`;
-    });
-    if (currentWeek === 'superbowl') {
-      csv += ',,,,'; // Empty cells for week totals columns
-    }
-    csv += '\n';
-    
-    // Row 3: Combined Game Totals (Team1 + Team2)
-    csv += 'GAME TOTALS:,';
-    currentWeekData.games.forEach(game => {
-      const actualTeam1 = parseInt(actualScores[currentWeek]?.[game.id]?.team1) || 0;
-      const actualTeam2 = parseInt(actualScores[currentWeek]?.[game.id]?.team2) || 0;
-      const gameTotal = actualTeam1 + actualTeam2;
-      const gameTotalDisplay = (actualTeam1 > 0 || actualTeam2 > 0) ? gameTotal : '-';
-      csv += `${gameTotalDisplay},,`; // Combined total spans both team columns
-    });
-    if (currentWeek === 'superbowl') {
-      csv += ',,,,'; // Empty cells for week totals columns
-    }
-    csv += '\n';
-    
-    // Row 4: Game Status
-    csv += 'GAME STATUS:,';
-    currentWeekData.games.forEach(game => {
-      const status = gameStatus[currentWeek]?.[game.id] || '-';
-      const statusText = status === 'final' ? 'FINAL' : (status === 'live' ? 'LIVE' : '-');
-      csv += `${statusText},,`; // Span two columns
-    });
-    if (currentWeek === 'superbowl') {
-      csv += ',,,,'; // Empty cells for week totals columns
-    }
-    csv += '\n';
-    
-    // Row 5: Official/Manual Week Totals
-    csv += 'OFFICIAL TOTALS:,';
-    currentWeekData.games.forEach(() => {
-      csv += ',,'; // Empty cells for game columns
-    });
-    if (currentWeek === 'superbowl') {
-      csv += `${manualWeekTotals.superbowl_week4 || '-'},`;
-      csv += `${manualWeekTotals.superbowl_week3 || '-'},`;
-      csv += `${manualWeekTotals.superbowl_week2 || '-'},`;
-      csv += `${manualWeekTotals.superbowl_week1 || '-'},`;
-      csv += `${manualWeekTotals.superbowl_grand || '-'},`;
-    } else {
-      csv += `${manualWeekTotals[currentWeek] || '-'},`;
-    }
-    csv += '\n';
-    
-    // Row 6: Blank separator row
-    csv += '\n';
-    // ===== END ENHANCED SECTION =====
-
     // Create CSV header - First row with game numbers
-    csv += ','; // Empty cell for player name column
+    let csv = ','; // Empty cell for player name column
     currentWeekData.games.forEach(game => {
       csv += `Game ${game.id},Game ${game.id},`;
     });
@@ -662,12 +466,6 @@ function App() {
   // Submit predictions
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // 🔒 FIX #1: Check if week is locked
-    if (isWeekLocked(currentWeek)) {
-      alert('🔒 WEEK LOCKED\n\nThis week\'s games have been played.\nPicks are permanently locked.\n\nYou can view your picks but cannot edit them.\n\nPlease select a different week to make picks.');
-      return;
-    }
     
     if (!isSubmissionAllowed()) {
       alert('⛔ SUBMISSIONS CLOSED\n\nPicks are locked from:\n• Friday 11:59 PM PST\n• Through Monday 12:01 AM PST\n\nPicks will reopen Monday at 12:01 AM PST.\n\nThis gives you all week to make your picks!');
@@ -820,130 +618,22 @@ function App() {
         <h1>🏈 Richard's NFL Playoff Pool 2025</h1>
         <p>Enter your score predictions for each NFL Playoff 2025 game</p>
         <p style={{fontSize: "0.85rem", marginTop: "10px", opacity: 0.8}}>
-          v2.1-LOCKDOWN-{new Date().toISOString().slice(0,10).replace(/-/g,"")}
+          v2.0-POOLMGR-{new Date().toISOString().slice(0,10).replace(/-/g,"")}
         </p>
       </header>
 
       <div className="container">
-        {/* 🔒 NEW: Pool Manager Week Lock Controls */}
-        {isPoolManager() && codeValidated && (
-          <div style={{
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            color: 'white',
-            padding: '15px 20px',
-            borderRadius: '8px',
-            marginBottom: '20px',
-            boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
-          }}>
-            <h3 style={{margin: '0 0 15px 0', display: 'flex', alignItems: 'center', gap: '10px'}}>
-              <span>👑</span>
-              <span>POOL MANAGER - WEEK LOCK CONTROLS</span>
-            </h3>
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-              gap: '10px'
-            }}>
-              {Object.keys(PLAYOFF_WEEKS).map(weekKey => {
-                const isLocked = weekLockStatus[weekKey]?.locked;
-                const autoLocked = shouldAutoLock(weekKey);
-                const effectivelyLocked = isLocked || autoLocked;
-                
-                return (
-                  <div key={weekKey} style={{
-                    background: 'rgba(255,255,255,0.15)',
-                    padding: '12px',
-                    borderRadius: '6px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '8px'
-                  }}>
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      fontWeight: 'bold',
-                      fontSize: '0.9rem'
-                    }}>
-                      <span>{effectivelyLocked ? '🔒' : '🔓'} Week {weekKey === 'wildcard' ? '1' : weekKey === 'divisional' ? '2' : weekKey === 'conference' ? '3' : '4'}</span>
-                      <span style={{fontSize: '0.75rem', opacity: 0.9}}>
-                        {weekLockStatus[weekKey]?.autoLockDate}
-                      </span>
-                    </div>
-                    {autoLocked && !isLocked && (
-                      <div style={{
-                        fontSize: '0.7rem',
-                        padding: '4px 8px',
-                        background: 'rgba(255,193,7,0.3)',
-                        borderRadius: '4px',
-                        border: '1px solid rgba(255,193,7,0.5)'
-                      }}>
-                        🕐 AUTO-LOCKED
-                      </div>
-                    )}
-                    {isLocked && (
-                      <div style={{
-                        fontSize: '0.7rem',
-                        padding: '4px 8px',
-                        background: 'rgba(220,53,69,0.3)',
-                        borderRadius: '4px',
-                        border: '1px solid rgba(220,53,69,0.5)'
-                      }}>
-                        🔒 MANUALLY LOCKED
-                      </div>
-                    )}
-                    <button
-                      onClick={() => handleWeekLockToggle(weekKey)}
-                      style={{
-                        padding: '8px 12px',
-                        background: isLocked ? '#28a745' : '#dc3545',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        fontSize: '0.85rem',
-                        fontWeight: '600',
-                        transition: 'all 0.2s'
-                      }}
-                    >
-                      {isLocked ? '🔓 Unlock Week' : '🔒 Lock Week'}
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-            <p style={{fontSize: '0.8rem', marginTop: '12px', marginBottom: '0', opacity: 0.9}}>
-              ℹ️ Manual locks override automatic locks. Players cannot edit picks for locked weeks.
-            </p>
-          </div>
-        )}
-
         {/* Week Selector */}
         <div className="week-selector">
-          {Object.keys(PLAYOFF_WEEKS).map(weekKey => {
-            const isLocked = isWeekLocked(weekKey);
-            return (
-              <button
-                key={weekKey}
-                className={currentWeek === weekKey ? 'active' : ''}
-                onClick={() => setCurrentWeek(weekKey)}
-                style={{
-                  position: 'relative',
-                  opacity: isLocked && !isPoolManager() ? 0.7 : 1
-                }}
-              >
-                {PLAYOFF_WEEKS[weekKey].name.split(' ')[0] + (weekKey === 'superbowl' ? ' Bowl' : '')}
-                {isLocked && !isPoolManager() && (
-                  <span style={{
-                    position: 'absolute',
-                    top: '4px',
-                    right: '4px',
-                    fontSize: '0.8rem'
-                  }}>🔒</span>
-                )}
-              </button>
-            );
-          })}
+          {Object.keys(PLAYOFF_WEEKS).map(weekKey => (
+            <button
+              key={weekKey}
+              className={currentWeek === weekKey ? 'active' : ''}
+              onClick={() => setCurrentWeek(weekKey)}
+            >
+              {PLAYOFF_WEEKS[weekKey].name.split(' ')[0] + (weekKey === 'superbowl' ? ' Bowl' : '')}
+            </button>
+          ))}
         </div>
 
         {/* Code Entry */}
@@ -995,20 +685,6 @@ function App() {
                 {isPoolManager() && <span style={{marginLeft: '10px', color: '#d63031'}}>👑 POOL MANAGER</span>}
               </h3>
               <p style={{color: '#000'}}>Making picks for: <strong>{currentWeekData.name}</strong></p>
-              {/* 🔒 NEW: Show lock status */}
-              {isWeekLocked(currentWeek) && !isPoolManager() && (
-                <div style={{
-                  marginTop: '10px',
-                  padding: '10px 15px',
-                  background: '#fff3cd',
-                  border: '2px solid #ffc107',
-                  borderRadius: '6px',
-                  color: '#856404',
-                  fontWeight: '600'
-                }}>
-                  🔒 This week is LOCKED - You can view your picks but cannot edit them
-                </div>
-              )}
               <button 
                 className="validate-btn" 
                 style={{marginTop: '15px', padding: '10px 20px', fontSize: '0.9rem'}}
@@ -1122,8 +798,6 @@ function App() {
                           onChange={(e) => handleScoreChange(game.id, 'team1', e.target.value)}
                           placeholder="0"
                           required
-                          disabled={isWeekLocked(currentWeek)}
-                          key={`${game.id}-team1-${playerName}`}
                         />
                       </div>
                       
@@ -1142,8 +816,6 @@ function App() {
                           onChange={(e) => handleScoreChange(game.id, 'team2', e.target.value)}
                           placeholder="0"
                           required
-                          disabled={isWeekLocked(currentWeek)}
-                          key={`${game.id}-team2-${playerName}`}
                         />
                       </div>
                     </div>
@@ -1153,16 +825,14 @@ function App() {
                 <button 
                   type="submit" 
                   className="submit-btn"
-                  disabled={!isSubmissionAllowed() || isWeekLocked(currentWeek)}
+                  disabled={!isSubmissionAllowed()}
                 >
-                  {isWeekLocked(currentWeek) && !isPoolManager()
-                    ? '🔒 Week Locked - Cannot Edit Picks'
-                    : isSubmissionAllowed() 
-                      ? '📤 Submit / Update My Picks' 
-                      : '⛔ Submissions Locked (Friday 11:59 PM - Monday 12:01 AM PST)'}
+                  {isSubmissionAllowed() 
+                    ? '📤 Submit / Update My Picks' 
+                    : '⛔ Submissions Locked (Friday 11:59 PM - Monday 12:01 AM PST)'}
                 </button>
                 
-                {isSubmissionAllowed() && !isWeekLocked(currentWeek) && (
+                {isSubmissionAllowed() && (
                   <p style={{textAlign: 'center', marginTop: '15px', color: '#666', fontSize: '0.9rem'}}>
                     You can edit and resubmit your picks as many times as you want until Friday 11:59 PM PST
                   </p>
@@ -1282,7 +952,7 @@ function App() {
                     <th rowSpan="3">Submitted</th>
                   </tr>
                   
-                  {/* ACTUAL SCORES ROW - 🔧 FIX #2: Changed white text to black */}
+                  {/* ACTUAL SCORES ROW */}
                   <tr style={{background: '#e3f2fd'}}>
                     {currentWeekData.games.map(game => (
                       <React.Fragment key={`actual-${game.id}`}>
@@ -1303,15 +973,14 @@ function App() {
                                   fontSize: '1rem',
                                   fontWeight: 'bold',
                                   border: '2px solid #4caf50',
-                                  borderRadius: '4px',
-                                  color: '#000'
+                                  borderRadius: '4px'
                                 }}
                               />
                               <div style={{fontSize: '0.7rem', marginTop: '2px', color: '#000'}}>ACTUAL</div>
                             </div>
                           ) : (
                             <div>
-                              <div style={{fontSize: '1rem', fontWeight: 'bold', color: '#000'}}>
+                              <div style={{fontSize: '1rem', fontWeight: 'bold'}}>
                                 {actualScores[currentWeek]?.[game.id]?.team1 || '-'}
                               </div>
                               <div style={{fontSize: '0.7rem', color: '#000'}}>ACTUAL</div>
@@ -1335,8 +1004,7 @@ function App() {
                                   fontSize: '1rem',
                                   fontWeight: 'bold',
                                   border: '2px solid #4caf50',
-                                  borderRadius: '4px',
-                                  color: '#000'
+                                  borderRadius: '4px'
                                 }}
                               />
                               <div style={{fontSize: '0.7rem', marginTop: '2px', color: '#000'}}>ACTUAL</div>
@@ -1360,7 +1028,7 @@ function App() {
                             </div>
                           ) : (
                             <div>
-                              <div style={{fontSize: '1rem', fontWeight: 'bold', color: '#000'}}>
+                              <div style={{fontSize: '1rem', fontWeight: 'bold'}}>
                                 {actualScores[currentWeek]?.[game.id]?.team2 || '-'}
                               </div>
                               <div style={{fontSize: '0.7rem', color: '#000'}}>ACTUAL</div>
@@ -1531,8 +1199,7 @@ function App() {
                         <th className="grand-total">
                           {isPoolManager() ? (
                             <div>
-                              {/* 🔧 FIX #2: Changed white text to black */}
-                              <div style={{fontSize: '0.7rem', marginBottom: '4px', color: '#000'}}>OFFICIAL</div>
+                              <div style={{fontSize: '0.7rem', marginBottom: '4px', color: '#fff'}}>OFFICIAL</div>
                               <input
                                 type="number"
                                 min="0"
@@ -1547,16 +1214,14 @@ function App() {
                                   fontWeight: 'bold',
                                   border: '3px solid #f39c12',
                                   borderRadius: '4px',
-                                  backgroundColor: '#fff',
-                                  color: '#000'
+                                  backgroundColor: '#fff'
                                 }}
                               />
                             </div>
                           ) : (
                             <div>
-                              {/* 🔧 FIX #2: Changed white text to black */}
-                              <div style={{fontSize: '0.7rem', color: '#000', marginBottom: '2px'}}>Official Total</div>
-                              <div style={{fontSize: '1.2rem', fontWeight: 'bold', color: '#000'}}>
+                              <div style={{fontSize: '0.7rem', color: '#fff', marginBottom: '2px'}}>Official Total</div>
+                              <div style={{fontSize: '1.2rem', fontWeight: 'bold', color: '#fff'}}>
                                 {manualWeekTotals.superbowl_grand || '-'}
                               </div>
                             </div>
