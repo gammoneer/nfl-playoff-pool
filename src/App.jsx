@@ -38,7 +38,7 @@ const POOL_MANAGER_CODE = "76BB89";
 const PLAYER_CODES = {
   "76BB89": "POOL MANAGER",  // Special - Pool Manager access
   "A7K9M2": "Richard Biletski",
-  "X3P8N1": "Dallas Pylypow",
+  "X3P8N7": "Dallas Pylypow",
   "B5R4T6": "Jane Doe",
   "H8M3N7": "John Smith",
   "K2P9W5": "Mike Johnson",
