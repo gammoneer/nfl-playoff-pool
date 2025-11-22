@@ -907,10 +907,10 @@ function App() {
                     ))}
                     {currentWeek === 'superbowl' ? (
                       <>
-                        <th rowSpan={isPoolManager() ? "3" : "2"} style={{backgroundColor: '#fff3cd', fontWeight: 'bold', color: '#000'}}>Week 4<br/>Total</th>
-                        <th rowSpan={isPoolManager() ? "3" : "2"} style={{backgroundColor: '#d1ecf1', fontWeight: 'bold', color: '#000'}}>Week 3<br/>Total</th>
-                        <th rowSpan={isPoolManager() ? "3" : "2"} style={{backgroundColor: '#d4edda', fontWeight: 'bold', color: '#000'}}>Week 2<br/>Total</th>
-                        <th rowSpan={isPoolManager() ? "3" : "2"} style={{backgroundColor: '#f8d7da', fontWeight: 'bold', color: '#000'}}>Week 1<br/>Total</th>
+                        <th rowSpan={isPoolManager() ? "3" : "2"} style={{backgroundColor: '#fff3cd', fontWeight: 'bold'}}>Week 4<br/>Total</th>
+                        <th rowSpan={isPoolManager() ? "3" : "2"} style={{backgroundColor: '#d1ecf1', fontWeight: 'bold'}}>Week 3<br/>Total</th>
+                        <th rowSpan={isPoolManager() ? "3" : "2"} style={{backgroundColor: '#d4edda', fontWeight: 'bold'}}>Week 2<br/>Total</th>
+                        <th rowSpan={isPoolManager() ? "3" : "2"} style={{backgroundColor: '#f8d7da', fontWeight: 'bold'}}>Week 1<br/>Total</th>
                         <th rowSpan={isPoolManager() ? "3" : "2"} className="grand-total">GRAND<br/>TOTAL</th>
                       </>
                     ) : (
@@ -943,14 +943,14 @@ function App() {
                                   borderRadius: '4px'
                                 }}
                               />
-                              <div style={{fontSize: '0.7rem', marginTop: '2px', color: '#000'}}>ACTUAL</div>
+                              <div style={{fontSize: '0.7rem', marginTop: '2px'}}>ACTUAL</div>
                             </div>
                           ) : (
                             <div>
                               <div style={{fontSize: '1rem', fontWeight: 'bold'}}>
                                 {actualScores[currentWeek]?.[game.id]?.team1 || '-'}
                               </div>
-                              <div style={{fontSize: '0.7rem', color: '#000'}}>ACTUAL</div>
+                              <div style={{fontSize: '0.7rem'}}>ACTUAL</div>
                             </div>
                           )}
                         </th>
@@ -974,7 +974,7 @@ function App() {
                                   borderRadius: '4px'
                                 }}
                               />
-                              <div style={{fontSize: '0.7rem', marginTop: '2px', color: '#000'}}>ACTUAL</div>
+                              <div style={{fontSize: '0.7rem', marginTop: '2px'}}>ACTUAL</div>
                               {/* Game Status Dropdown */}
                               <select
                                 value={gameStatus[currentWeek]?.[game.id] || ''}
@@ -998,7 +998,7 @@ function App() {
                               <div style={{fontSize: '1rem', fontWeight: 'bold'}}>
                                 {actualScores[currentWeek]?.[game.id]?.team2 || '-'}
                               </div>
-                              <div style={{fontSize: '0.7rem', color: '#000'}}>ACTUAL</div>
+                              <div style={{fontSize: '0.7rem'}}>ACTUAL</div>
                               {/* Status Badge */}
                               {gameStatus[currentWeek]?.[game.id] === 'final' && (
                                 <div style={{

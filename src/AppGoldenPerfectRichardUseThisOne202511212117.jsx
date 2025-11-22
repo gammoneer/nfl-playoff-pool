@@ -38,7 +38,7 @@ const POOL_MANAGER_CODE = "76BB89";
 const PLAYER_CODES = {
   "76BB89": "POOL MANAGER",  // Special - Pool Manager access
   "A7K9M2": "Richard Biletski",
-  "X3P8N1": "Dallas Pylypow",
+  "X3P8N7": "Dallas Pylypow",
   "B5R4T6": "Jane Doe",
   "H8M3N7": "John Smith",
   "K2P9W5": "Mike Johnson",
@@ -267,7 +267,7 @@ function App() {
     
     // Accept 6-character alphanumeric codes
     if (code.length !== 6 || !/^[A-Z0-9]{6}$/.test(code)) {
-      alert('Invalid code format!\n\nPlayer codes must be exactly 6 characters (letters and numbers).\nExample: A7K9M2');
+      alert('Invalid code format!\n\nPlayer codes must be exactly 6 characters (letters and numbers).\nExample: A6K8M1');
       return;
     }
     
@@ -621,7 +621,7 @@ function App() {
                   className="code-input"
                   value={playerCode}
                   onChange={(e) => setPlayerCode(e.target.value.toUpperCase())}
-                  placeholder="A7K9M2"
+                  placeholder="A6K8M1"
                   maxLength="6"
                   autoComplete="off"
                   onKeyPress={(e) => {
@@ -636,7 +636,7 @@ function App() {
                 >
                   Validate Code & Continue
                 </button>
-                <p style={{marginTop: '15px', fontSize: '0.9rem', color: '#666', textAlign: 'center'}}>
+                <p style={{marginTop: '15px', fontSize: '0.9rem', color: '#2b2323ff', textAlign: 'center'}}>
                   Don't have a code? Contact: biletskifamily@shaw.ca
                 </p>
               </div>
@@ -651,7 +651,7 @@ function App() {
                 Welcome, <span className="player-name-highlight">{playerName}</span>!
                 {isPoolManager() && <span style={{marginLeft: '10px', color: '#d63031'}}>👑 POOL MANAGER</span>}
               </h3>
-              <p style={{color: '#000'}}>Making picks for: <strong>{currentWeekData.name}</strong></p>
+              <p>Making picks for: <strong>{currentWeekData.name}</strong></p>
               <button 
                 className="validate-btn" 
                 style={{marginTop: '15px', padding: '10px 20px', fontSize: '0.9rem'}}
@@ -800,7 +800,7 @@ function App() {
                 </button>
                 
                 {isSubmissionAllowed() && (
-                  <p style={{textAlign: 'center', marginTop: '15px', color: '#666', fontSize: '0.9rem'}}>
+                  <p style={{textAlign: 'center', marginTop: '15px', color: '#342a2aff', fontSize: '0.9rem'}}>
                     You can edit and resubmit your picks as many times as you want until Friday 11:59 PM PST
                   </p>
                 )}
@@ -819,7 +819,7 @@ function App() {
                 marginLeft: '15px',
                 padding: '8px 16px',
                 background: '#4caf50',
-                color: 'white',
+                color: 'black',
                 border: 'none',
                 borderRadius: '6px',
                 cursor: 'pointer',
@@ -907,10 +907,10 @@ function App() {
                     ))}
                     {currentWeek === 'superbowl' ? (
                       <>
-                        <th rowSpan={isPoolManager() ? "3" : "2"} style={{backgroundColor: '#fff3cd', fontWeight: 'bold', color: '#000'}}>Week 4<br/>Total</th>
-                        <th rowSpan={isPoolManager() ? "3" : "2"} style={{backgroundColor: '#d1ecf1', fontWeight: 'bold', color: '#000'}}>Week 3<br/>Total</th>
-                        <th rowSpan={isPoolManager() ? "3" : "2"} style={{backgroundColor: '#d4edda', fontWeight: 'bold', color: '#000'}}>Week 2<br/>Total</th>
-                        <th rowSpan={isPoolManager() ? "3" : "2"} style={{backgroundColor: '#f8d7da', fontWeight: 'bold', color: '#000'}}>Week 1<br/>Total</th>
+                        <th rowSpan={isPoolManager() ? "3" : "2"} style={{backgroundColor: '#fff3cd', fontWeight: 'bold'}}>Week 4<br/>Total</th>
+                        <th rowSpan={isPoolManager() ? "3" : "2"} style={{backgroundColor: '#d1ecf1', fontWeight: 'bold'}}>Week 3<br/>Total</th>
+                        <th rowSpan={isPoolManager() ? "3" : "2"} style={{backgroundColor: '#d4edda', fontWeight: 'bold'}}>Week 2<br/>Total</th>
+                        <th rowSpan={isPoolManager() ? "3" : "2"} style={{backgroundColor: '#f8d7da', fontWeight: 'bold'}}>Week 1<br/>Total</th>
                         <th rowSpan={isPoolManager() ? "3" : "2"} className="grand-total">GRAND<br/>TOTAL</th>
                       </>
                     ) : (
@@ -943,14 +943,14 @@ function App() {
                                   borderRadius: '4px'
                                 }}
                               />
-                              <div style={{fontSize: '0.7rem', marginTop: '2px', color: '#000'}}>ACTUAL</div>
+                              <div style={{fontSize: '0.7rem', marginTop: '2px'}}>ACTUAL</div>
                             </div>
                           ) : (
                             <div>
                               <div style={{fontSize: '1rem', fontWeight: 'bold'}}>
                                 {actualScores[currentWeek]?.[game.id]?.team1 || '-'}
                               </div>
-                              <div style={{fontSize: '0.7rem', color: '#000'}}>ACTUAL</div>
+                              <div style={{fontSize: '0.7rem'}}>ACTUAL</div>
                             </div>
                           )}
                         </th>
@@ -974,7 +974,7 @@ function App() {
                                   borderRadius: '4px'
                                 }}
                               />
-                              <div style={{fontSize: '0.7rem', marginTop: '2px', color: '#000'}}>ACTUAL</div>
+                              <div style={{fontSize: '0.7rem', marginTop: '2px'}}>ACTUAL</div>
                               {/* Game Status Dropdown */}
                               <select
                                 value={gameStatus[currentWeek]?.[game.id] || ''}
@@ -998,7 +998,7 @@ function App() {
                               <div style={{fontSize: '1rem', fontWeight: 'bold'}}>
                                 {actualScores[currentWeek]?.[game.id]?.team2 || '-'}
                               </div>
-                              <div style={{fontSize: '0.7rem', color: '#000'}}>ACTUAL</div>
+                              <div style={{fontSize: '0.7rem'}}>ACTUAL</div>
                               {/* Status Badge */}
                               {gameStatus[currentWeek]?.[game.id] === 'final' && (
                                 <div style={{
