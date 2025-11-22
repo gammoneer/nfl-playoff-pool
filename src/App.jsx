@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { initializeApp } from 'firebase/app';
 import { getDatabase, ref, push, onValue, set } from 'firebase/database';
 import './App.css';
@@ -18,21 +18,37 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const database = getDatabase(app);
 
-// Player codes system - Code maps to player name
-// Pool Manager: Add entries as players pay
-// Format: "code": "First Name Last Name"
+// ============================================
+// 🔧 POOL MANAGER CONFIGURATION
+// ============================================
+// TO CHANGE POOL MANAGER CODE:
+// Just edit the code below. Use 6 characters (letters/numbers).
+const POOL_MANAGER_CODE = "76BB89";
+// Location to change it: RIGHT HERE ☝️
+// After changing, save file and restart: npm start
+// ============================================
+
+// ============================================
+// 👥 PLAYER CODES (Alphanumeric)
+// ============================================
+// TO ADD/CHANGE PLAYERS:
+// Add line: "CODE12": "Player Name",
+// Codes are now 6-character alphanumeric (A-Z, 2-9)
+// Avoid confusing characters: 0, O, I, 1, l
 const PLAYER_CODES = {
-  "100099": "John Smith",
-  "100199": "Jane Doe",
-  "100299": "Mike Johnson",
-  "100399": "Sarah Williams",
-  "100499": "David Brown",
-  "990499": "Neema Dadmand",
-  "990099": "Richard Biletski",
-  "999000": "Dallas Pylypow",
-  // Add more as people pay...
-  // Codes can be 1000-9999
+  "76BB89": "POOL MANAGER",  // Special - Pool Manager access
+  "A7K9M2": "Richard Biletski",
+  "X3P8N1": "Dallas Pylypow",
+  "B5R4T6": "Jane Doe",
+  "H8M3N7": "John Smith",
+  "K2P9W5": "Mike Johnson",
+  "T7Y4R8": "Sarah Williams",
+  "D3F6G9": "David Brown",
+  "N4M8Q2": "Neema Dadmand",
+  // Add more players here...
+  // Example: "Z8X5C3": "New Player",
 };
+// ============================================
 
 // Playoff structure - update these with actual matchups when known
 const PLAYOFF_WEEKS = {
@@ -79,6 +95,16 @@ function App() {
   const [predictions, setPredictions] = useState({});
   const [allPicks, setAllPicks] = useState([]);
   const [submitted, setSubmitted] = useState(false);
+  
+  // Pool Manager states
+  const [teamCodes, setTeamCodes] = useState({});      // { wildcard: { 1: {team1: "PIT", team2: "BUF"}, ... }}
+  const [actualScores, setActualScores] = useState({}); // { wildcard: { 1: {team1: 27, team2: 24}, ... }}
+  const [gameStatus, setGameStatus] = useState({});     // { wildcard: { 1: "final", 2: "live", ... }}
+
+  // Check if current user is Pool Manager
+  const isPoolManager = () => {
+    return playerCode === POOL_MANAGER_CODE && codeValidated;
+  };
 
   // Load all picks from Firebase
   useEffect(() => {
@@ -86,7 +112,6 @@ function App() {
     onValue(picksRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
-        // Convert to array and include Firebase keys for updating
         const picksArray = Object.keys(data).map(key => ({
           ...data[key],
           firebaseKey: key
@@ -94,6 +119,39 @@ function App() {
         setAllPicks(picksArray);
       } else {
         setAllPicks([]);
+      }
+    });
+  }, []);
+
+  // Load team codes from Firebase
+  useEffect(() => {
+    const teamCodesRef = ref(database, 'teamCodes');
+    onValue(teamCodesRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        setTeamCodes(data);
+      }
+    });
+  }, []);
+
+  // Load actual scores from Firebase
+  useEffect(() => {
+    const actualScoresRef = ref(database, 'actualScores');
+    onValue(actualScoresRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        setActualScores(data);
+      }
+    });
+  }, []);
+
+  // Load game status from Firebase
+  useEffect(() => {
+    const gameStatusRef = ref(database, 'gameStatus');
+    onValue(gameStatusRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        setGameStatus(data);
       }
     });
   }, []);
@@ -108,11 +166,66 @@ function App() {
     }));
   };
 
-  // Check if submissions are allowed based on day/time (PST)
-  const isSubmissionAllowed = () => {
-    const now = new Date();
+  // Pool Manager functions to update team codes
+  const handleTeamCodeChange = (gameId, team, code) => {
+    const updatedCodes = {
+      ...teamCodes,
+      [currentWeek]: {
+        ...(teamCodes[currentWeek] || {}),
+        [gameId]: {
+          ...(teamCodes[currentWeek]?.[gameId] || {}),
+          [team]: code.toUpperCase()
+        }
+      }
+    };
+    setTeamCodes(updatedCodes);
     
-    // Convert to Pacific Time
+    // Save to Firebase
+    set(ref(database, `teamCodes/${currentWeek}/${gameId}/${team}`), code.toUpperCase());
+  };
+
+  // Pool Manager functions to update actual scores
+  const handleActualScoreChange = (gameId, team, score) => {
+    const updatedScores = {
+      ...actualScores,
+      [currentWeek]: {
+        ...(actualScores[currentWeek] || {}),
+        [gameId]: {
+          ...(actualScores[currentWeek]?.[gameId] || {}),
+          [team]: score
+        }
+      }
+    };
+    setActualScores(updatedScores);
+    
+    // Save to Firebase
+    set(ref(database, `actualScores/${currentWeek}/${gameId}/${team}`), score);
+  };
+
+  // Pool Manager functions to update game status
+  const handleGameStatusChange = (gameId, status) => {
+    const updatedStatus = {
+      ...gameStatus,
+      [currentWeek]: {
+        ...(gameStatus[currentWeek] || {}),
+        [gameId]: status
+      }
+    };
+    setGameStatus(updatedStatus);
+    
+    // Save to Firebase
+    set(ref(database, `gameStatus/${currentWeek}/${gameId}`), status);
+  };
+
+  // Check if submissions are allowed based on day/time (PST)
+  // Pool Manager bypasses lockout
+  const isSubmissionAllowed = () => {
+    // Pool Manager can always submit
+    if (isPoolManager()) {
+      return true;
+    }
+
+    const now = new Date();
     const pstTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
     
     const day = pstTime.getDay(); // 0=Sunday, 1=Monday, ..., 5=Friday, 6=Saturday
@@ -145,15 +258,16 @@ function App() {
 
   // Validate player code and set player name
   const handleCodeValidation = () => {
-    const code = playerCode.trim();
+    const code = playerCode.trim().toUpperCase();
     
     if (!code) {
-      alert('Please enter your 6-digit player code');
+      alert('Please enter your 6-character player code');
       return;
     }
     
-    if (code.length !== 6 || !/^\d{6}$/.test(code)) {
-      alert('Invalid code format!\n\nPlayer codes must be exactly 6 digits.\nExample: 123456');
+    // Accept 6-character alphanumeric codes
+    if (code.length !== 6 || !/^[A-Z0-9]{6}$/.test(code)) {
+      alert('Invalid code format!\n\nPlayer codes must be exactly 6 characters (letters and numbers).\nExample: A7K9M2');
       return;
     }
     
@@ -172,15 +286,23 @@ function App() {
     if (existingPick) {
       // Load their existing picks into the form
       setPredictions(existingPick.predictions || {});
-      alert(`Welcome back, ${playerNameForCode}!\n\nYour existing picks for ${PLAYOFF_WEEKS[currentWeek].name} have been loaded.\n\nYou can edit and resubmit as many times as you want until Friday 11:59 PM PST.`);
+      
+      if (code === POOL_MANAGER_CODE) {
+        alert(`Welcome, Pool Manager!\n\nYou have unrestricted access to:\n✓ Enter picks anytime (no lockout)\n✓ Enter team codes\n✓ Enter actual game scores\n✓ Set game status (LIVE/FINAL)`);
+      } else {
+        alert(`Welcome back, ${playerNameForCode}!\n\nYour existing picks for ${PLAYOFF_WEEKS[currentWeek].name} have been loaded.\n\nYou can edit and resubmit as many times as you want until Friday 11:59 PM PST.`);
+      }
+    } else if (code === POOL_MANAGER_CODE) {
+      alert(`Welcome, Pool Manager!\n\nYou have unrestricted access to:\n✓ Enter picks anytime (no lockout)\n✓ Enter team codes\n✓ Enter actual game scores\n✓ Set game status (LIVE/FINAL)`);
     }
     
     // Code is valid!
     setPlayerName(playerNameForCode);
+    setPlayerCode(code); // Store uppercase version
     setCodeValidated(true);
   };
 
-  // Download picks as CSV spreadsheet
+  // Download picks as CSV spreadsheet (continued from original)
   const downloadPicksAsCSV = () => {
     const weekPicks = allPicks.filter(pick => pick.week === currentWeek);
     
@@ -188,6 +310,8 @@ function App() {
       alert('No picks to download for this week.');
       return;
     }
+
+    const currentWeekData = PLAYOFF_WEEKS[currentWeek];
 
     // Create CSV header - First row with game numbers
     let csv = ','; // Empty cell for player name column
@@ -220,23 +344,8 @@ function App() {
           const team2Score = pick.predictions[game.id]?.team2 || '-';
           csv += `${team1Score},${team2Score},`;
         });
-        const date = new Date(pick.lastUpdated || pick.timestamp).toLocaleString('en-US', {
-          month: '2-digit',
-          day: '2-digit',
-          year: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit',
-          hour12: true
-        });
-        // Calculate total points
-        const totalPoints = currentWeekData.games.reduce((total, game) => {
-          const team1Score = parseInt(pick.predictions[game.id]?.team1) || 0;
-          const team2Score = parseInt(pick.predictions[game.id]?.team2) || 0;
-          return total + team1Score + team2Score;
-        }, 0);
         
-        // Add totals based on week
+        // Calculate totals
         if (currentWeek === 'superbowl') {
           // Calculate each week's total
           const week4Total = (() => {
@@ -249,7 +358,7 @@ function App() {
             });
             return sum;
           })();
-          
+
           const week3Total = (() => {
             const w3Pick = allPicks.find(p => p.playerName === pick.playerName && p.week === 'conference');
             if (!w3Pick) return 0;
@@ -260,7 +369,7 @@ function App() {
             });
             return sum;
           })();
-          
+
           const week2Total = (() => {
             const w2Pick = allPicks.find(p => p.playerName === pick.playerName && p.week === 'divisional');
             if (!w2Pick) return 0;
@@ -271,7 +380,7 @@ function App() {
             });
             return sum;
           })();
-          
+
           const week1Total = (() => {
             const w1Pick = allPicks.find(p => p.playerName === pick.playerName && p.week === 'wildcard');
             if (!w1Pick) return 0;
@@ -282,268 +391,366 @@ function App() {
             });
             return sum;
           })();
-          
+
           const grandTotal = week4Total + week3Total + week2Total + week1Total;
           
-          csv += `${week4Total},${week3Total},${week2Total},${week1Total},${grandTotal},"${date}"\n`;
+          csv += `${week4Total},${week3Total},${week2Total},${week1Total},${grandTotal},`;
         } else {
-          csv += `${totalPoints},"${date}"\n`;
+          // Single total for non-Super Bowl weeks
+          const totalPoints = currentWeekData.games.reduce((total, game) => {
+            const team1Score = parseInt(pick.predictions[game.id]?.team1) || 0;
+            const team2Score = parseInt(pick.predictions[game.id]?.team2) || 0;
+            return total + team1Score + team2Score;
+          }, 0);
+          csv += `${totalPoints},`;
         }
+        
+        const date = new Date(pick.lastUpdated || pick.timestamp).toLocaleString('en-US', {
+          month: '2-digit',
+          day: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: true
+        });
+        
+        csv += `"${date}"\n`;
       });
 
-    // Create download
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `NFL-Playoff-Pool-${currentWeekData.name.replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    window.URL.revokeObjectURL(url);
+    // Download the CSV
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `nfl_playoff_picks_${currentWeek}_${Date.now()}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
+  // Submit predictions
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!playerName || !codeValidated) {
-      alert('Please validate your player code first');
-      return;
-    }
-
-    // Check if submissions are allowed (time-based restriction)
     if (!isSubmissionAllowed()) {
-      const now = new Date();
-      const pstTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
-      const day = pstTime.getDay();
-      
-      let reopenTime = '';
-      if (day === 5 || day === 6) {
-        reopenTime = 'Monday at 12:01 AM PST';
-      } else if (day === 0) {
-        reopenTime = 'Monday at 12:01 AM PST';
-      } else if (day === 1) {
-        reopenTime = 'Monday at 12:01 AM PST';
-      }
-      
-      alert(`🔒 SUBMISSIONS CLOSED\n\nPick submissions are not allowed from Friday 11:59 PM PST through Sunday.\n\nYour picks are now locked for this week.\n\nSubmissions will reopen: ${reopenTime}`);
+      alert('⛔ SUBMISSIONS CLOSED\n\nPicks are locked from:\n• Friday 11:59 PM PST\n• Through Monday 12:01 AM PST\n\nPicks will reopen Monday at 12:01 AM PST.\n\nThis gives you all week to make your picks!');
       return;
     }
 
-    const weekGames = PLAYOFF_WEEKS[currentWeek].games;
-    const incompletePredictions = weekGames.some(game => 
-      !predictions[game.id]?.team1 || !predictions[game.id]?.team2
+    const currentWeekData = PLAYOFF_WEEKS[currentWeek];
+    const requiredGames = currentWeekData.games.length;
+    const submittedGames = Object.keys(predictions).filter(gameId => 
+      predictions[gameId].team1 && predictions[gameId].team2
+    ).length;
+
+    if (submittedGames < requiredGames) {
+      alert(`Please complete all ${requiredGames} games before submitting!\n\nYou've completed ${submittedGames} of ${requiredGames} games.`);
+      return;
+    }
+
+    // Check if player already has picks for this week
+    const existingPick = allPicks.find(
+      pick => pick.playerName === playerName && pick.week === currentWeek
     );
-
-    if (incompletePredictions) {
-      alert('Please enter scores for all games');
-      return;
-    }
-
-    // Check for tied scores (not allowed in playoffs)
-    const gamesWithTies = weekGames.filter(game => 
-      predictions[game.id]?.team1 && 
-      predictions[game.id]?.team2 && 
-      predictions[game.id].team1 === predictions[game.id].team2
-    );
-
-    if (gamesWithTies.length > 0) {
-      const tiedGames = gamesWithTies.map(g => `Game ${g.id}`).join(', ');
-      alert(`NFL playoff games cannot end in a tie!\n\nPlease change your scores for: ${tiedGames}\n\nOne team must win each game.`);
-      return;
-    }
 
     const pickData = {
-      playerName: playerName.trim(),
+      playerName,
       week: currentWeek,
-      weekName: PLAYOFF_WEEKS[currentWeek].name,
-      predictions: predictions,
-      timestamp: Date.now(),
+      predictions,
+      timestamp: existingPick ? existingPick.timestamp : Date.now(),
       lastUpdated: Date.now()
     };
 
     try {
-      const picksRef = ref(database, 'picks');
-      
-      // Check if player already has an entry for this week
-      const existingPick = allPicks.find(
-        pick => pick.playerName === playerName && pick.week === currentWeek
-      );
-      
-      if (existingPick && existingPick.firebaseKey) {
-        // UPDATE existing entry
-        const pickRef = ref(database, `picks/${existingPick.firebaseKey}`);
-        await set(pickRef, pickData);
-        setSubmitted(true);
-        alert('✅ PICKS UPDATED SUCCESSFULLY!\n\n' +
-              '✓ Your updated picks have been saved\n' +
-              '✓ You can see them in the table below\n' +
-              '✓ You can edit and resubmit anytime until Friday 11:59 PM PST\n\n' +
-              'Your picks are now visible to all players!');
+      if (existingPick) {
+        // Update existing pick
+        await set(ref(database, `picks/${existingPick.firebaseKey}`), pickData);
+        alert(`✅ PICKS UPDATED!\n\n${playerName}, your picks for ${currentWeekData.name} have been updated successfully!\n\nYou can edit and resubmit as many times as you want until Friday 11:59 PM PST.`);
       } else {
-        // CREATE new entry
-        await push(picksRef, pickData);
-        setSubmitted(true);
-        alert('✅ PICKS SUBMITTED SUCCESSFULLY!\n\n' +
-              '✓ Your picks have been saved\n' +
-              '✓ You can see them in the table below\n' +
-              '✓ You can edit and resubmit anytime until Friday 11:59 PM PST\n' +
-              '✓ Your picks are locked Friday 11:59 PM PST\n\n' +
-              'Good luck!');
+        // Add new pick
+        await push(ref(database, 'picks'), pickData);
+        alert(`🎉 PICKS SUBMITTED!\n\n${playerName}, your picks for ${currentWeekData.name} have been submitted successfully!\n\nYou can edit and resubmit as many times as you want until Friday 11:59 PM PST.`);
       }
       
-      setTimeout(() => setSubmitted(false), 3000);
+      setSubmitted(true);
+      
+      // Scroll to show the picks table
+      setTimeout(() => {
+        const picksTable = document.querySelector('.all-picks');
+        if (picksTable) {
+          picksTable.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 100);
     } catch (error) {
-      alert('Error submitting picks: ' + error.message);
+      console.error('Error submitting picks:', error);
+      alert('Error submitting picks. Please try again.');
     }
   };
 
   const currentWeekData = PLAYOFF_WEEKS[currentWeek];
+
+  // Calculate all player totals BEFORE rendering (pre-calculation)
+  const playerTotals = useMemo(() => {
+    const totals = {};
+    
+    // Get all unique player names from current week
+    const weekPicks = allPicks.filter(pick => pick.week === currentWeek);
+    
+    weekPicks.forEach(pick => {
+      if (!totals[pick.playerName]) {
+        totals[pick.playerName] = {
+          week4: 0,
+          week3: 0,
+          week2: 0,
+          week1: 0,
+          grand: 0,
+          current: 0
+        };
+      }
+      
+      // Calculate current week total
+      let currentTotal = 0;
+      const weekGames = PLAYOFF_WEEKS[currentWeek].games;
+      weekGames.forEach(game => {
+        const pred = pick.predictions[game.id];
+        if (pred && pred.team1 && pred.team2) {
+          currentTotal += (parseInt(pred.team1) || 0) + (parseInt(pred.team2) || 0);
+        }
+      });
+      totals[pick.playerName].current = currentTotal;
+      
+      // For Super Bowl, calculate all weeks
+      if (currentWeek === 'superbowl') {
+        // Week 4 (Super Bowl)
+        const w4Pick = allPicks.find(p => p.playerName === pick.playerName && p.week === 'superbowl');
+        if (w4Pick && w4Pick.predictions) {
+          let w4Total = 0;
+          PLAYOFF_WEEKS.superbowl.games.forEach(game => {
+            const pred = w4Pick.predictions[game.id];
+            if (pred) w4Total += (Number(pred.team1) || 0) + (Number(pred.team2) || 0);
+          });
+          totals[pick.playerName].week4 = w4Total;
+        }
+        
+        // Week 3 (Conference)
+        const w3Pick = allPicks.find(p => p.playerName === pick.playerName && p.week === 'conference');
+        if (w3Pick && w3Pick.predictions) {
+          let w3Total = 0;
+          PLAYOFF_WEEKS.conference.games.forEach(game => {
+            const pred = w3Pick.predictions[game.id];
+            if (pred) w3Total += (Number(pred.team1) || 0) + (Number(pred.team2) || 0);
+          });
+          totals[pick.playerName].week3 = w3Total;
+        }
+        
+        // Week 2 (Divisional)
+        const w2Pick = allPicks.find(p => p.playerName === pick.playerName && p.week === 'divisional');
+        if (w2Pick && w2Pick.predictions) {
+          let w2Total = 0;
+          PLAYOFF_WEEKS.divisional.games.forEach(game => {
+            const pred = w2Pick.predictions[game.id];
+            if (pred) w2Total += (Number(pred.team1) || 0) + (Number(pred.team2) || 0);
+          });
+          totals[pick.playerName].week2 = w2Total;
+        }
+        
+        // Week 1 (Wild Card)
+        const w1Pick = allPicks.find(p => p.playerName === pick.playerName && p.week === 'wildcard');
+        if (w1Pick && w1Pick.predictions) {
+          let w1Total = 0;
+          PLAYOFF_WEEKS.wildcard.games.forEach(game => {
+            const pred = w1Pick.predictions[game.id];
+            if (pred) w1Total += (Number(pred.team1) || 0) + (Number(pred.team2) || 0);
+          });
+          totals[pick.playerName].week1 = w1Total;
+        }
+        
+        // Grand Total
+        totals[pick.playerName].grand = 
+          totals[pick.playerName].week1 + 
+          totals[pick.playerName].week2 + 
+          totals[pick.playerName].week3 + 
+          totals[pick.playerName].week4;
+      }
+    });
+    
+    return totals;
+  }, [allPicks, currentWeek]);
 
   return (
     <div className="App">
       <header>
         <h1>🏈 Richard's NFL Playoff Pool 2025</h1>
         <p>Enter your score predictions for each NFL Playoff 2025 game</p>
-        <p style={{fontSize: '11px', color: 'rgba(255,255,255,0.6)', marginTop: '5px'}}>
-          v1.0-FINAL-20251121-1845
+        <p style={{fontSize: "0.85rem", marginTop: "10px", opacity: 0.8}}>
+          v2.0-POOLMGR-{new Date().toISOString().slice(0,10).replace(/-/g,"")}
         </p>
       </header>
 
       <div className="container">
         {/* Week Selector */}
         <div className="week-selector">
-          <button 
-            className={currentWeek === 'wildcard' ? 'active' : ''} 
-            onClick={() => setCurrentWeek('wildcard')}
-          >
-            Wild Card
-          </button>
-          <button 
-            className={currentWeek === 'divisional' ? 'active' : ''} 
-            onClick={() => setCurrentWeek('divisional')}
-          >
-            Divisional
-          </button>
-          <button 
-            className={currentWeek === 'conference' ? 'active' : ''} 
-            onClick={() => setCurrentWeek('conference')}
-          >
-            Conference
-          </button>
-          <button 
-            className={currentWeek === 'superbowl' ? 'active' : ''} 
-            onClick={() => setCurrentWeek('superbowl')}
-          >
-            Super Bowl
-          </button>
+          {Object.keys(PLAYOFF_WEEKS).map(weekKey => (
+            <button
+              key={weekKey}
+              className={currentWeek === weekKey ? 'active' : ''}
+              onClick={() => setCurrentWeek(weekKey)}
+            >
+              {PLAYOFF_WEEKS[weekKey].name.split(' ')[0] + (weekKey === 'superbowl' ? ' Bowl' : '')}
+            </button>
+          ))}
         </div>
 
-        {/* Prediction Form */}
-        <div className="prediction-form">
-          <h2>{currentWeekData.name}</h2>
-          
-          {!isSubmissionAllowed() && (
-            <div className="closed-warning">
-              ⚠️ SUBMISSIONS CLOSED - Pool reopens Monday 12:01 AM PST
-            </div>
-          )}
-          
-          {!codeValidated ? (
-            // STEP 1: Code Entry
+        {/* Code Entry */}
+        {!codeValidated ? (
+          <div className="prediction-form">
             <div className="code-entry-section">
               <h3>🔐 Enter Your Player Code</h3>
-              <p style={{color: '#666', marginBottom: '20px'}}>
-                Enter the 6-digit code you received after paying your $20 entry fee.
+              <p style={{marginBottom: '20px', color: '#666'}}>
+                You received a 6-character code when you paid your entry fee.
               </p>
-              
               <div className="code-input-group">
-                <label>Player Code:</label>
+                <label htmlFor="playerCode">
+                  Player Code (6 characters)
+                </label>
                 <input
                   type="text"
-                  value={playerCode}
-                  onChange={(e) => setPlayerCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                  placeholder="123456"
-                  maxLength="6"
+                  id="playerCode"
                   className="code-input"
-                  autoFocus
+                  value={playerCode}
+                  onChange={(e) => setPlayerCode(e.target.value.toUpperCase())}
+                  placeholder="A7K9M2"
+                  maxLength="6"
+                  autoComplete="off"
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      handleCodeValidation();
+                    }
+                  }}
                 />
                 <button 
-                  onClick={handleCodeValidation} 
                   className="validate-btn"
-                  type="button"
+                  onClick={handleCodeValidation}
                 >
-                  Validate Code
+                  Validate Code & Continue
                 </button>
-              </div>
-              
-              <div style={{marginTop: '20px', padding: '15px', background: '#f8f9fa', borderRadius: '8px', fontSize: '0.9rem', color: '#666'}}>
-                <strong>Don't have a code?</strong>
-                <br />
-                You must pay $20 to receive your player code.
-                <br />
-                Contact: <strong>biletskifamily@shaw.ca</strong>
-              </div>
-            </div>
-          ) : (
-            // STEP 2: Confirmation & Pick Entry
-            <>
-              <div className="player-confirmed">
-                <div className="confirmation-badge">
-                  ✓ Code Validated - You're Logged In!
-                </div>
-                <h3>Playing as: <span className="player-name-highlight">{playerName}</span></h3>
-                <button 
-                  onClick={() => {
-                    setCodeValidated(false);
-                    setPlayerCode('');
-                    setPlayerName('');
-                    setPredictions({});
-                  }}
-                  style={{
-                    marginTop: '10px',
-                    padding: '8px 16px',
-                    background: '#667eea',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '5px',
-                    cursor: 'pointer',
-                    fontSize: '0.9rem'
-                  }}
-                >
-                  🔄 Enter Different Code
-                </button>
-                
-                {allPicks.some(pick => pick.playerName === playerName && pick.week === currentWeek) ? (
-                  <div style={{color: '#856404', fontWeight: 'bold', marginTop: '15px', background: '#fff3cd', padding: '15px', borderRadius: '8px', border: '2px solid #ffc107'}}>
-                    <div style={{fontSize: '1.1rem', marginBottom: '8px'}}>✏️ EDITING YOUR PICKS</div>
-                    <div style={{fontSize: '0.95rem', fontWeight: 'normal'}}>
-                      Your previous picks have been loaded below. You can change any scores and resubmit as many times as you want until <strong>Friday 11:59 PM PST</strong>.
-                    </div>
-                  </div>
-                ) : (
-                  <div style={{color: '#155724', fontWeight: 'bold', marginTop: '15px', background: '#d1ecf1', padding: '15px', borderRadius: '8px', border: '2px solid #17a2b8'}}>
-                    <div style={{fontSize: '1.1rem', marginBottom: '8px'}}>📝 ENTER YOUR PICKS</div>
-                    <div style={{fontSize: '0.95rem', fontWeight: 'normal'}}>
-                      Fill in your predicted final score for each game below. <strong>Away team</strong> is on the left, <strong>Home team</strong> is on the right. You can edit and resubmit until <strong>Friday 11:59 PM PST</strong>.
-                    </div>
-                  </div>
-                )}
-                
-                <p style={{color: '#666', fontSize: '0.85rem', marginTop: '10px', fontStyle: 'italic'}}>
-                  Wrong player? Refresh the page and enter the correct code.
+                <p style={{marginTop: '15px', fontSize: '0.9rem', color: '#666', textAlign: 'center'}}>
+                  Don't have a code? Contact: biletskifamily@shaw.ca
                 </p>
               </div>
+            </div>
+          </div>
+        ) : (
+          <>
+            {/* Player Confirmed */}
+            <div className="player-confirmed">
+              <span className="confirmation-badge">✓ VERIFIED</span>
+              <h3>
+                Welcome, <span className="player-name-highlight">{playerName}</span>!
+                {isPoolManager() && <span style={{marginLeft: '10px', color: '#d63031'}}>👑 POOL MANAGER</span>}
+              </h3>
+              <p>Making picks for: <strong>{currentWeekData.name}</strong></p>
+              <button 
+                className="validate-btn" 
+                style={{marginTop: '15px', padding: '10px 20px', fontSize: '0.9rem'}}
+                onClick={() => {
+                  setCodeValidated(false);
+                  setPlayerCode('');
+                  setPlayerName('');
+                  setPredictions({});
+                }}
+              >
+                🔄 Enter Different Code
+              </button>
+            </div>
+
+            {/* Lockout Warning */}
+            {!isSubmissionAllowed() && (
+              <div className="closed-warning">
+                ⛔ PICKS ARE LOCKED (Friday 11:59 PM - Monday 12:01 AM PST)
+              </div>
+            )}
+
+            {/* Prediction Form */}
+            <div className="prediction-form">
+              <h2>Enter Your Predictions</h2>
               
+              {/* Progress Indicator */}
+              <div className="progress-indicator">
+                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px'}}>
+                  <strong>Progress:</strong>
+                  <span>
+                    {Object.keys(predictions).filter(gameId => predictions[gameId].team1 && predictions[gameId].team2).length} 
+                    {' of '} 
+                    {currentWeekData.games.length} games completed
+                  </span>
+                </div>
+                <div className="progress-bar">
+                  <div 
+                    className="progress-fill"
+                    style={{
+                      width: `${(Object.keys(predictions).filter(gameId => 
+                        predictions[gameId].team1 && predictions[gameId].team2
+                      ).length / currentWeekData.games.length) * 100}%`
+                    }}
+                  >
+                    {Math.round((Object.keys(predictions).filter(gameId => 
+                      predictions[gameId].team1 && predictions[gameId].team2
+                    ).length / currentWeekData.games.length) * 100)}%
+                  </div>
+                </div>
+              </div>
+
               <form onSubmit={handleSubmit}>
                 {currentWeekData.games.map(game => (
                   <div key={game.id} className="game-prediction">
                     <h3>
-                      Game {game.id}
-                      <span style={{fontSize: '0.85rem', fontWeight: 'normal', color: '#666', marginLeft: '10px'}}>
-                        {game.team1} @ {game.team2}
-                      </span>
+                      Game {game.id}: {game.team1} @ {game.team2}
+                      {/* Show team codes if available */}
+                      {teamCodes[currentWeek]?.[game.id] && (
+                        <span style={{fontSize: '0.9rem', color: '#666', marginLeft: '10px'}}>
+                          ({teamCodes[currentWeek][game.id].team1 || '?'} @ {teamCodes[currentWeek][game.id].team2 || '?'})
+                        </span>
+                      )}
                     </h3>
+                    
+                    {/* Show actual scores if available */}
+                    {actualScores[currentWeek]?.[game.id] && (
+                      <div style={{
+                        padding: '8px 12px',
+                        background: '#e8f5e9',
+                        borderRadius: '4px',
+                        marginBottom: '10px',
+                        fontSize: '0.9rem'
+                      }}>
+                        <strong>Actual Score:</strong> {actualScores[currentWeek][game.id].team1 || '-'} - {actualScores[currentWeek][game.id].team2 || '-'}
+                        {gameStatus[currentWeek]?.[game.id] === 'final' && (
+                          <span style={{
+                            marginLeft: '10px',
+                            padding: '2px 8px',
+                            background: '#4caf50',
+                            color: 'white',
+                            borderRadius: '4px',
+                            fontSize: '0.8rem',
+                            fontWeight: 'bold'
+                          }}>✅ FINAL</span>
+                        )}
+                        {gameStatus[currentWeek]?.[game.id] === 'live' && (
+                          <span style={{
+                            marginLeft: '10px',
+                            padding: '2px 8px',
+                            background: '#ff9800',
+                            color: 'white',
+                            borderRadius: '4px',
+                            fontSize: '0.8rem',
+                            fontWeight: 'bold'
+                          }}>🔴 LIVE</span>
+                        )}
+                      </div>
+                    )}
+                    
                     <div className="score-inputs">
                       <div className="team-score">
                         <label>
@@ -556,11 +763,13 @@ function App() {
                           max="99"
                           value={predictions[game.id]?.team1 || ''}
                           onChange={(e) => handleScoreChange(game.id, 'team1', e.target.value)}
-                          placeholder="Score"
+                          placeholder="0"
                           required
                         />
                       </div>
-                      <span className="vs">@</span>
+                      
+                      <div className="vs">VS</div>
+                      
                       <div className="team-score">
                         <label>
                           <span className="team-designation">HOME TEAM</span>
@@ -572,7 +781,7 @@ function App() {
                           max="99"
                           value={predictions[game.id]?.team2 || ''}
                           onChange={(e) => handleScoreChange(game.id, 'team2', e.target.value)}
-                          placeholder="Score"
+                          placeholder="0"
                           required
                         />
                       </div>
@@ -580,89 +789,64 @@ function App() {
                   </div>
                 ))}
 
-                {/* Progress Indicator */}
-                <div className="progress-indicator">
-                  <div style={{fontSize: '0.95rem', color: '#666', marginBottom: '5px'}}>
-                    <strong>Progress:</strong> {Object.keys(predictions).filter(gameId => 
-                      predictions[gameId]?.team1 && predictions[gameId]?.team2
-                    ).length} of {currentWeekData.games.length} games completed
-                  </div>
-                  <div className="progress-bar">
-                    <div 
-                      className="progress-fill" 
-                      style={{
-                        width: `${(Object.keys(predictions).filter(gameId => 
-                          predictions[gameId]?.team1 && predictions[gameId]?.team2
-                        ).length / currentWeekData.games.length) * 100}%`
-                      }}
-                    ></div>
-                  </div>
-                </div>
-
                 <button 
                   type="submit" 
                   className="submit-btn"
                   disabled={!isSubmissionAllowed()}
-                  style={!isSubmissionAllowed() ? {
-                    backgroundColor: '#ccc',
-                    cursor: 'not-allowed'
-                  } : {}}
                 >
-                  {!isSubmissionAllowed() 
-                    ? '🔒 Picks Locked Until Monday' 
-                    : submitted 
-                    ? '✓ Picks Saved Successfully!' 
-                    : allPicks.some(pick => pick.playerName === playerName && pick.week === currentWeek)
-                    ? '💾 Update My Picks (You Can Edit Anytime Until Friday 11:59 PM PST)'
-                    : '✓ Submit My Picks (You Can Edit Later Until Friday 11:59 PM PST)'
-                  }
+                  {isSubmissionAllowed() 
+                    ? '📤 Submit / Update My Picks' 
+                    : '⛔ Submissions Locked (Friday 11:59 PM - Monday 12:01 AM PST)'}
                 </button>
                 
-                {!isSubmissionAllowed() && (
-                  <p style={{textAlign: 'center', color: '#d63031', marginTop: '15px', fontWeight: 'bold'}}>
-                    Submissions are closed. Your picks for this week are final.
-                    <br />
-                    Reopens Monday 12:01 AM PST for next round.
+                {isSubmissionAllowed() && (
+                  <p style={{textAlign: 'center', marginTop: '15px', color: '#666', fontSize: '0.9rem'}}>
+                    You can edit and resubmit your picks as many times as you want until Friday 11:59 PM PST
                   </p>
                 )}
               </form>
-            </>
-          )}
-        </div>
+            </div>
+          </>
+        )}
 
-        {/* Display All Picks */}
+        {/* All Picks Table */}
         <div className="all-picks">
-          <h2>All Player Picks - {currentWeekData.name}</h2>
-                    <button 
-                      onClick={() => {
-                        const picksRef = ref(database, 'picks');
-                        onValue(picksRef, (snapshot) => {
-                          const data = snapshot.val();
-                          if (data) {
-                            const picksArray = Object.keys(data).map(key => ({
-                              ...data[key],
-                              firebaseKey: key
-                            }));
-                            setAllPicks(picksArray);
-                          }
-                        });
-                      }}
-                      style={{
-                        padding: '10px 20px',
-                        background: '#4caf50',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '6px',
-                        cursor: 'pointer',
-                        fontSize: '1rem',
-                        marginBottom: '20px',
-                        display: 'block',
-                        margin: '0 auto 20px auto'
-                      }}
-                    >
-                      🔄 Refresh Picks Table
-                    </button>
-          
+          <h2>
+            All Player Picks - {currentWeekData.name}
+            <button 
+              onClick={downloadPicksAsCSV}
+              style={{
+                marginLeft: '15px',
+                padding: '8px 16px',
+                background: '#4caf50',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '0.9rem',
+                fontWeight: '600'
+              }}
+            >
+              📥 Download to Excel
+            </button>
+            <button 
+              onClick={() => window.location.reload()}
+              style={{
+                marginLeft: '10px',
+                padding: '8px 16px',
+                background: '#667eea',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '0.9rem',
+                fontWeight: '600'
+              }}
+            >
+              🔄 Refresh Picks Table
+            </button>
+          </h2>
+
           {allPicks.filter(pick => pick.week === currentWeek).length === 0 ? (
             <p className="no-picks">No picks submitted yet for this week.</p>
           ) : (
@@ -670,209 +854,273 @@ function App() {
               <table className="picks-table">
                 <thead>
                   <tr>
-                    <th>Player</th>
+                    <th rowSpan={isPoolManager() ? "3" : "2"}>Player</th>
                     {currentWeekData.games.map(game => (
                       <th key={game.id} colSpan="2">
                         Game {game.id}<br/>
-                        <small>{game.team1} vs {game.team2}</small>
+                        <small>{game.team1} @ {game.team2}</small>
+                        {/* Team codes row for Pool Manager */}
+                        {isPoolManager() && (
+                          <div style={{marginTop: '5px', display: 'flex', gap: '5px', justifyContent: 'center', alignItems: 'center'}}>
+                            <input
+                              type="text"
+                              maxLength="3"
+                              value={teamCodes[currentWeek]?.[game.id]?.team1 || ''}
+                              onChange={(e) => handleTeamCodeChange(game.id, 'team1', e.target.value)}
+                              placeholder="PIT"
+                              style={{
+                                width: '45px',
+                                padding: '4px',
+                                textAlign: 'center',
+                                fontSize: '0.8rem',
+                                fontWeight: 'bold',
+                                border: '2px solid #667eea',
+                                borderRadius: '4px'
+                              }}
+                            />
+                            <span style={{fontSize: '0.8rem'}}>@</span>
+                            <input
+                              type="text"
+                              maxLength="3"
+                              value={teamCodes[currentWeek]?.[game.id]?.team2 || ''}
+                              onChange={(e) => handleTeamCodeChange(game.id, 'team2', e.target.value)}
+                              placeholder="BUF"
+                              style={{
+                                width: '45px',
+                                padding: '4px',
+                                textAlign: 'center',
+                                fontSize: '0.8rem',
+                                fontWeight: 'bold',
+                                border: '2px solid #667eea',
+                                borderRadius: '4px'
+                              }}
+                            />
+                          </div>
+                        )}
+                        {/* Team codes display for players */}
+                        {!isPoolManager() && teamCodes[currentWeek]?.[game.id] && (
+                          <div style={{fontSize: '0.8rem', color: '#666', marginTop: '3px'}}>
+                            {teamCodes[currentWeek][game.id].team1 || '?'} @ {teamCodes[currentWeek][game.id].team2 || '?'}
+                          </div>
+                        )}
                       </th>
                     ))}
                     {currentWeek === 'superbowl' ? (
                       <>
-                        <th>Week 4<br/><small>Total</small></th>
-                        <th>Week 3<br/><small>Total</small></th>
-                        <th>Week 2<br/><small>Total</small></th>
-                        <th>Week 1<br/><small>Total</small></th>
-                        <th style={{background: '#4caf50'}}>GRAND<br/><small>TOTAL</small></th>
+                        <th rowSpan={isPoolManager() ? "3" : "2"} style={{backgroundColor: '#fff3cd', fontWeight: 'bold'}}>Week 4<br/>Total</th>
+                        <th rowSpan={isPoolManager() ? "3" : "2"} style={{backgroundColor: '#d1ecf1', fontWeight: 'bold'}}>Week 3<br/>Total</th>
+                        <th rowSpan={isPoolManager() ? "3" : "2"} style={{backgroundColor: '#d4edda', fontWeight: 'bold'}}>Week 2<br/>Total</th>
+                        <th rowSpan={isPoolManager() ? "3" : "2"} style={{backgroundColor: '#f8d7da', fontWeight: 'bold'}}>Week 1<br/>Total</th>
+                        <th rowSpan={isPoolManager() ? "3" : "2"} className="grand-total">GRAND<br/>TOTAL</th>
                       </>
                     ) : (
-                      <th>Total<br/><small>Points</small></th>
+                      <th rowSpan={isPoolManager() ? "3" : "2"} style={{backgroundColor: '#f8f9fa', fontWeight: 'bold'}}>Total<br/>Points</th>
                     )}
-                    <th>Last Updated</th>
+                    <th rowSpan={isPoolManager() ? "3" : "2"}>Submitted</th>
+                  </tr>
+                  
+                  {/* ACTUAL SCORES ROW */}
+                  <tr style={{background: '#e3f2fd'}}>
+                    {currentWeekData.games.map(game => (
+                      <React.Fragment key={`actual-${game.id}`}>
+                        <th style={{padding: '8px 4px', background: '#e3f2fd'}}>
+                          {isPoolManager() ? (
+                            <div>
+                              <input
+                                type="number"
+                                min="0"
+                                max="99"
+                                value={actualScores[currentWeek]?.[game.id]?.team1 || ''}
+                                onChange={(e) => handleActualScoreChange(game.id, 'team1', e.target.value)}
+                                placeholder="-"
+                                style={{
+                                  width: '50px',
+                                  padding: '4px',
+                                  textAlign: 'center',
+                                  fontSize: '1rem',
+                                  fontWeight: 'bold',
+                                  border: '2px solid #4caf50',
+                                  borderRadius: '4px'
+                                }}
+                              />
+                              <div style={{fontSize: '0.7rem', marginTop: '2px'}}>ACTUAL</div>
+                            </div>
+                          ) : (
+                            <div>
+                              <div style={{fontSize: '1rem', fontWeight: 'bold'}}>
+                                {actualScores[currentWeek]?.[game.id]?.team1 || '-'}
+                              </div>
+                              <div style={{fontSize: '0.7rem'}}>ACTUAL</div>
+                            </div>
+                          )}
+                        </th>
+                        <th style={{padding: '8px 4px', background: '#e3f2fd'}}>
+                          {isPoolManager() ? (
+                            <div>
+                              <input
+                                type="number"
+                                min="0"
+                                max="99"
+                                value={actualScores[currentWeek]?.[game.id]?.team2 || ''}
+                                onChange={(e) => handleActualScoreChange(game.id, 'team2', e.target.value)}
+                                placeholder="-"
+                                style={{
+                                  width: '50px',
+                                  padding: '4px',
+                                  textAlign: 'center',
+                                  fontSize: '1rem',
+                                  fontWeight: 'bold',
+                                  border: '2px solid #4caf50',
+                                  borderRadius: '4px'
+                                }}
+                              />
+                              <div style={{fontSize: '0.7rem', marginTop: '2px'}}>ACTUAL</div>
+                              {/* Game Status Dropdown */}
+                              <select
+                                value={gameStatus[currentWeek]?.[game.id] || ''}
+                                onChange={(e) => handleGameStatusChange(game.id, e.target.value)}
+                                style={{
+                                  width: '60px',
+                                  padding: '2px',
+                                  fontSize: '0.7rem',
+                                  marginTop: '4px',
+                                  borderRadius: '3px',
+                                  border: '1px solid #999'
+                                }}
+                              >
+                                <option value="">--</option>
+                                <option value="live">🔴 LIVE</option>
+                                <option value="final">✅ FINAL</option>
+                              </select>
+                            </div>
+                          ) : (
+                            <div>
+                              <div style={{fontSize: '1rem', fontWeight: 'bold'}}>
+                                {actualScores[currentWeek]?.[game.id]?.team2 || '-'}
+                              </div>
+                              <div style={{fontSize: '0.7rem'}}>ACTUAL</div>
+                              {/* Status Badge */}
+                              {gameStatus[currentWeek]?.[game.id] === 'final' && (
+                                <div style={{
+                                  display: 'inline-block',
+                                  padding: '2px 6px',
+                                  background: '#4caf50',
+                                  color: 'white',
+                                  borderRadius: '3px',
+                                  fontSize: '0.65rem',
+                                  fontWeight: 'bold',
+                                  marginTop: '4px'
+                                }}>✅ FINAL</div>
+                              )}
+                              {gameStatus[currentWeek]?.[game.id] === 'live' && (
+                                <div style={{
+                                  display: 'inline-block',
+                                  padding: '2px 6px',
+                                  background: '#ff9800',
+                                  color: 'white',
+                                  borderRadius: '3px',
+                                  fontSize: '0.65rem',
+                                  fontWeight: 'bold',
+                                  marginTop: '4px'
+                                }}>🔴 LIVE</div>
+                              )}
+                            </div>
+                          )}
+                        </th>
+                      </React.Fragment>
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {(() => {
-                    // PRE-CALCULATE ALL TOTALS BEFORE RENDERING
-                    const playerTotals = {};
-                    
-                    // Get all unique player names
-                    const uniquePlayers = [...new Set(allPicks.map(p => p.playerName))];
-                    
-                    uniquePlayers.forEach(playerName => {
-                      playerTotals[playerName] = {
-                        week1: 0,
-                        week2: 0,
-                        week3: 0,
-                        week4: 0,
-                        grand: 0
-                      };
-                      
-                      // Calculate Week 1 (Wild Card) - games 1-6
-                      const w1Picks = allPicks.find(p => p.playerName === playerName && p.week === 'wildcard');
-                      if (w1Picks && w1Picks.predictions) {
-                        PLAYOFF_WEEKS.wildcard.games.forEach(game => {
-                          const pred = w1Picks.predictions[game.id];
-                          if (pred && pred.team1 && pred.team2) {
-                            playerTotals[playerName].week1 += parseInt(pred.team1) + parseInt(pred.team2);
-                          }
-                        });
-                      }
-                      
-                      // Calculate Week 2 (Divisional) - games 7-10
-                      const w2Picks = allPicks.find(p => p.playerName === playerName && p.week === 'divisional');
-                      if (w2Picks && w2Picks.predictions) {
-                        PLAYOFF_WEEKS.divisional.games.forEach(game => {
-                          const pred = w2Picks.predictions[game.id];
-                          if (pred && pred.team1 && pred.team2) {
-                            playerTotals[playerName].week2 += parseInt(pred.team1) + parseInt(pred.team2);
-                          }
-                        });
-                      }
-                      
-                      // Calculate Week 3 (Conference) - games 11-12
-                      const w3Picks = allPicks.find(p => p.playerName === playerName && p.week === 'conference');
-                      if (w3Picks && w3Picks.predictions) {
-                        PLAYOFF_WEEKS.conference.games.forEach(game => {
-                          const pred = w3Picks.predictions[game.id];
-                          if (pred && pred.team1 && pred.team2) {
-                            playerTotals[playerName].week3 += parseInt(pred.team1) + parseInt(pred.team2);
-                          }
-                        });
-                      }
-                      
-                      // Calculate Week 4 (Super Bowl) - game 13
-                      const w4Picks = allPicks.find(p => p.playerName === playerName && p.week === 'superbowl');
-                      if (w4Picks && w4Picks.predictions) {
-                        PLAYOFF_WEEKS.superbowl.games.forEach(game => {
-                          const pred = w4Picks.predictions[game.id];
-                          if (pred && pred.team1 && pred.team2) {
-                            playerTotals[playerName].week4 += parseInt(pred.team1) + parseInt(pred.team2);
-                          }
-                        });
-                      }
-                      
-                      // Calculate GRAND TOTAL (all weeks)
-                      playerTotals[playerName].grand = 
-                        playerTotals[playerName].week1 +
-                        playerTotals[playerName].week2 +
-                        playerTotals[playerName].week3 +
-                        playerTotals[playerName].week4;
-                    });
-                    
-                    // NOW RENDER THE TABLE WITH PRE-CALCULATED TOTALS
-                    return allPicks
+                  {allPicks
                     .filter(pick => pick.week === currentWeek)
                     .sort((a, b) => (b.lastUpdated || b.timestamp) - (a.lastUpdated || a.timestamp))
                     .map((pick, idx) => {
-                      // Get current week total for this pick
-                      let currentWeekTotal = 0;
-                      if (pick.predictions) {
-                        currentWeekData.games.forEach(game => {
-                          const pred = pick.predictions[game.id];
-                          if (pred && pred.team1 && pred.team2) {
-                            currentWeekTotal += parseInt(pred.team1) + parseInt(pred.team2);
-                          }
-                        });
-                      }
+                      // Check if any prediction matches actual score (winner)
+                      const hasCorrectPrediction = (gameId) => {
+                        const actual = actualScores[currentWeek]?.[gameId];
+                        const pred = pick.predictions[gameId];
+                        if (!actual || !pred) return false;
+                        
+                        const actualTeam1 = parseInt(actual.team1);
+                        const actualTeam2 = parseInt(actual.team2);
+                        const predTeam1 = parseInt(pred.team1);
+                        const predTeam2 = parseInt(pred.team2);
+                        
+                        if (isNaN(actualTeam1) || isNaN(actualTeam2)) return false;
+                        
+                        // Check if prediction matches the winner
+                        const actualWinner = actualTeam1 > actualTeam2 ? 'team1' : actualTeam2 > actualTeam1 ? 'team2' : 'tie';
+                        const predWinner = predTeam1 > predTeam2 ? 'team1' : predTeam2 > predTeam1 ? 'team2' : 'tie';
+                        
+                        return actualWinner === predWinner && actualWinner !== 'tie';
+                      };
                       
                       return (
-                      <tr key={idx}>
-                        <td className="player-name">{pick.playerName}</td>
-                        {currentWeekData.games.map(game => {
-                          const team1Score = pick.predictions[game.id]?.team1;
-                          const team2Score = pick.predictions[game.id]?.team2;
-                          const team1Wins = team1Score && team2Score && parseInt(team1Score) > parseInt(team2Score);
-                          const team2Wins = team1Score && team2Score && parseInt(team2Score) > parseInt(team1Score);
-                          
-                          return (
-                            <React.Fragment key={game.id}>
-                              <td className={team1Wins ? "score score-winner" : "score"}>
-                                {team1Score ?? '-'}
-                              </td>
-                              <td className={team2Wins ? "score score-winner" : "score"}>
-                                {team2Score ?? '-'}
-                              </td>
-                            </React.Fragment>
-                          );
-                        })}
-                        {currentWeek === 'superbowl' ? (
-                          <>
-                            {/* Week 4 Total (Super Bowl) */}
-                            <td className="total-points" style={{backgroundColor: '#f8f9fa', fontWeight: 'bold', fontSize: '16px'}}>
-                              <span style={{color: '#000'}}>{playerTotals[pick.playerName]?.week4 || 0}</span>
-                            </td>
-                            
-                            {/* Week 3 Total (Conference) */}
-                            <td className="total-points" style={{backgroundColor: '#f8f9fa', fontWeight: 'bold', fontSize: '16px'}}>
-                              <span style={{color: '#000'}}>{playerTotals[pick.playerName]?.week3 || 0}</span>
-                            </td>
-                            
-                            {/* Week 2 Total (Divisional) */}
-                            <td className="total-points" style={{backgroundColor: '#f8f9fa', fontWeight: 'bold', fontSize: '16px'}}>
-                              <span style={{color: '#000'}}>{playerTotals[pick.playerName]?.week2 || 0}</span>
-                            </td>
-                            
-                            {/* Week 1 Total (Wild Card) */}
-                            <td className="total-points" style={{backgroundColor: '#f8f9fa', fontWeight: 'bold', fontSize: '16px'}}>
-                              <span style={{color: '#000'}}>{playerTotals[pick.playerName]?.week1 || 0}</span>
-                            </td>
-                            
-                            {/* GRAND TOTAL (All 4 Weeks) */}
-                            <td className="grand-total" style={{fontWeight: 'bold', fontSize: '18px'}}>
-                              <span style={{color: '#fff'}}>{playerTotals[pick.playerName]?.grand || 0}</span>
-                            </td>
-                          </>
-                        ) : (
-                          <td className="total-points" style={{backgroundColor: '#f8f9fa', fontWeight: 'bold', fontSize: '16px'}}>
-                            <span style={{color: '#000'}}>{currentWeekTotal}</span>
-                          </td>
-                        )}
-                        <td className="timestamp">
-                          {new Date(pick.lastUpdated || pick.timestamp).toLocaleString('en-US', {
-                            month: '2-digit',
-                            day: '2-digit',
-                            year: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit',
-                            second: '2-digit',
-                            hour12: true,
-                            timeZoneName: 'short'
+                        <tr key={idx}>
+                          <td className="player-name">{pick.playerName}</td>
+                          {currentWeekData.games.map(game => {
+                            const isCorrect = hasCorrectPrediction(game.id);
+                            return (
+                              <React.Fragment key={`${idx}-${game.id}`}>
+                                <td className={`score ${isCorrect ? 'score-winner' : ''}`}>
+                                  {pick.predictions[game.id]?.team1 || '-'}
+                                </td>
+                                <td className={`score ${isCorrect ? 'score-winner' : ''}`}>
+                                  {pick.predictions[game.id]?.team2 || '-'}
+                                </td>
+                              </React.Fragment>
+                            );
                           })}
-                        </td>
-                      </tr>
-                    );
-                    });
-                  })()}
+                          
+                          {/* Total Points Columns */}
+                          {currentWeek === 'superbowl' ? (
+                            <>
+                              <td style={{backgroundColor: '#fff3cd', fontWeight: 'bold', fontSize: '16px'}}>
+                                <span style={{color: '#000'}}>{playerTotals[pick.playerName]?.week4 || 0}</span>
+                              </td>
+                              <td style={{backgroundColor: '#d1ecf1', fontWeight: 'bold', fontSize: '16px'}}>
+                                <span style={{color: '#000'}}>{playerTotals[pick.playerName]?.week3 || 0}</span>
+                              </td>
+                              <td style={{backgroundColor: '#d4edda', fontWeight: 'bold', fontSize: '16px'}}>
+                                <span style={{color: '#000'}}>{playerTotals[pick.playerName]?.week2 || 0}</span>
+                              </td>
+                              <td style={{backgroundColor: '#f8d7da', fontWeight: 'bold', fontSize: '16px'}}>
+                                <span style={{color: '#000'}}>{playerTotals[pick.playerName]?.week1 || 0}</span>
+                              </td>
+                              <td className="grand-total">
+                                {playerTotals[pick.playerName]?.grand || 0}
+                              </td>
+                            </>
+                          ) : (
+                            <td style={{backgroundColor: '#f8f9fa', fontWeight: 'bold', fontSize: '16px'}}>
+                              <span style={{color: '#000'}}>{playerTotals[pick.playerName]?.current || 0}</span>
+                            </td>
+                          )}
+                          
+                          <td className="timestamp">
+                            {new Date(pick.lastUpdated || pick.timestamp).toLocaleString('en-US', {
+                              month: '2-digit',
+                              day: '2-digit',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </td>
+                        </tr>
+                      );
+                    })}
                 </tbody>
               </table>
-                    
-                    <button 
-                      onClick={downloadPicksAsCSV}
-                      style={{
-                        marginTop: '20px',
-                        padding: '12px 24px',
-                        background: '#4caf50',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '8px',
-                        cursor: 'pointer',
-                        fontSize: '1rem',
-                        fontWeight: '600',
-                        display: 'block',
-                        margin: '20px auto 0 auto',
-                        boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-                      }}
-                    >
-                      📥 Download Picks to Excel
-                    </button>
-                  </div>
-                )}
-              </div>
             </div>
+          )}
+        </div>
+      </div>
 
       <footer>
-        <p>NFL Playoff Pool 2025 • Updates in real-time</p>
+        <p>Richard's NFL Playoff Pool 2025 | Good luck! 🏈</p>
+        <p style={{fontSize: '0.85rem', marginTop: '5px'}}>
+          Questions? Contact: biletskifamily@shaw.ca
+        </p>
       </footer>
     </div>
   );
