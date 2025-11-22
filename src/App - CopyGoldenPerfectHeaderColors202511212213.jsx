@@ -100,15 +100,6 @@ function App() {
   const [teamCodes, setTeamCodes] = useState({});      // { wildcard: { 1: {team1: "PIT", team2: "BUF"}, ... }}
   const [actualScores, setActualScores] = useState({}); // { wildcard: { 1: {team1: 27, team2: 24}, ... }}
   const [gameStatus, setGameStatus] = useState({});     // { wildcard: { 1: "final", 2: "live", ... }}
-  const [manualWeekTotals, setManualWeekTotals] = useState({ // Manual week totals entered by Pool Manager
-    wildcard: '',
-    divisional: '',
-    conference: '',
-    superbowl_week4: '',
-    superbowl_week3: '',
-    superbowl_week2: '',
-    superbowl_week1: ''
-  });
 
   // Check if current user is Pool Manager
   const isPoolManager = () => {
@@ -161,17 +152,6 @@ function App() {
       const data = snapshot.val();
       if (data) {
         setGameStatus(data);
-      }
-    });
-  }, []);
-
-  // Load manual week totals from Firebase
-  useEffect(() => {
-    const manualTotalsRef = ref(database, 'manualWeekTotals');
-    onValue(manualTotalsRef, (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        setManualWeekTotals(data);
       }
     });
   }, []);
@@ -235,18 +215,6 @@ function App() {
     
     // Save to Firebase
     set(ref(database, `gameStatus/${currentWeek}/${gameId}`), status);
-  };
-
-  // Pool Manager function to update manual week totals
-  const handleManualTotalChange = (weekKey, value) => {
-    const updatedTotals = {
-      ...manualWeekTotals,
-      [weekKey]: value
-    };
-    setManualWeekTotals(updatedTotals);
-    
-    // Save to Firebase
-    set(ref(database, `manualWeekTotals/${weekKey}`), value);
   };
 
   // Check if submissions are allowed based on day/time (PST)
@@ -1061,174 +1029,6 @@ function App() {
                         </th>
                       </React.Fragment>
                     ))}
-                  </tr>
-                  
-                  {/* MANUAL WEEK TOTALS ROW - Input for Pool Manager, Display for Players */}
-                  <tr style={{background: isPoolManager() ? '#fff9e6' : '#f8f9fa'}}>
-                    {/* Empty cells for game columns */}
-                    {currentWeekData.games.map(game => (
-                      <React.Fragment key={`total-${game.id}`}>
-                        <th style={{background: isPoolManager() ? '#fff9e6' : '#f8f9fa'}}></th>
-                        <th style={{background: isPoolManager() ? '#fff9e6' : '#f8f9fa'}}></th>
-                      </React.Fragment>
-                    ))}
-                    {/* Manual Total Fields/Display */}
-                    {currentWeek === 'superbowl' ? (
-                      <>
-                        <th style={{backgroundColor: '#fff3cd', padding: '8px'}}>
-                          {isPoolManager() ? (
-                            <div>
-                              <div style={{fontSize: '0.7rem', marginBottom: '4px', color: '#000'}}>OFFICIAL</div>
-                              <input
-                                type="number"
-                                min="0"
-                                value={manualWeekTotals.superbowl_week4 || ''}
-                                onChange={(e) => handleManualTotalChange('superbowl_week4', e.target.value)}
-                                placeholder="0"
-                                style={{
-                                  width: '60px',
-                                  padding: '4px',
-                                  textAlign: 'center',
-                                  fontSize: '1rem',
-                                  fontWeight: 'bold',
-                                  border: '2px solid #f39c12',
-                                  borderRadius: '4px'
-                                }}
-                              />
-                            </div>
-                          ) : (
-                            <div>
-                              <div style={{fontSize: '0.7rem', color: '#000', marginBottom: '2px'}}>Official Total</div>
-                              <div style={{fontSize: '1.1rem', fontWeight: 'bold', color: '#d63031'}}>
-                                {manualWeekTotals.superbowl_week4 || '-'}
-                              </div>
-                            </div>
-                          )}
-                        </th>
-                        <th style={{backgroundColor: '#d1ecf1', padding: '8px'}}>
-                          {isPoolManager() ? (
-                            <div>
-                              <div style={{fontSize: '0.7rem', marginBottom: '4px', color: '#000'}}>OFFICIAL</div>
-                              <input
-                                type="number"
-                                min="0"
-                                value={manualWeekTotals.superbowl_week3 || ''}
-                                onChange={(e) => handleManualTotalChange('superbowl_week3', e.target.value)}
-                                placeholder="0"
-                                style={{
-                                  width: '60px',
-                                  padding: '4px',
-                                  textAlign: 'center',
-                                  fontSize: '1rem',
-                                  fontWeight: 'bold',
-                                  border: '2px solid #f39c12',
-                                  borderRadius: '4px'
-                                }}
-                              />
-                            </div>
-                          ) : (
-                            <div>
-                              <div style={{fontSize: '0.7rem', color: '#000', marginBottom: '2px'}}>Official Total</div>
-                              <div style={{fontSize: '1.1rem', fontWeight: 'bold', color: '#d63031'}}>
-                                {manualWeekTotals.superbowl_week3 || '-'}
-                              </div>
-                            </div>
-                          )}
-                        </th>
-                        <th style={{backgroundColor: '#d4edda', padding: '8px'}}>
-                          {isPoolManager() ? (
-                            <div>
-                              <div style={{fontSize: '0.7rem', marginBottom: '4px', color: '#000'}}>OFFICIAL</div>
-                              <input
-                                type="number"
-                                min="0"
-                                value={manualWeekTotals.superbowl_week2 || ''}
-                                onChange={(e) => handleManualTotalChange('superbowl_week2', e.target.value)}
-                                placeholder="0"
-                                style={{
-                                  width: '60px',
-                                  padding: '4px',
-                                  textAlign: 'center',
-                                  fontSize: '1rem',
-                                  fontWeight: 'bold',
-                                  border: '2px solid #f39c12',
-                                  borderRadius: '4px'
-                                }}
-                              />
-                            </div>
-                          ) : (
-                            <div>
-                              <div style={{fontSize: '0.7rem', color: '#000', marginBottom: '2px'}}>Official Total</div>
-                              <div style={{fontSize: '1.1rem', fontWeight: 'bold', color: '#d63031'}}>
-                                {manualWeekTotals.superbowl_week2 || '-'}
-                              </div>
-                            </div>
-                          )}
-                        </th>
-                        <th style={{backgroundColor: '#f8d7da', padding: '8px'}}>
-                          {isPoolManager() ? (
-                            <div>
-                              <div style={{fontSize: '0.7rem', marginBottom: '4px', color: '#000'}}>OFFICIAL</div>
-                              <input
-                                type="number"
-                                min="0"
-                                value={manualWeekTotals.superbowl_week1 || ''}
-                                onChange={(e) => handleManualTotalChange('superbowl_week1', e.target.value)}
-                                placeholder="0"
-                                style={{
-                                  width: '60px',
-                                  padding: '4px',
-                                  textAlign: 'center',
-                                  fontSize: '1rem',
-                                  fontWeight: 'bold',
-                                  border: '2px solid #f39c12',
-                                  borderRadius: '4px'
-                                }}
-                              />
-                            </div>
-                          ) : (
-                            <div>
-                              <div style={{fontSize: '0.7rem', color: '#000', marginBottom: '2px'}}>Official Total</div>
-                              <div style={{fontSize: '1.1rem', fontWeight: 'bold', color: '#d63031'}}>
-                                {manualWeekTotals.superbowl_week1 || '-'}
-                              </div>
-                            </div>
-                          )}
-                        </th>
-                        <th className="grand-total"></th>
-                      </>
-                    ) : (
-                      <th style={{backgroundColor: '#f8f9fa', padding: '8px'}}>
-                        {isPoolManager() ? (
-                          <div>
-                            <div style={{fontSize: '0.7rem', marginBottom: '4px', color: '#000'}}>OFFICIAL TOTAL</div>
-                            <input
-                              type="number"
-                              min="0"
-                              value={manualWeekTotals[currentWeek] || ''}
-                              onChange={(e) => handleManualTotalChange(currentWeek, e.target.value)}
-                              placeholder="0"
-                              style={{
-                                width: '60px',
-                                padding: '4px',
-                                textAlign: 'center',
-                                fontSize: '1rem',
-                                fontWeight: 'bold',
-                                border: '2px solid #f39c12',
-                                borderRadius: '4px'
-                              }}
-                            />
-                          </div>
-                        ) : (
-                          <div>
-                            <div style={{fontSize: '0.7rem', color: '#000', marginBottom: '2px'}}>Official Total</div>
-                            <div style={{fontSize: '1.1rem', fontWeight: 'bold', color: '#d63031'}}>
-                              {manualWeekTotals[currentWeek] || '-'}
-                            </div>
-                          </div>
-                        )}
-                      </th>
-                    )}
                   </tr>
                 </thead>
                 <tbody>
