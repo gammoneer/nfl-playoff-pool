@@ -819,7 +819,7 @@ function App() {
                 marginLeft: '15px',
                 padding: '8px 16px',
                 background: '#4caf50',
-                color: 'white',
+                color: 'black',
                 border: 'none',
                 borderRadius: '6px',
                 cursor: 'pointer',
