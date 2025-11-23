@@ -54,15 +54,36 @@ const POOL_MANAGER_CODES = ["76BB89", "Z9Y8X7"];  // Add more codes here as need
 // Avoid confusing characters: 0, O, I, 1, l
 const PLAYER_CODES = {
   "76BB89": "POOL MANAGER - Richard",  // Pool Manager #1
-  "Z9Y8X7": "POOL MANAGER - Dallas",   // Pool Manager #2
-  "A7K9M2": "Richard Biletski",
+  "Z9Y8X7": "POOL MANAGER - Dennis",   // Pool Manager #2
+  "J239W4": "Bob Casson",
+  "B7Y4X3": "Bob Desrosiers",
+  "D4F7G5": "Bonnie Biletski",
+  "X8HH67": "Chris Neufeld",
+  "G7R3P5": "Curtis Braun",
   "X3P8N1": "Dallas Pylypow",
-  "B5R4T6": "Jane Doe",
-  "H8M3N7": "John Smith",
-  "K2P9W5": "Mike Johnson",
-  "T7Y4R8": "Sarah Williams",
-  "D3F6G9": "David Brown",
-  "N4M8Q2": "Neema Dadmand",
+  "HM8T67": "Darrell Klassen",
+  "TA89R2": "Dave Boyarski",
+  "K2P9W5": "Dave Desrosiers",
+  "A5K4T7": "Dennis Biletski",
+  "AB6C89": "Gareth Reeve",
+  "D3F6G9": "Jarrod Reimer",
+  "T42B67": "Jo Behr",
+  "ABC378": "Ken Mcleod",
+  "K9R3N6": "Kevin Pich",
+  "H7P3N5": "Larry Bretecher",
+  "B5R4T6": "Larry Strand",
+  "L2W9X2": "Michelle Desrosiers",
+  "T4M8Z8": "Neema Dadmand",
+  "9CD72G": "Neil Banman",
+  "T7Y4R8": "Neil Foster",
+  "E4T6J7": "Orest Pich",
+  "N4M8Q2": "Randy Moffatt",
+  "A7K9M2": "Richard Biletski",
+  "62R92L": "Rob Crowe",
+  "H8M3N7": "Rob Kost",
+  "WW3F44": "Ryan Moffatt",
+  "E5G7G8": "Tony Creta",
+
   // Add more players here...
   // Example: "Z8X5C3": "New Player",
 };
