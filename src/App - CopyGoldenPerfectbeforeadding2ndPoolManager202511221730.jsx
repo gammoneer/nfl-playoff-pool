@@ -37,11 +37,10 @@ const AUTO_LOCK_DATES = {
 // ============================================
 // 🔧 POOL MANAGER CONFIGURATION
 // ============================================
-// TO ADD POOL MANAGERS:
-// Just add codes to the array below. Use 6 characters (letters/numbers).
-// You can have multiple pool managers!
-const POOL_MANAGER_CODES = ["76BB89", "Z9Y8X7"];  // Add more codes here as needed
-// Example: ["76BB89", "ABC123", "XYZ789"]
+// TO CHANGE POOL MANAGER CODE:
+// Just edit the code below. Use 6 characters (letters/numbers).
+const POOL_MANAGER_CODE = "76BB89";
+// Location to change it: RIGHT HERE ☝️
 // After changing, save file and restart: npm start
 // ============================================
 
@@ -53,8 +52,7 @@ const POOL_MANAGER_CODES = ["76BB89", "Z9Y8X7"];  // Add more codes here as need
 // Codes are now 6-character alphanumeric (A-Z, 2-9)
 // Avoid confusing characters: 0, O, I, 1, l
 const PLAYER_CODES = {
-  "76BB89": "POOL MANAGER - Richard",  // Pool Manager #1
-  "Z9Y8X7": "POOL MANAGER - Dallas",   // Pool Manager #2
+  "76BB89": "POOL MANAGER",  // Special - Pool Manager access
   "A7K9M2": "Richard Biletski",
   "X3P8N1": "Dallas Pylypow",
   "B5R4T6": "Jane Doe",
@@ -139,7 +137,7 @@ function App() {
 
   // Check if current user is Pool Manager
   const isPoolManager = () => {
-    return POOL_MANAGER_CODES.includes(playerCode) && codeValidated;
+    return playerCode === POOL_MANAGER_CODE && codeValidated;
   };
 
   // 🔒 NEW: Check if a week should be automatically locked based on date
@@ -440,8 +438,8 @@ function App() {
     
     if (existingPick) {
       // Alert will be shown, picks will load automatically via useEffect
-      if (POOL_MANAGER_CODES.includes(code)) {
-        alert(`Welcome, Pool Manager!\n\nYou have unrestricted access to:\n✓ Enter picks anytime (no lockout)\n✓ Enter team codes\n✓ Enter actual game scores\n✓ Set game status (LIVE/FINAL)\n✓ Lock/unlock weeks\n✓ View all player codes`);
+      if (code === POOL_MANAGER_CODE) {
+        alert(`Welcome, Pool Manager!\n\nYou have unrestricted access to:\n✓ Enter picks anytime (no lockout)\n✓ Enter team codes\n✓ Enter actual game scores\n✓ Set game status (LIVE/FINAL)\n✓ Lock/unlock weeks`);
       } else {
         const lockStatus = isWeekLocked(currentWeek);
         if (lockStatus) {
@@ -450,8 +448,8 @@ function App() {
           alert(`Welcome back, ${playerNameForCode}!\n\nYour existing picks for ${PLAYOFF_WEEKS[currentWeek].name} will be loaded automatically.\n\nYou can edit and resubmit as many times as you want until Friday 11:59 PM PST.`);
         }
       }
-    } else if (POOL_MANAGER_CODES.includes(code)) {
-      alert(`Welcome, Pool Manager!\n\nYou have unrestricted access to:\n✓ Enter picks anytime (no lockout)\n✓ Enter team codes\n✓ Enter actual game scores\n✓ Set game status (LIVE/FINAL)\n✓ Lock/unlock weeks\n✓ View all player codes`);
+    } else if (code === POOL_MANAGER_CODE) {
+      alert(`Welcome, Pool Manager!\n\nYou have unrestricted access to:\n✓ Enter picks anytime (no lockout)\n✓ Enter team codes\n✓ Enter actual game scores\n✓ Set game status (LIVE/FINAL)\n✓ Lock/unlock weeks`);
     }
     
     // Code is valid!
@@ -920,122 +918,6 @@ function App() {
           </div>
         )}
 
-        {/* 👥 NEW: Player Codes Display for Pool Manager */}
-        {isPoolManager() && codeValidated && (
-          <div style={{
-            background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-            color: 'white',
-            padding: '15px 20px',
-            borderRadius: '8px',
-            marginBottom: '20px',
-            boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
-          }}>
-            <h3 style={{margin: '0 0 15px 0', display: 'flex', alignItems: 'center', gap: '10px'}}>
-              <span>🔑</span>
-              <span>ALL PLAYER CODES</span>
-            </h3>
-            <div style={{
-              background: 'rgba(255,255,255,0.95)',
-              padding: '15px',
-              borderRadius: '6px',
-              maxHeight: '300px',
-              overflowY: 'auto'
-            }}>
-              <table style={{
-                width: '100%',
-                borderCollapse: 'collapse',
-                fontSize: '0.9rem'
-              }}>
-                <thead>
-                  <tr style={{
-                    background: '#f8f9fa',
-                    borderBottom: '2px solid #dee2e6'
-                  }}>
-                    <th style={{
-                      padding: '10px',
-                      textAlign: 'left',
-                      color: '#495057',
-                      fontWeight: '600'
-                    }}>Player Code</th>
-                    <th style={{
-                      padding: '10px',
-                      textAlign: 'left',
-                      color: '#495057',
-                      fontWeight: '600'
-                    }}>Player Name</th>
-                    <th style={{
-                      padding: '10px',
-                      textAlign: 'center',
-                      color: '#495057',
-                      fontWeight: '600'
-                    }}>Role</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {Object.entries(PLAYER_CODES)
-                    .sort((a, b) => {
-                      // Pool managers first
-                      const aIsManager = POOL_MANAGER_CODES.includes(a[0]);
-                      const bIsManager = POOL_MANAGER_CODES.includes(b[0]);
-                      if (aIsManager && !bIsManager) return -1;
-                      if (!aIsManager && bIsManager) return 1;
-                      // Then alphabetical by name
-                      return a[1].localeCompare(b[1]);
-                    })
-                    .map(([code, name], index) => {
-                      const isManager = POOL_MANAGER_CODES.includes(code);
-                      return (
-                        <tr key={code} style={{
-                          background: index % 2 === 0 ? '#ffffff' : '#f8f9fa',
-                          borderBottom: '1px solid #dee2e6'
-                        }}>
-                          <td style={{
-                            padding: '10px',
-                            color: '#212529',
-                            fontFamily: 'monospace',
-                            fontWeight: 'bold',
-                            fontSize: '1rem'
-                          }}>{code}</td>
-                          <td style={{
-                            padding: '10px',
-                            color: '#212529'
-                          }}>{name}</td>
-                          <td style={{
-                            padding: '10px',
-                            textAlign: 'center'
-                          }}>
-                            {isManager ? (
-                              <span style={{
-                                padding: '4px 8px',
-                                background: '#dc3545',
-                                color: 'white',
-                                borderRadius: '4px',
-                                fontSize: '0.75rem',
-                                fontWeight: '600'
-                              }}>👑 MANAGER</span>
-                            ) : (
-                              <span style={{
-                                padding: '4px 8px',
-                                background: '#28a745',
-                                color: 'white',
-                                borderRadius: '4px',
-                                fontSize: '0.75rem',
-                                fontWeight: '600'
-                              }}>✓ PLAYER</span>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                </tbody>
-              </table>
-            </div>
-            <p style={{fontSize: '0.8rem', marginTop: '12px', marginBottom: '0', opacity: 0.9}}>
-              📋 Total Players: {Object.keys(PLAYER_CODES).length} | Pool Managers: {POOL_MANAGER_CODES.length} | Regular Players: {Object.keys(PLAYER_CODES).length - POOL_MANAGER_CODES.length}
-            </p>
-          </div>
-        )}
-
         {/* Week Selector */}
         <div className="week-selector">
           {Object.keys(PLAYOFF_WEEKS).map(weekKey => {
@@ -1097,30 +979,8 @@ function App() {
                 >
                   Validate Code & Continue
                 </button>
-                <div style={{
-                  marginTop: '20px',
-                  padding: '15px',
-                  background: '#fff3cd',
-                  border: '2px solid #ffc107',
-                  borderRadius: '8px',
-                  textAlign: 'left'
-                }}>
-                  <h4 style={{margin: '0 0 10px 0', color: '#856404'}}>💰 Entry Fee Payment</h4>
-                  <p style={{margin: '5px 0', fontSize: '0.9rem', color: '#856404'}}>
-                    <strong>Cost:</strong> $20 per entry
-                  </p>
-                  <p style={{margin: '5px 0', fontSize: '0.9rem', color: '#856404'}}>
-                    <strong>Send e-Transfer to:</strong> gammoneer2b@gmail.com
-                  </p>
-                  <p style={{margin: '5px 0', fontSize: '0.9rem', color: '#856404'}}>
-                    <strong>Password:</strong> nflpool
-                  </p>
-                  <p style={{margin: '10px 0 5px 0', fontSize: '0.85rem', color: '#856404', fontStyle: 'italic'}}>
-                    You will receive your player code after payment is confirmed.
-                  </p>
-                </div>
                 <p style={{marginTop: '15px', fontSize: '0.9rem', color: '#666', textAlign: 'center'}}>
-                  Questions? Contact: biletskifamily@shaw.ca
+                  Don't have a code? Contact: biletskifamily@shaw.ca
                 </p>
               </div>
             </div>
