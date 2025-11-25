@@ -914,7 +914,7 @@ function App() {
           >
             📋 View Quick Rules (PDF)
           </a>
-          <p style={{fontSize: '0.8rem', marginTop: '10px', color: '#666'}}>
+          <p style={{fontSize: '0.8rem', marginTop: '10px', color: '#000'}}>
             Entry Fee: $20 - Must be paid before end of regular season
           </p>
         </div>
