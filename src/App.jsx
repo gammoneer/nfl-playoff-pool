@@ -1207,14 +1207,14 @@ function App() {
                     <strong>Send e-Transfer to:</strong> gammoneer2b@gmail.com
                   </p>
                   <p style={{margin: '5px 0', fontSize: '0.9rem', color: '#856404'}}>
-                    <strong>Password:</strong> nflpool
+                    <strong>Password:</strong> ###nflpool###
                   </p>
                   <p style={{margin: '10px 0 5px 0', fontSize: '0.85rem', color: '#856404', fontStyle: 'italic'}}>
                     You will receive your player code after payment is confirmed.
                   </p>
                 </div>
                 <p style={{marginTop: '15px', fontSize: '0.9rem', color: '#666', textAlign: 'center'}}>
-                  Questions? Contact: biletskifamily@shaw.ca
+                  Questions? Contact: gammoneer2b@gmail.com
                 </p>
               </div>
             </div>
