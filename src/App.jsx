@@ -102,7 +102,7 @@ const PLAYER_CODES = {
   "T7Y4R8": "Neil Foster",
   "E4T6J7": "Orest Pich",
   "N4M8Q2": "Randy Moffatt",
-  "A7K9M2": "Richard Biletski",
+  "B8L9M2": "Richard Biletski",
   "62R92L": "Rob Crowe",
   "H8M3N7": "Rob Kost",
   "WW3F44": "Ryan Moffatt",
