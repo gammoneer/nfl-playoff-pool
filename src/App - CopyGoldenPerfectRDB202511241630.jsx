@@ -19,22 +19,6 @@ const app = initializeApp(firebaseConfig);
 const database = getDatabase(app);
 
 // ============================================
-// 📅 PLAYOFF SEASON CONFIGURATION
-// ============================================
-// Define when the playoff season starts and ends
-// Submissions lock on WEEKENDS ONLY during playoff season
-// Format: YYYY-MM-DD
-const PLAYOFF_SEASON = {
-  firstFriday: "2026-01-09",  // Friday before Wild Card weekend (last day to submit)
-  lastMonday: "2026-02-10"    // Monday after Super Bowl (season ends)
-};
-// Before firstFriday: NO LOCKS - players can submit anytime
-// During playoffs: Locks Friday 11:59 PM - Monday 12:01 AM each weekend
-// After lastMonday: Season over
-// TO CHANGE: Edit dates above when you know actual playoff schedule
-// ============================================
-
-// ============================================
 // 📅 AUTOMATIC WEEK LOCK DATES
 // ============================================
 // Weeks automatically lock on these dates at 12:00 AM PST
@@ -70,15 +54,36 @@ const POOL_MANAGER_CODES = ["76BB89", "Z9Y8X7"];  // Add more codes here as need
 // Avoid confusing characters: 0, O, I, 1, l
 const PLAYER_CODES = {
   "76BB89": "POOL MANAGER - Richard",  // Pool Manager #1
-  "Z9Y8X7": "POOL MANAGER - Dallas",   // Pool Manager #2
-  "A7K9M2": "Richard Biletski",
+  "Z9Y8X7": "POOL MANAGER - Dennis",   // Pool Manager #2
+  "J239W4": "Bob Casson",
+  "B7Y4X3": "Bob Desrosiers",
+  "D4F7G5": "Bonnie Biletski",
+  "X8HH67": "Chris Neufeld",
+  "G7R3P5": "Curtis Braun",
   "X3P8N1": "Dallas Pylypow",
-  "B5R4T6": "Jane Doe",
-  "H8M3N7": "John Smith",
-  "K2P9W5": "Mike Johnson",
-  "T7Y4R8": "Sarah Williams",
-  "D3F6G9": "David Brown",
-  "N4M8Q2": "Neema Dadmand",
+  "HM8T67": "Darrell Klassen",
+  "TA89R2": "Dave Boyarski",
+  "K2P9W5": "Dave Desrosiers",
+  "A5K4T7": "Dennis Biletski",
+  "AB6C89": "Gareth Reeve",
+  "D3F6G9": "Jarrod Reimer",
+  "T42B67": "Jo Behr",
+  "ABC378": "Ken Mcleod",
+  "K9R3N6": "Kevin Pich",
+  "H7P3N5": "Larry Bretecher",
+  "B5R4T6": "Larry Strand",
+  "L2W9X2": "Michelle Desrosiers",
+  "T4M8Z8": "Neema Dadmand",
+  "9CD72G": "Neil Banman",
+  "T7Y4R8": "Neil Foster",
+  "E4T6J7": "Orest Pich",
+  "N4M8Q2": "Randy Moffatt",
+  "A7K9M2": "Richard Biletski",
+  "62R92L": "Rob Crowe",
+  "H8M3N7": "Rob Kost",
+  "WW3F44": "Ryan Moffatt",
+  "E5G7G8": "Tony Creta",
+
   // Add more players here...
   // Example: "Z8X5C3": "New Player",
 };
@@ -399,21 +404,6 @@ function App() {
     const now = new Date();
     const pstTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
     
-    // Check if we're in playoff season
-    const playoffStart = new Date(PLAYOFF_SEASON.firstFriday + 'T00:00:00');
-    const playoffEnd = new Date(PLAYOFF_SEASON.lastMonday + 'T23:59:59');
-    
-    // If BEFORE playoff season starts: Allow submissions anytime! ✅
-    if (pstTime < playoffStart) {
-      return true;
-    }
-    
-    // If AFTER playoff season ends: Season is over
-    if (pstTime > playoffEnd) {
-      return false;  // You can change this if you want to keep it open
-    }
-    
-    // We're IN playoff season - apply weekend locks
     const day = pstTime.getDay(); // 0=Sunday, 1=Monday, ..., 5=Friday, 6=Saturday
     const hours = pstTime.getHours();
     const minutes = pstTime.getMinutes();
@@ -438,7 +428,7 @@ function App() {
       return false;
     }
     
-    // All other times during playoff season are allowed
+    // All other times are allowed
     return true;
   };
 
@@ -478,7 +468,7 @@ function App() {
         if (lockStatus) {
           alert(`Welcome back, ${playerNameForCode}!\n\n🔒 WARNING: This week is LOCKED!\n\nYour existing picks for ${PLAYOFF_WEEKS[currentWeek].name} will be loaded, but you cannot edit them because the games have been played.\n\nYou can only view your submitted picks.`);
         } else {
-          alert(`Welcome back, ${playerNameForCode}!\n\nYour existing picks for ${PLAYOFF_WEEKS[currentWeek].name} will be loaded automatically.\n\nYou can edit and resubmit anytime except during playoff weekends (Friday 11:59 PM - Monday 12:01 AM PST).`);
+          alert(`Welcome back, ${playerNameForCode}!\n\nYour existing picks for ${PLAYOFF_WEEKS[currentWeek].name} will be loaded automatically.\n\nYou can edit and resubmit as many times as you want until Friday 11:59 PM PST.`);
         }
       }
     } else if (POOL_MANAGER_CODES.includes(code)) {
@@ -703,16 +693,7 @@ function App() {
     }
     
     if (!isSubmissionAllowed()) {
-      const now = new Date();
-      const pstTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
-      const playoffStart = new Date(PLAYOFF_SEASON.firstFriday + 'T00:00:00');
-      
-      if (pstTime < playoffStart) {
-        // Should never happen, but just in case
-        alert('⛔ SUBMISSIONS CLOSED\n\nPicks are currently locked.\n\nPlease contact the pool manager for assistance.');
-      } else {
-        alert('⛔ SUBMISSIONS CLOSED\n\nDuring playoff weekends, picks are locked from:\n• Friday 11:59 PM PST\n• Through Monday 12:01 AM PST\n\nPicks will reopen Monday at 12:01 AM PST.\n\nYou have all week to make your picks!');
-      }
+      alert('⛔ SUBMISSIONS CLOSED\n\nPicks are locked from:\n• Friday 11:59 PM PST\n• Through Monday 12:01 AM PST\n\nPicks will reopen Monday at 12:01 AM PST.\n\nThis gives you all week to make your picks!');
       return;
     }
 
@@ -744,11 +725,11 @@ function App() {
       if (existingPick) {
         // Update existing pick
         await set(ref(database, `picks/${existingPick.firebaseKey}`), pickData);
-        alert(`✅ PICKS UPDATED!\n\n${playerName}, your picks for ${currentWeekData.name} have been updated successfully!\n\nYou can edit and resubmit anytime except during playoff weekends (Friday 11:59 PM - Monday 12:01 AM PST).`);
+        alert(`✅ PICKS UPDATED!\n\n${playerName}, your picks for ${currentWeekData.name} have been updated successfully!\n\nYou can edit and resubmit as many times as you want until Friday 11:59 PM PST.`);
       } else {
         // Add new pick
         await push(ref(database, 'picks'), pickData);
-        alert(`🎉 PICKS SUBMITTED!\n\n${playerName}, your picks for ${currentWeekData.name} have been submitted successfully!\n\nYou can edit and resubmit anytime except during playoff weekends (Friday 11:59 PM - Monday 12:01 AM PST).`);
+        alert(`🎉 PICKS SUBMITTED!\n\n${playerName}, your picks for ${currentWeekData.name} have been submitted successfully!\n\nYou can edit and resubmit as many times as you want until Friday 11:59 PM PST.`);
       }
       
       setSubmitted(true);
@@ -862,7 +843,7 @@ function App() {
         <h1>🏈 Richard's NFL Playoff Pool 2025</h1>
         <p>Enter your score predictions for each NFL Playoff 2025 game</p>
         <p style={{fontSize: "0.85rem", marginTop: "10px", opacity: 0.8}}>
-          v2.2-PLAYOFF-SCHEDULE-{new Date().toISOString().slice(0,10).replace(/-/g,"")}
+          v2.1-LOCKDOWN-{new Date().toISOString().slice(0,10).replace(/-/g,"")}
         </p>
       </header>
 
@@ -1206,7 +1187,7 @@ function App() {
             {/* Lockout Warning */}
             {!isSubmissionAllowed() && (
               <div className="closed-warning">
-                ⛔ PICKS ARE LOCKED (Playoff Weekend: Friday 11:59 PM - Monday 12:01 AM PST)
+                ⛔ PICKS ARE LOCKED (Friday 11:59 PM - Monday 12:01 AM PST)
               </div>
             )}
 
@@ -1339,12 +1320,12 @@ function App() {
                     ? '🔒 Week Locked - Cannot Edit Picks'
                     : isSubmissionAllowed() 
                       ? '📤 Submit / Update My Picks' 
-                      : '⛔ Submissions Locked (Playoff Weekend)'}
+                      : '⛔ Submissions Locked (Friday 11:59 PM - Monday 12:01 AM PST)'}
                 </button>
                 
                 {isSubmissionAllowed() && !isWeekLocked(currentWeek) && (
                   <p style={{textAlign: 'center', marginTop: '15px', color: '#666', fontSize: '0.9rem'}}>
-                    You can edit and resubmit your picks as many times as you want until Friday 11:59 PM PST (before game weekends)
+                    You can edit and resubmit your picks as many times as you want until Friday 11:59 PM PST
                   </p>
                 )}
               </form>
