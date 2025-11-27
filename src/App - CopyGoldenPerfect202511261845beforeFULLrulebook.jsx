@@ -495,7 +495,7 @@ function App() {
     const playerNameForCode = PLAYER_CODES[code];
     
     if (!playerNameForCode) {
-      alert('Invalid player code!\n\nThis code is not recognized.\n\nMake sure you:\n1. Paid your $20 entry fee\n2. Received your code from the pool manager\n3. Entered the code correctly\n\nContact: biletskifamily@shaw.ca');
+      alert('Invalid player code!\n\nThis code is not recognized.\n\nMake sure you:\n1. Paid your $20 entry fee\n2. Received your code from the pool manager\n3. Entered the code correctly\n\nContact: gammoneer2b@gmail.com');
       return;
     }
     
@@ -899,52 +899,29 @@ function App() {
         <p style={{fontSize: "0.85rem", marginTop: "10px", opacity: 0.8}}>
           v2.2-PLAYOFF-SCHEDULE-{new Date().toISOString().slice(0,10).replace(/-/g,"")}
         </p>
-        <div style={{marginTop: "15px", display: "flex", flexDirection: "column", gap: "10px", alignItems: "center"}}>
-          <div style={{display: "flex", gap: "15px", flexWrap: "wrap", justifyContent: "center"}}>
-            <a 
-              href={`${process.env.PUBLIC_URL}/Playoff_Pool_Quick_Rules.pdf`}
-              target="_blank" 
-              rel="noopener noreferrer"
-              style={{
-                display: 'inline-block',
-                padding: '10px 20px',
-                backgroundColor: '#0984e3',
-                color: 'white',
-                textDecoration: 'none',
-                borderRadius: '5px',
-                fontSize: '0.95rem',
-                fontWeight: 'bold',
-                transition: 'background-color 0.3s ease',
-                cursor: 'pointer'
-              }}
-              onMouseOver={(e) => e.target.style.backgroundColor = '#74b9ff'}
-              onMouseOut={(e) => e.target.style.backgroundColor = '#0984e3'}
-            >
-              📋 View Quick Rules (2 Pages)
-            </a>
-            <a 
-              href={`${process.env.PUBLIC_URL}/Richards_Playoff_Pool_LIX_Rulebook.pdf`}
-              target="_blank" 
-              rel="noopener noreferrer"
-              style={{
-                display: 'inline-block',
-                padding: '10px 20px',
-                backgroundColor: '#6c5ce7',
-                color: 'white',
-                textDecoration: 'none',
-                borderRadius: '5px',
-                fontSize: '0.95rem',
-                fontWeight: 'bold',
-                transition: 'background-color 0.3s ease',
-                cursor: 'pointer'
-              }}
-              onMouseOver={(e) => e.target.style.backgroundColor = '#a29bfe'}
-              onMouseOut={(e) => e.target.style.backgroundColor = '#6c5ce7'}
-            >
-              📖 View Full Rulebook (13 Pages)
-            </a>
-          </div>
-          <p style={{fontSize: '0.8rem', marginTop: '10px', color: '#000'}}>
+        <div style={{marginTop: "15px"}}>
+          <a 
+            href="Playoff_Pool_Quick_Rules.pdf" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            style={{
+              display: 'inline-block',
+              padding: '10px 20px',
+              backgroundColor: '#0984e3',
+              color: 'white',
+              textDecoration: 'none',
+              borderRadius: '5px',
+              fontSize: '0.95rem',
+              fontWeight: 'bold',
+              transition: 'background-color 0.3s ease',
+              cursor: 'pointer'
+            }}
+            onMouseOver={(e) => e.target.style.backgroundColor = '#74b9ff'}
+            onMouseOut={(e) => e.target.style.backgroundColor = '#0984e3'}
+          >
+            📋 View Quick Rules (PDF)
+          </a>
+          <p style={{fontSize: '0.8rem', marginTop: '10px', color: '#fcf8f8ff'}}>
             Entry Fee: $20 - Must be paid before end of regular season
           </p>
         </div>
@@ -1237,14 +1214,14 @@ function App() {
                     <strong>Send e-Transfer to:</strong> gammoneer2b@gmail.com
                   </p>
                   <p style={{margin: '5px 0', fontSize: '0.9rem', color: '#856404'}}>
-                    <strong>Password:</strong> nflpool
+                    <strong>Password:</strong> ###nflpool###
                   </p>
                   <p style={{margin: '10px 0 5px 0', fontSize: '0.85rem', color: '#856404', fontStyle: 'italic'}}>
                     You will receive your player code after payment is confirmed.
                   </p>
                 </div>
                 <p style={{marginTop: '15px', fontSize: '0.9rem', color: '#666', textAlign: 'center'}}>
-                  Questions? Contact: biletskifamily@shaw.ca
+                  Questions? Contact: gammoneer2b@gmail.com
                 </p>
               </div>
             </div>
@@ -1943,7 +1920,7 @@ function App() {
       <footer>
         <p>Richard's NFL Playoff Pool 2025 | Good luck! 🏈</p>
         <p style={{fontSize: '0.85rem', marginTop: '5px'}}>
-          Questions? Contact: biletskifamily@shaw.ca
+          Questions? Contact: gammoneer2b@gmail.com
         </p>
       </footer>
     </div>
