@@ -902,7 +902,8 @@ function App() {
         <div style={{marginTop: "15px", display: "flex", flexDirection: "column", gap: "10px", alignItems: "center"}}>
           <div style={{display: "flex", gap: "15px", flexWrap: "wrap", justifyContent: "center"}}>
             <a 
-              href={`${process.env.PUBLIC_URL}/Playoff_Pool_Quick_Rules.pdf`}
+              // href={`${process.env.PUBLIC_URL}/Playoff_Pool_Quick_Rules.pdf`}
+              href="/Playoff_Pool_Quick_Rules.pdf"
               target="_blank" 
               rel="noopener noreferrer"
               style={{
@@ -923,7 +924,8 @@ function App() {
               📋 View Quick Rules (2 Pages)
             </a>
             <a 
-              href={`${process.env.PUBLIC_URL}/Richards_Playoff_Pool_LIX_Rulebook.pdf`}
+              // href={`${process.env.PUBLIC_URL}/Richards_Playoff_Pool_LIX_Rulebook.pdf`}
+              href="/Richards_Playoff_Pool_LIX_Rulebook.pdf"
               target="_blank" 
               rel="noopener noreferrer"
               style={{
