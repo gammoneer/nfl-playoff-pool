@@ -903,7 +903,7 @@ function App() {
           <div style={{display: "flex", gap: "15px", flexWrap: "wrap", justifyContent: "center"}}>
             <a 
               // href={`${process.env.PUBLIC_URL}/Playoff_Pool_Quick_Rules.pdf`}
-              href="/Playoff_Pool_Quick_Rules.pdf"
+              href="/nfl-playoff-pool/Playoff_Pool_Quick_Rules.pdf"
               target="_blank" 
               rel="noopener noreferrer"
               style={{
@@ -925,7 +925,7 @@ function App() {
             </a>
             <a 
               // href={`${process.env.PUBLIC_URL}/Richards_Playoff_Pool_LIX_Rulebook.pdf`}
-              href="/Richards_Playoff_Pool_LIX_Rulebook.pdf"
+              href="/nfl-playoff-pool/Richards_Playoff_Pool_LIX_Rulebook.pdf"
               target="_blank" 
               rel="noopener noreferrer"
               style={{
