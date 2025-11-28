@@ -495,7 +495,7 @@ function App() {
     const playerNameForCode = PLAYER_CODES[code];
     
     if (!playerNameForCode) {
-      alert('Invalid player code!\n\nThis code is not recognized.\n\nMake sure you:\n1. Paid your $20 entry fee\n2. Received your code from the pool manager\n3. Entered the code correctly\n\nContact: biletskifamily@shaw.ca');
+      alert('Invalid player code!\n\nThis code is not recognized.\n\nMake sure you:\n1. Paid your $20 entry fee\n2. Received your code from the pool manager\n3. Entered the code correctly\n\nContact: gammoneer2b@gmail.com');
       return;
     }
     
@@ -1246,7 +1246,7 @@ function App() {
                   </p>
                 </div>
                 <p style={{marginTop: '15px', fontSize: '0.9rem', color: '#666', textAlign: 'center'}}>
-                  Questions? Contact: biletskifamily@shaw.ca
+                  Questions? Contact: gammoneer2b@gmail.com
                 </p>
               </div>
             </div>
@@ -1945,7 +1945,7 @@ function App() {
       <footer>
         <p>Richard's NFL Playoff Pool 2025 | Good luck! 🏈</p>
         <p style={{fontSize: '0.85rem', marginTop: '5px'}}>
-          Questions? Contact: biletskifamily@shaw.ca
+          Questions? Contact: gammoneer2b@gmail.com
         </p>
       </footer>
     </div>
