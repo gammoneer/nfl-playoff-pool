@@ -1357,7 +1357,7 @@ function App() {
           })}
         </div>
         
-        {/* Navigation Buttons - Show after code validation */}
+        {/* 🆕 Navigation Buttons - Show after code validation */}
         {codeValidated && (
           <div className="view-navigation">
             <button
@@ -1374,6 +1374,7 @@ function App() {
             </button>
           </div>
         )}
+
         {/* Conditional Content Based on View */}
         {currentView === 'standings' && codeValidated ? (
           <StandingsPage 
