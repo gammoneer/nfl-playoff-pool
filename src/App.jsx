@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { initializeApp } from 'firebase/app';
 import { getDatabase, ref, push, onValue, set } from 'firebase/database';
 import './App.css';
+import StandingsPage from './StandingsPage';
 
 // Firebase configuration
 const firebaseConfig = {
@@ -157,6 +158,8 @@ const PLAYOFF_WEEKS = {
 };
 
 function App() {
+  // Navigation state for switching between views
+  const [currentView, setCurrentView] = useState('picks'); // 'picks' or 'standings'
   const [playerName, setPlayerName] = useState('');
   const [playerCode, setPlayerCode] = useState('');
   const [codeValidated, setCodeValidated] = useState(false);
@@ -1189,9 +1192,35 @@ function App() {
             );
           })}
         </div>
-
+        
+        {/* Navigation Buttons - Show after code validation */}
+        {codeValidated && (
+          <div className="view-navigation">
+            <button
+              className={`nav-btn ${currentView === 'picks' ? 'active' : ''}`}
+              onClick={() => setCurrentView('picks')}
+            >
+              📝 Make Picks
+            </button>
+            <button
+              className={`nav-btn ${currentView === 'standings' ? 'active' : ''}`}
+              onClick={() => setCurrentView('standings')}
+            >
+              🏆 Standings & Prizes
+            </button>
+          </div>
+        )}
+        {/* Conditional Content Based on View */}
+        {currentView === 'standings' && codeValidated ? (
+          <StandingsPage 
+            allPicks={allPicks} 
+            actualScores={actualScores}
+            currentWeek={currentWeek}
+          />
+        ) : (
+          <>
         {/* Code Entry */}
-        {!codeValidated ? (
+        {!codeValidated ? (        
           <div className="prediction-form">
             <div className="code-entry-section">
               <h3>🔐 Enter Your Player Code</h3>
@@ -1940,6 +1969,8 @@ function App() {
             </div>
           )}
         </div>
+          </>
+        )}
       </div>
 
       <footer>

@@ -1,0 +1,37 @@
+{
+  "picks": {
+    "-Of7LG74fF6BX0ej7iBg": {
+      "lastUpdated": 1764297871904,
+      "playerName": "Richard Biletski",
+      "predictions": [
+        null,
+        {
+          "team1": "23",
+          "team2": "36"
+        },
+        {
+          "team1": "21",
+          "team2": "20"
+        },
+        {
+          "team1": "45",
+          "team2": "34"
+        },
+        {
+          "team1": "23",
+          "team2": "13"
+        },
+        {
+          "team1": "26",
+          "team2": "34"
+        },
+        {
+          "team1": "23",
+          "team2": "21"
+        }
+      ],
+      "timestamp": 1764297871904,
+      "week": "wildcard"
+    }
+  }
+}
