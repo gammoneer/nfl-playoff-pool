@@ -3,6 +3,8 @@ import { initializeApp } from 'firebase/app';
 import { getDatabase, ref, push, onValue, set } from 'firebase/database';
 import './App.css';
 import StandingsPage from './StandingsPage';
+import ESPNControls from './ESPNControls';
+import { fetchESPNScores, mapESPNGameToPlayoffGame, ESPNAutoRefresh } from './espnService';
 
 // Firebase configuration
 const firebaseConfig = {
@@ -191,6 +193,12 @@ function App() {
     superbowl: { locked: false, lockDate: null, autoLockDate: AUTO_LOCK_DATES.superbowl }
   });
 
+  // 📡 ESPN API states
+  const [gameLocks, setGameLocks] = useState({});      // { wildcard: { 1: true }, ... }
+  const [espnAutoRefresh, setEspnAutoRefresh] = useState(null);
+  const [lastESPNFetch, setLastESPNFetch] = useState(null);
+
+
   // Check if current user is Pool Manager
   const isPoolManager = () => {
     return POOL_MANAGER_CODES.includes(playerCode) && codeValidated;
@@ -323,6 +331,17 @@ function App() {
     });
   }, []);
 
+  // 📡 Load game locks from Firebase  ← ADD THIS NEW ONE HERE
+  useEffect(() => {
+    const gameLocksRef = ref(database, 'gameLocks');
+    onValue(gameLocksRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        setGameLocks(data);
+      }
+    });
+  }, []);
+
   // Load manual week totals from Firebase
   useEffect(() => {
     const manualTotalsRef = ref(database, 'manualWeekTotals');
@@ -352,6 +371,137 @@ function App() {
       }
     }
   }, [currentWeek, allPicks, codeValidated, playerName]);
+
+  // 📡 Initialize ESPN Auto-Refresh
+  useEffect(() => {
+    const autoRefresh = new ESPNAutoRefresh(handleESPNFetch, 5);
+    setEspnAutoRefresh(autoRefresh);
+    // Cleanup on unmount
+    return () => {
+      if (autoRefresh) {
+        autoRefresh.stop();
+      }
+    };
+  }, []);
+
+  // ============================================
+  // 📡 ESPN API FUNCTIONS
+  // ============================================
+
+  /**
+   * Fetch scores from ESPN and update Firebase
+   */
+  const handleESPNFetch = async () => {
+    try {
+      console.log('Fetching scores from ESPN...');
+      const espnData = await fetchESPNScores();
+
+      if (!espnData.success) {
+        console.error('ESPN fetch failed:', espnData.error);
+        return;
+      }
+
+      console.log('ESPN games fetched:', espnData.games.length);
+
+      // Map ESPN games to our playoff structure
+      const weekGames = PLAYOFF_WEEKS[currentWeek].games;
+      const updates = {};
+
+      espnData.games.forEach(espnGame => {
+        const matchedGame = mapESPNGameToPlayoffGame(
+          espnGame,
+          PLAYOFF_WEEKS,
+          currentWeek,
+          teamCodes
+        );
+
+        if (matchedGame) {
+          const gameId = matchedGame.gameId;
+
+          // Check if game is locked (manual override)
+          if (gameLocks[currentWeek]?.[gameId]) {
+            console.log(`Game ${gameId} is locked, skipping API update`);
+            return;
+          }
+
+          // Update score
+          updates[gameId] = {
+            team1: matchedGame.team1Score,
+            team2: matchedGame.team2Score,
+            source: 'espn',
+            lastUpdated: new Date().toISOString()
+          };
+
+          // Update game status
+          setGameStatus(prev => ({
+            ...prev,
+            [currentWeek]: {
+              ...prev[currentWeek],
+              [gameId]: matchedGame.isFinal ? 'final' : matchedGame.isLive ? 'live' : ''
+            }
+          }));
+        }
+      });
+
+      // Update actualScores state
+      if (Object.keys(updates).length > 0) {
+        setActualScores(prev => ({
+          ...prev,
+          [currentWeek]: {
+            ...prev[currentWeek],
+            ...updates
+          }
+        }));
+
+        // Save to Firebase
+        const scoresRef = ref(database, `actualScores/${currentWeek}`);
+        await set(scoresRef, {
+          ...actualScores[currentWeek],
+          ...updates
+        });
+
+        console.log(`Updated ${Object.keys(updates).length} games from ESPN`);
+      }
+
+      setLastESPNFetch(new Date());
+    } catch (error) {
+      console.error('Error fetching ESPN scores:', error);
+    }
+  };
+
+  /**
+   * Toggle game lock (prevent/allow ESPN updates)
+   */
+  const handleGameLockToggle = (gameId) => {
+    console.log('🔧 Toggle clicked for game:', gameId);
+    console.log('📊 Current week:', currentWeek);
+    console.log('📊 Current locks:', gameLocks);
+    console.log('📊 Current value for game', gameId, ':', gameLocks[currentWeek]?.[gameId]);
+    
+    setGameLocks(prev => {
+      const newLocks = { ...prev };
+      if (!newLocks[currentWeek]) {
+        newLocks[currentWeek] = {};
+      }
+      
+      const oldValue = newLocks[currentWeek][gameId];
+      const newValue = !oldValue;
+      
+      console.log('🔄 Old value:', oldValue);
+      console.log('🔄 New value:', newValue);
+      
+      newLocks[currentWeek][gameId] = newValue;
+      
+      // Save to Firebase
+      const locksRef = ref(database, `gameLocks/${currentWeek}/${gameId}`);
+      set(locksRef, newValue);
+      
+      console.log('💾 Saved to Firebase:', newValue);
+      console.log('📦 Returning new locks:', newLocks);
+      
+      return newLocks;
+    });
+  };
 
   const handleScoreChange = (gameId, team, score) => {
     setPredictions(prev => ({
@@ -1047,6 +1197,20 @@ function App() {
               ℹ️ Manual locks override automatic locks. Players cannot edit picks for locked weeks.
             </p>
           </div>
+        )}
+
+        {/* 📡 ESPN API Controls (Pool Manager Only) */}
+        {isPoolManager() && codeValidated && (
+          <ESPNControls
+            currentWeek={currentWeek}
+            games={currentWeekData.games}
+            actualScores={actualScores}
+            teamCodes={teamCodes}
+            onScoresFetched={handleESPNFetch}
+            onGameLockToggle={handleGameLockToggle}
+            gameLocks={gameLocks}
+            espnAutoRefresh={espnAutoRefresh}
+          />
         )}
 
         {/* 👥 NEW: Player Codes Display for Pool Manager */}
