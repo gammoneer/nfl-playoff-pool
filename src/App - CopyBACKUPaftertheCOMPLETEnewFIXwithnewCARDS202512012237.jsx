@@ -1388,7 +1388,35 @@ function App() {
             </p>
           </div>
         )}
-       
+
+        {/* Week Selector */}
+        <div className="week-selector">
+          {Object.keys(PLAYOFF_WEEKS).map(weekKey => {
+            const isLocked = isWeekLocked(weekKey);
+            return (
+              <button
+                key={weekKey}
+                className={currentWeek === weekKey ? 'active' : ''}
+                onClick={() => setCurrentWeek(weekKey)}
+                style={{
+                  position: 'relative',
+                  opacity: isLocked && !isPoolManager() ? 0.7 : 1
+                }}
+              >
+                {PLAYOFF_WEEKS[weekKey].name.split(' ')[0] + (weekKey === 'superbowl' ? ' Bowl' : '')}
+                {isLocked && !isPoolManager() && (
+                  <span style={{
+                    position: 'absolute',
+                    top: '4px',
+                    right: '4px',
+                    fontSize: '0.8rem'
+                  }}>🔒</span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+        
         {/* 🆕 Navigation Buttons - Show after code validation */}
         {codeValidated && (
           <div className="view-navigation">
