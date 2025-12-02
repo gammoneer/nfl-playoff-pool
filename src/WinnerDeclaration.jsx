@@ -1,246 +1,272 @@
 // ============================================
-// WINNER DECLARATION COMPONENT
-// Pool Manager selects and announces official winners
+// WINNER DECLARATION COMPONENT - FINAL VERSION
+// ALWAYS shows dropdown (even if no picks)
+// Shows ALL players in dropdown (no limit)
 // ============================================
 
 import React, { useState } from 'react';
 import './WinnerDeclaration.css';
-import { getPrizeLeaders } from './winnerService';
 
 const PRIZE_INFO = {
-  1: { name: 'Most Correct Winners', week: 'Week 1', amount: '$200' },
-  2: { name: 'Closest Total Points', week: 'Week 1', amount: '$100' },
-  3: { name: 'Most Correct Winners', week: 'Week 2', amount: '$200' },
-  4: { name: 'Closest Total Points', week: 'Week 2', amount: '$100' },
-  5: { name: 'Most Correct Winners', week: 'Week 3', amount: '$200' },
-  6: { name: 'Closest Total Points', week: 'Week 3', amount: '$100' },
-  7: { name: 'Most Correct Winners', week: 'Week 4', amount: '$200' },
-  8: { name: 'Closest Total Points', week: 'Week 4', amount: '$100' },
-  9: { name: 'Overall Most Correct', week: 'All Weeks', amount: '$400' },
-  10: { name: 'Overall Closest Points', week: 'All Weeks', amount: '$200' }
+  1: { name: 'Most Correct Winners', week: 'wildcard', weekName: 'Week 1' },
+  2: { name: 'Closest Total Points', week: 'wildcard', weekName: 'Week 1' },
+  3: { name: 'Most Correct Winners', week: 'divisional', weekName: 'Week 2' },
+  4: { name: 'Closest Total Points', week: 'divisional', weekName: 'Week 2' },
+  5: { name: 'Most Correct Winners', week: 'conference', weekName: 'Week 3' },
+  6: { name: 'Closest Total Points', week: 'conference', weekName: 'Week 3' },
+  7: { name: 'Most Correct Winners', week: 'superbowl', weekName: 'Week 4' },
+  8: { name: 'Closest Total Points', week: 'superbowl', weekName: 'Week 4' },
+  9: { name: 'Overall Most Correct Winners', week: 'all', weekName: 'All Weeks' },
+  10: { name: 'Overall Closest Total Points', week: 'all', weekName: 'All Weeks' }
 };
 
 /**
- * Single Prize Winner Selection
+ * Calculate leaders for dropdown (ALL players)
  */
-function PrizeWinnerSelector({ 
+function calculatePrizeLeaders(prizeNumber, allPicks, actualScores, weekData) {
+  const prizeInfo = PRIZE_INFO[prizeNumber];
+  const isCorrectWinners = [1, 3, 5, 7, 9].includes(prizeNumber);
+  
+  let relevantPicks = [];
+  let relevantScores = {};
+  let games = [];
+  
+  if (prizeInfo.week === 'all') {
+    relevantPicks = allPicks;
+    relevantScores = actualScores;
+    Object.keys(weekData).forEach(weekKey => {
+      games = games.concat(weekData[weekKey].games.map(g => ({...g, week: weekKey})));
+    });
+  } else {
+    relevantPicks = allPicks.filter(p => p.week === prizeInfo.week);
+    relevantScores = actualScores[prizeInfo.week] || {};
+    games = weekData[prizeInfo.week]?.games || [];
+  }
+  
+  if (relevantPicks.length === 0) {
+    return [];
+  }
+  
+  if (isCorrectWinners) {
+    const results = relevantPicks.map(pick => {
+      let correctCount = 0;
+      
+      games.forEach(game => {
+        const playerPrediction = pick.predictions?.[game.id];
+        const actualScore = prizeInfo.week === 'all' 
+          ? actualScores[game.week]?.[game.id]
+          : relevantScores[game.id];
+        
+        if (!playerPrediction || !actualScore) return;
+        
+        const playerWinner = parseInt(playerPrediction.team1) > parseInt(playerPrediction.team2) ? 'team1' : 'team2';
+        const actualWinner = parseInt(actualScore.team1) > parseInt(actualScore.team2) ? 'team1' : 'team2';
+        
+        if (playerWinner === actualWinner) {
+          correctCount++;
+        }
+      });
+      
+      return {
+        playerCode: pick.playerCode,
+        playerName: pick.playerName,
+        score: correctCount
+      };
+    });
+    
+    return results.sort((a, b) => b.score - a.score);
+    
+  } else {
+    let actualTotal = 0;
+    
+    games.forEach(game => {
+      const score = prizeInfo.week === 'all'
+        ? actualScores[game.week]?.[game.id]
+        : relevantScores[game.id];
+      
+      if (score) {
+        actualTotal += (parseInt(score.team1) || 0) + (parseInt(score.team2) || 0);
+      }
+    });
+    
+    const results = relevantPicks.map(pick => {
+      let playerTotal = 0;
+      
+      games.forEach(game => {
+        const prediction = pick.predictions?.[game.id];
+        if (prediction) {
+          playerTotal += (parseInt(prediction.team1) || 0) + (parseInt(prediction.team2) || 0);
+        }
+      });
+      
+      const difference = Math.abs(playerTotal - actualTotal);
+      
+      return {
+        playerCode: pick.playerCode,
+        playerName: pick.playerName,
+        score: playerTotal,
+        difference
+      };
+    });
+    
+    return results.sort((a, b) => a.difference - b.difference);
+  }
+}
+
+/**
+ * Single Prize Declaration Card
+ */
+function PrizeDeclarationCard({ 
   prizeNumber, 
-  allPicks,
-  actualScores,
-  games,
-  currentWinner,
+  allPicks, 
+  actualScores, 
+  weekData,
+  officialWinner,
   onDeclareWinner 
 }) {
-  const [selectedPlayer, setSelectedPlayer] = useState(currentWinner?.playerCode || '');
-  const [showConfirm, setShowConfirm] = useState(false);
+  const [selectedWinner, setSelectedWinner] = useState(
+    officialWinner ? `${officialWinner.playerCode}|${officialWinner.playerName}` : ''
+  );
 
   const prizeInfo = PRIZE_INFO[prizeNumber];
-  
-  // Get current leaders
-  const leaders = getPrizeLeaders(prizeNumber, allPicks, actualScores, games);
+  const allPlayers = calculatePrizeLeaders(prizeNumber, allPicks, actualScores, weekData);
+  const isCorrectWinners = [1, 3, 5, 7, 9].includes(prizeNumber);
 
   const handleDeclare = () => {
-    if (!selectedPlayer) {
-      alert('Please select a winner first.');
+    if (!selectedWinner) {
+      onDeclareWinner(prizeNumber, null);
       return;
     }
 
-    const player = leaders.leaders.find(l => l.playerCode === selectedPlayer);
-    if (!player) {
-      alert('Selected player not found.');
+    if (selectedWinner === 'TIE') {
+      onDeclareWinner(prizeNumber, {
+        playerCode: 'TIE',
+        playerName: 'TIE - Multiple Winners',
+        score: 'TIE'
+      });
       return;
     }
 
-    setShowConfirm(true);
-  };
-
-  const confirmDeclaration = () => {
-    const player = leaders.leaders.find(l => l.playerCode === selectedPlayer);
-    onDeclareWinner(prizeNumber, player);
-    setShowConfirm(false);
+    const [playerCode, playerName] = selectedWinner.split('|');
+    const player = allPlayers.find(p => p.playerCode === playerCode);
+    
+    onDeclareWinner(prizeNumber, {
+      playerCode,
+      playerName,
+      score: player?.score || 0
+    });
   };
 
   return (
-    <div className="prize-selector">
-      <div className="prize-selector-header">
-        <div className="prize-info-block">
-          <h3>Prize #{prizeNumber}</h3>
-          <p className="prize-type">{prizeInfo.name} - {prizeInfo.week}</p>
-          <p className="prize-amount">{prizeInfo.amount}</p>
-        </div>
-        
-        {currentWinner && (
-          <div className="current-winner-badge">
-            <span className="badge-label">Current Winner:</span>
-            <span className="badge-name">{currentWinner.playerName}</span>
-          </div>
-        )}
+    <div className="prize-declaration-card">
+      <div className="prize-header">
+        <h3>Prize #{prizeNumber}</h3>
+        <span className="prize-type">{prizeInfo.name}</span>
+        <span className="prize-week">{prizeInfo.weekName}</span>
       </div>
 
-      <div className="prize-selector-body">
-        {leaders.isTie && (
-          <div className="tie-alert">
-            <span className="alert-icon">⚠️</span>
-            <span className="alert-text">
-              {leaders.tiedCount}-way tie detected - Apply tie-breaker rules
-            </span>
+      <div className="prize-body">
+        {/* ALWAYS show this section, even if no picks */}
+        {allPlayers.length === 0 ? (
+          <div className="no-picks-warning">
+            ❌ No picks submitted yet for this week
           </div>
-        )}
-
-        <div className="leader-list">
-          <h4>Current Leaders:</h4>
-          {leaders.leaders.slice(0, 10).map((leader, index) => (
-            <label 
-              key={leader.playerCode}
-              className={`leader-option ${leader.isLeading ? 'is-leading' : ''}`}
-            >
-              <input
-                type="radio"
-                name={`prize-${prizeNumber}`}
-                value={leader.playerCode}
-                checked={selectedPlayer === leader.playerCode}
-                onChange={(e) => setSelectedPlayer(e.target.value)}
-              />
-              <div className="leader-option-content">
-                <span className="leader-rank">#{leader.rank}</span>
-                <span className="leader-name">{leader.playerName}</span>
-                <span className="leader-score">
-                  {prizeNumber % 2 === 1 
-                    ? `${leader.score} correct`
-                    : `${leader.score} diff`
+        ) : (
+          <div className="current-leaders">
+            <h4>📊 ALL PLAYERS RANKED:</h4>
+            <ol className="all-players-list">
+              {allPlayers.map((player, idx) => (
+                <li key={idx}>
+                  {player.playerName} - {' '}
+                  {isCorrectWinners 
+                    ? `${player.score} correct`
+                    : `${player.score} pts (off by ${player.difference})`
                   }
-                </span>
-                {leader.isLeading && (
-                  <span className="leading-flag">LEADING</span>
-                )}
-              </div>
-            </label>
-          ))}
-        </div>
-
-        <div className="selector-actions">
-          <button
-            className="declare-btn"
-            onClick={handleDeclare}
-            disabled={!selectedPlayer}
-          >
-            {currentWinner ? 'Update Winner' : 'Declare Winner'}
-          </button>
-          {currentWinner && (
-            <button
-              className="remove-btn"
-              onClick={() => onDeclareWinner(prizeNumber, null)}
-            >
-              Remove Winner
-            </button>
-          )}
-        </div>
-      </div>
-
-      {showConfirm && (
-        <div className="confirm-overlay">
-          <div className="confirm-modal">
-            <h3>Confirm Winner Declaration</h3>
-            <p>
-              You are about to declare <strong>{leaders.leaders.find(l => l.playerCode === selectedPlayer)?.playerName}</strong> as 
-              the official winner of Prize #{prizeNumber}.
-            </p>
-            <p className="confirm-details">
-              {prizeInfo.name} - {prizeInfo.week}<br />
-              Prize Amount: {prizeInfo.amount}
-            </p>
-            <p className="confirm-warning">
-              This will notify all players. Are you sure?
-            </p>
-            <div className="confirm-buttons">
-              <button 
-                className="btn-confirm"
-                onClick={confirmDeclaration}
-              >
-                Yes, Declare Winner
-              </button>
-              <button 
-                className="btn-cancel"
-                onClick={() => setShowConfirm(false)}
-              >
-                Cancel
-              </button>
-            </div>
+                </li>
+              ))}
+            </ol>
           </div>
+        )}
+
+        {/* ALWAYS show winner selection - even if no picks */}
+        <div className="winner-selection">
+          <label>
+            <strong>Declare Official Winner:</strong>
+            <select 
+              value={selectedWinner} 
+              onChange={(e) => setSelectedWinner(e.target.value)}
+              className="winner-dropdown"
+            >
+              <option value="">-- No Winner Declared --</option>
+              <option value="TIE">🏆 DECLARE TIE</option>
+              {/* Show ALL players in dropdown, no limit */}
+              {allPlayers.map((player, idx) => (
+                <option 
+                  key={idx} 
+                  value={`${player.playerCode}|${player.playerName}`}
+                >
+                  {player.playerName} ({isCorrectWinners 
+                    ? `${player.score} correct`
+                    : `off by ${player.difference}`
+                  })
+                </option>
+              ))}
+            </select>
+          </label>
+          
+          <button 
+            className="btn-declare" 
+            onClick={handleDeclare}
+          >
+            {selectedWinner ? '👑 Declare Winner' : '🗑️ Remove Winner'}
+          </button>
         </div>
-      )}
+
+        {officialWinner && (
+          <div className="current-winner">
+            ✅ Official Winner: <strong>{officialWinner.playerName}</strong>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
 
 /**
- * Main WinnerDeclaration Component
- * Pool Manager interface for all prizes
+ * Main Winner Declaration Component
  */
 function WinnerDeclaration({ 
-  allPicks,
-  actualScores,
-  games,
-  officialWinners = {},
+  allPicks, 
+  actualScores, 
+  games, 
+  officialWinners, 
   onDeclareWinner,
-  isPoolManager = false
+  isPoolManager 
 }) {
-
   if (!isPoolManager) {
-    return (
-      <div className="winner-declaration-container">
-        <div className="access-denied">
-          <h2>🔒 Access Restricted</h2>
-          <p>Only the Pool Manager can declare winners.</p>
-        </div>
-      </div>
-    );
+    return null;
   }
 
-  const announcedCount = Object.keys(officialWinners).length;
-
   return (
-    <div className="winner-declaration-container">
-      <div className="declaration-header">
-        <h2>🏆 WINNER DECLARATION</h2>
-        <p className="subtitle">
-          Select official winners for each prize. Players will be notified when winners are announced.
-        </p>
-        <div className="progress-bar">
-          <span className="progress-text">
-            {announcedCount} of 10 prizes announced
-          </span>
-          <div className="progress-fill" style={{ width: `${announcedCount * 10}%` }}>
-          </div>
-        </div>
-      </div>
+    <div className="winner-declaration-section">
+      <h2>👑 Pool Manager: Declare Official Winners</h2>
+      <p className="declaration-description">
+        Select the official winner for each prize. You can choose from calculated leaders or declare a tie.
+        <strong> Dropdowns are available even if no picks have been submitted yet.</strong>
+      </p>
 
-      <div className="prize-selectors-grid">
+      <div className="prize-grid">
         {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(prizeNum => (
-          <PrizeWinnerSelector
+          <PrizeDeclarationCard
             key={prizeNum}
             prizeNumber={prizeNum}
             allPicks={allPicks}
             actualScores={actualScores}
-            games={games}
-            currentWinner={officialWinners[prizeNum]}
+            weekData={games}
+            officialWinner={officialWinners?.[prizeNum]}
             onDeclareWinner={onDeclareWinner}
           />
         ))}
-      </div>
-
-      <div className="declaration-footer">
-        <button 
-          className="notify-all-btn"
-          disabled={announcedCount === 0}
-          onClick={() => {
-            if (window.confirm('Send notification to all players about announced winners?')) {
-              alert('Notifications sent! (Feature coming in Step 6)');
-            }
-          }}
-        >
-          📢 Notify All Players ({announcedCount} winners)
-        </button>
       </div>
     </div>
   );

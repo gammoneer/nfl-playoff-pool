@@ -1546,10 +1546,7 @@ function App() {
             <div className="code-entry-section">
               <h3>🔐 Enter Your Player Code</h3>
               <p style={{marginBottom: '20px', color: '#666'}}>
-                You received a 6-character code when you paid your $20 entry fee.
-              </p>
-              <p style={{marginBottom: '20px', color: '#666', fontSize: '0.9rem', fontStyle: 'italic'}}>
-                💡 Have multiple entries? Enter one code at a time.
+                You received a 6-character code when you paid your entry fee.
               </p>
               <div className="code-input-group">
                 <label htmlFor="playerCode">
@@ -1638,16 +1635,8 @@ function App() {
                   setPredictions({});
                 }}
               >
-                🚪 Logout / Switch Entry
+                🔄 Enter Different Code
               </button>
-              <p style={{
-                fontSize: '0.85rem',
-                color: '#666',
-                marginTop: '10px',
-                fontStyle: 'italic'
-              }}>
-                💡 Playing with multiple entries? Logout to switch between your codes.
-              </p>
             </div>
 
             {/* Lockout Warning */}
