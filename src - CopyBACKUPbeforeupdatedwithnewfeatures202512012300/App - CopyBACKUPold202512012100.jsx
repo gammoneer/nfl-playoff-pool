@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { initializeApp } from 'firebase/app';
-import { getDatabase, ref, push, onValue, set, update } from 'firebase/database';
+import { getDatabase, ref, push, onValue, set } from 'firebase/database';
 import './App.css';
 import StandingsPage from './StandingsPage';
 import ESPNControls from './ESPNControls';
@@ -214,26 +214,6 @@ function App() {
   const [espnAutoRefresh, setEspnAutoRefresh] = useState(null);
   const [lastESPNFetch, setLastESPNFetch] = useState(null);
 
-  // ============================================
-  // 🆕 STEP 5: COMPLETE FEATURE STATE
-  // ============================================
-  
-  // Validation & Navigation State
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [showPopup, setShowPopup] = useState(null);
-  const [pendingWeekChange, setPendingWeekChange] = useState(null);
-  const [missingGames, setMissingGames] = useState([]);
-  const [invalidScores, setInvalidScores] = useState([]);
-  
-  // Official Winners (Pool Manager only)
-  const [officialWinners, setOfficialWinners] = useState({});
-  
-  // Track original picks for unsaved changes detection
-  const [originalPicks, setOriginalPicks] = useState({});
-  
-  // Track all picks completion status for WeekSelector
-  const [weekPicksStatus, setWeekPicksStatus] = useState({});
-
 
   // Check if current user is Pool Manager
   const isPoolManager = () => {
@@ -363,17 +343,6 @@ function App() {
       const data = snapshot.val();
       if (data) {
         setGameStatus(data);
-      }
-    });
-  }, []);
-
-  // 🆕 STEP 5: Load official winners from Firebase
-  useEffect(() => {
-    const winnersRef = ref(database, 'winners');
-    onValue(winnersRef, (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        setOfficialWinners(data);
       }
     });
   }, []);
@@ -622,113 +591,6 @@ function App() {
     // Save to Firebase
     set(ref(database, `manualWeekTotals/${weekKey}`), value);
   };
-
-  // ============================================
-  // 🆕 STEP 5: COMPLETE FEATURE HANDLERS
-  // ============================================
-  
-  // Pool Manager declares official winner
-  const handleDeclareWinner = async (prizeNumber, winner) => {
-    if (winner) {
-      // Declare a winner
-      const updatedWinners = {
-        ...officialWinners,
-        [prizeNumber]: winner
-      };
-      setOfficialWinners(updatedWinners);
-      
-      // Save to Firebase
-      try {
-        await update(ref(database, `winners/${prizeNumber}`), {
-          playerCode: winner.playerCode,
-          playerName: winner.playerName,
-          score: winner.score,
-          declaredAt: new Date().toISOString(),
-          declaredBy: playerCode
-        });
-        alert(`✅ Winner declared for Prize #${prizeNumber}: ${winner.playerName}`);
-      } catch (error) {
-        console.error('Failed to save winner:', error);
-        alert('❌ Failed to save winner. Please try again.');
-      }
-    } else {
-      // Remove winner
-      const updated = {...officialWinners};
-      delete updated[prizeNumber];
-      setOfficialWinners(updated);
-      
-      // Remove from Firebase
-      try {
-        await set(ref(database, `winners/${prizeNumber}`), null);
-        alert(`✅ Winner removed for Prize #${prizeNumber}`);
-      } catch (error) {
-        console.error('Failed to remove winner:', error);
-      }
-    }
-  };
-
-  // Handle week change with unsaved changes check
-  const handleWeekChange = (newWeek) => {
-    if (hasUnsavedChanges) {
-      setPendingWeekChange(newWeek);
-      setShowPopup('unsavedChanges');
-    } else {
-      setCurrentWeek(newWeek);
-      loadWeekPicks(newWeek);
-    }
-  };
-
-  // Load picks for a specific week
-  const loadWeekPicks = (weekKey) => {
-    const existingPick = allPicks.find(
-      p => p.week === weekKey && p.playerCode === playerCode
-    );
-    
-    if (existingPick && existingPick.predictions) {
-      setPredictions(existingPick.predictions);
-      setOriginalPicks(existingPick.predictions);
-      setHasUnsavedChanges(false);
-    } else {
-      setPredictions({});
-      setOriginalPicks({});
-      setHasUnsavedChanges(false);
-    }
-  };
-
-  // Detect unsaved changes
-  useEffect(() => {
-    const hasChanges = JSON.stringify(predictions) !== JSON.stringify(originalPicks);
-    setHasUnsavedChanges(hasChanges);
-  }, [predictions, originalPicks]);
-
-  // Load picks when week changes
-  useEffect(() => {
-    if (codeValidated && playerCode) {
-      loadWeekPicks(currentWeek);
-    }
-  }, [currentWeek, codeValidated, playerCode, allPicks]);
-
-  // Update week picks status for WeekSelector
-  useEffect(() => {
-    if (allPicks.length > 0 && playerCode) {
-      const status = {};
-      ['wildcard', 'divisional', 'conference', 'superbowl'].forEach(week => {
-        const weekPick = allPicks.find(p => p.week === week && p.playerCode === playerCode);
-        if (weekPick && weekPick.predictions) {
-          const gameCount = PLAYOFF_WEEKS[week].games.length;
-          const filledCount = Object.keys(weekPick.predictions).filter(
-            gameId => weekPick.predictions[gameId]?.team1 && weekPick.predictions[gameId]?.team2
-          ).length;
-          status[week] = { 
-            complete: filledCount === gameCount,
-            count: filledCount,
-            total: gameCount
-          };
-        }
-      });
-      setWeekPicksStatus(status);
-    }
-  }, [allPicks, playerCode]);
 
   // Check if submissions are allowed based on day/time (PST)
   // Pool Manager bypasses lockout
@@ -1035,56 +897,37 @@ function App() {
   };
 
   // Submit predictions
-  // 🆕 STEP 5: Enhanced submit with complete validation
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Check if week is locked
+    // 🔒 FIX #1: Check if week is locked
     if (isWeekLocked(currentWeek)) {
-      alert('🔒 WEEK LOCKED\n\nThis week\'s games have been played.\nPicks are permanently locked.');
+      alert('🔒 WEEK LOCKED\n\nThis week\'s games have been played.\nPicks are permanently locked.\n\nYou can view your picks but cannot edit them.\n\nPlease select a different week to make picks.');
       return;
     }
     
     if (!isSubmissionAllowed()) {
-      alert('⛔ SUBMISSIONS CLOSED\n\nDuring playoff weekends, picks are locked from:\n• Friday 11:59 PM PST\n• Through Monday 12:01 AM PST');
+      const now = new Date();
+      const pstTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
+      const playoffStart = new Date(PLAYOFF_SEASON.firstFriday + 'T00:00:00');
+      
+      if (pstTime < playoffStart) {
+        // Should never happen, but just in case
+        alert('⛔ SUBMISSIONS CLOSED\n\nPicks are currently locked.\n\nPlease contact the pool manager for assistance.');
+      } else {
+        alert('⛔ SUBMISSIONS CLOSED\n\nDuring playoff weekends, picks are locked from:\n• Friday 11:59 PM PST\n• Through Monday 12:01 AM PST\n\nPicks will reopen Monday at 12:01 AM PST.\n\nYou have all week to make your picks!');
+      }
       return;
     }
 
     const currentWeekData = PLAYOFF_WEEKS[currentWeek];
-    
-    // STEP 5 VALIDATION: Check for incomplete entries
-    const missing = [];
-    currentWeekData.games.forEach(game => {
-      if (!predictions[game.id] || !predictions[game.id].team1 || !predictions[game.id].team2) {
-        missing.push(game.id);
-      }
-    });
-    
-    if (missing.length > 0) {
-      setMissingGames(missing);
-      setShowPopup('incomplete');
-      return;
-    }
-    
-    // STEP 5 VALIDATION: Check for invalid scores
-    const invalid = [];
-    currentWeekData.games.forEach(game => {
-      const t1 = parseInt(predictions[game.id]?.team1);
-      const t2 = parseInt(predictions[game.id]?.team2);
-      if (isNaN(t1) || isNaN(t2) || t1 < 0 || t2 < 0) {
-        invalid.push(game.id);
-      }
-    });
-    
-    if (invalid.length > 0) {
-      setInvalidScores(invalid);
-      setShowPopup('invalidScores');
-      return;
-    }
+    const requiredGames = currentWeekData.games.length;
+    const submittedGames = Object.keys(predictions).filter(gameId => 
+      predictions[gameId].team1 && predictions[gameId].team2
+    ).length;
 
-    // Check if no changes were made
-    if (!hasUnsavedChanges) {
-      setShowPopup('noChanges');
+    if (submittedGames < requiredGames) {
+      alert(`Please complete all ${requiredGames} games before submitting!\n\nYou've completed ${submittedGames} of ${requiredGames} games.`);
       return;
     }
 
@@ -1095,7 +938,6 @@ function App() {
 
     const pickData = {
       playerName,
-      playerCode,
       week: currentWeek,
       predictions,
       timestamp: existingPick ? existingPick.timestamp : Date.now(),
@@ -1104,16 +946,18 @@ function App() {
 
     try {
       if (existingPick) {
+        // Update existing pick
         await set(ref(database, `picks/${existingPick.firebaseKey}`), pickData);
+        alert(`✅ PICKS UPDATED!\n\n${playerName}, your picks for ${currentWeekData.name} have been updated successfully!\n\nYou can edit and resubmit anytime except during playoff weekends (Friday 11:59 PM - Monday 12:01 AM PST).`);
       } else {
+        // Add new pick
         await push(ref(database, 'picks'), pickData);
+        alert(`🎉 PICKS SUBMITTED!\n\n${playerName}, your picks for ${currentWeekData.name} have been submitted successfully!\n\nYou can edit and resubmit anytime except during playoff weekends (Friday 11:59 PM - Monday 12:01 AM PST).`);
       }
       
       setSubmitted(true);
-      setOriginalPicks({...predictions});
-      setHasUnsavedChanges(false);
-      setShowPopup('success');
       
+      // Scroll to show the picks table
       setTimeout(() => {
         const picksTable = document.querySelector('.all-picks');
         if (picksTable) {
@@ -1501,17 +1345,33 @@ function App() {
           </div>
         )}
 
-        {/* 🆕 STEP 5: Week Selector - Complete with lock status and validation */}
-        {codeValidated && (
-          <WeekSelector
-            currentWeek={currentWeek}
-            onWeekChange={handleWeekChange}
-            weekPicks={weekPicksStatus}
-            weekLockStatus={weekLockStatus}
-            hasUnsavedChanges={hasUnsavedChanges}
-            isPoolManager={isPoolManager()}
-          />
-        )}
+        {/* Week Selector */}
+        <div className="week-selector">
+          {Object.keys(PLAYOFF_WEEKS).map(weekKey => {
+            const isLocked = isWeekLocked(weekKey);
+            return (
+              <button
+                key={weekKey}
+                className={currentWeek === weekKey ? 'active' : ''}
+                onClick={() => setCurrentWeek(weekKey)}
+                style={{
+                  position: 'relative',
+                  opacity: isLocked && !isPoolManager() ? 0.7 : 1
+                }}
+              >
+                {PLAYOFF_WEEKS[weekKey].name.split(' ')[0] + (weekKey === 'superbowl' ? ' Bowl' : '')}
+                {isLocked && !isPoolManager() && (
+                  <span style={{
+                    position: 'absolute',
+                    top: '4px',
+                    right: '4px',
+                    fontSize: '0.8rem'
+                  }}>🔒</span>
+                )}
+              </button>
+            );
+          })}
+        </div>
         
         {/* 🆕 Navigation Buttons - Show after code validation */}
         {codeValidated && (
@@ -2288,97 +2148,6 @@ function App() {
                 </tbody>
               </table>
             </div>
-          )}
-
-          {/* 🆕 STEP 5: Prize Leaders Display */}
-          {codeValidated && (
-            <div style={{marginTop: '60px'}}>
-              <LeaderDisplay
-                allPicks={allPicks}
-                actualScores={actualScores}
-                games={PLAYOFF_WEEKS}
-                officialWinners={officialWinners}
-                weekData={PLAYOFF_WEEKS}
-              />
-            </div>
-          )}
-
-          {/* 🆕 STEP 5: Winner Declaration - Pool Manager Only */}
-          {codeValidated && isPoolManager() && (
-            <div style={{marginTop: '40px'}}>
-              <WinnerDeclaration
-                allPicks={allPicks}
-                actualScores={actualScores}
-                games={PLAYOFF_WEEKS}
-                officialWinners={officialWinners}
-                onDeclareWinner={handleDeclareWinner}
-                isPoolManager={true}
-              />
-            </div>
-          )}
-
-          {/* 🆕 STEP 5: All Validation Popups */}
-          {showPopup === 'unsavedChanges' && (
-            <UnsavedChangesPopup
-              currentWeek={PLAYOFF_WEEKS[currentWeek].name}
-              onDiscard={() => {
-                setCurrentWeek(pendingWeekChange);
-                loadWeekPicks(pendingWeekChange);
-                setShowPopup(null);
-              }}
-              onSaveAndSwitch={async () => {
-                await handleSubmit(new Event('submit'));
-                if (!showPopup || showPopup === 'success') {
-                  setCurrentWeek(pendingWeekChange);
-                  loadWeekPicks(pendingWeekChange);
-                  setShowPopup(null);
-                }
-              }}
-              onCancel={() => {
-                setPendingWeekChange(null);
-                setShowPopup(null);
-              }}
-            />
-          )}
-
-          {showPopup === 'discardChanges' && (
-            <DiscardChangesPopup
-              onKeepEditing={() => setShowPopup(null)}
-              onDiscard={() => {
-                setPredictions({...originalPicks});
-                setHasUnsavedChanges(false);
-                setShowPopup(null);
-              }}
-            />
-          )}
-
-          {showPopup === 'incomplete' && (
-            <IncompleteEntryError
-              missingGames={missingGames}
-              totalGames={currentWeekData.games.length}
-              onClose={() => setShowPopup(null)}
-            />
-          )}
-
-          {showPopup === 'invalidScores' && (
-            <InvalidScoresError
-              invalidScores={invalidScores}
-              onClose={() => setShowPopup(null)}
-            />
-          )}
-
-          {showPopup === 'success' && (
-            <SuccessConfirmation
-              weekName={currentWeekData.name}
-              deadline={currentWeekData.deadline}
-              onClose={() => setShowPopup(null)}
-            />
-          )}
-
-          {showPopup === 'noChanges' && (
-            <NoChangesInfo
-              onClose={() => setShowPopup(null)}
-            />
           )}
         </div>
           </>
