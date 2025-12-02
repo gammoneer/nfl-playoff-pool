@@ -1,14 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { initializeApp } from 'firebase/app';
-import { getDatabase, ref, push, onValue, set, update } from 'firebase/database';
+import { getDatabase, ref, push, onValue, set } from 'firebase/database';
 import './App.css';
 import StandingsPage from './StandingsPage';
 import ESPNControls from './ESPNControls';
 import { fetchESPNScores, mapESPNGameToPlayoffGame, ESPNAutoRefresh } from './espnService';
-import WeekSelector from './WeekSelector_Richard';
-import LeaderDisplay from './LeaderDisplay';
-import WinnerDeclaration from './WinnerDeclaration';
-import { getPrizeLeaders } from './winnerService';
 
 // Firebase configuration
 const firebaseConfig = {
@@ -202,11 +198,6 @@ function App() {
   const [espnAutoRefresh, setEspnAutoRefresh] = useState(null);
   const [lastESPNFetch, setLastESPNFetch] = useState(null);
 
-  // ============================================
-  // 🆕 STEP 5: Additional state for new features
-  // ============================================
-  const [officialWinners, setOfficialWinners] = useState({});  // { 1: {playerCode, playerName, score}, ... }
-
 
   // Check if current user is Pool Manager
   const isPoolManager = () => {
@@ -336,17 +327,6 @@ function App() {
       const data = snapshot.val();
       if (data) {
         setGameStatus(data);
-      }
-    });
-  }, []);
-
-  // 🆕 STEP 5: Load official winners from Firebase
-  useEffect(() => {
-    const winnersRef = ref(database, 'winners');
-    onValue(winnersRef, (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        setOfficialWinners(data);
       }
     });
   }, []);
@@ -594,46 +574,6 @@ function App() {
     
     // Save to Firebase
     set(ref(database, `manualWeekTotals/${weekKey}`), value);
-  };
-
-  // 🆕 STEP 5: Pool Manager declares official winner
-  const handleDeclareWinner = async (prizeNumber, winner) => {
-    if (winner) {
-      // Declare a winner
-      const updatedWinners = {
-        ...officialWinners,
-        [prizeNumber]: winner
-      };
-      setOfficialWinners(updatedWinners);
-      
-      // Save to Firebase
-      try {
-        await update(ref(database, `winners/${prizeNumber}`), {
-          playerCode: winner.playerCode,
-          playerName: winner.playerName,
-          score: winner.score,
-          declaredAt: new Date().toISOString(),
-          declaredBy: playerCode
-        });
-        alert(`✅ Winner declared for Prize #${prizeNumber}: ${winner.playerName}`);
-      } catch (error) {
-        console.error('Failed to save winner:', error);
-        alert('❌ Failed to save winner. Please try again.');
-      }
-    } else {
-      // Remove winner
-      const updated = {...officialWinners};
-      delete updated[prizeNumber];
-      setOfficialWinners(updated);
-      
-      // Remove from Firebase
-      try {
-        await set(ref(database, `winners/${prizeNumber}`), null);
-        alert(`✅ Winner removed for Prize #${prizeNumber}`);
-      } catch (error) {
-        console.error('Failed to remove winner:', error);
-      }
-    }
   };
 
   // Check if submissions are allowed based on day/time (PST)
@@ -1507,14 +1447,6 @@ function App() {
           </div>
         ) : (
           <>
-            {/* 🆕 STEP 5: Week Selector - Purple buttons matching your theme */}
-            <WeekSelector
-              currentWeek={currentWeek}
-              onWeekChange={setCurrentWeek}
-              weekLockStatus={weekLockStatus}
-              hasUnsavedChanges={false}
-            />
-
             {/* Player Confirmed */}
             <div className="player-confirmed">
               <span className="confirmation-badge">✓ VERIFIED</span>
@@ -2199,33 +2131,6 @@ function App() {
                     })}
                 </tbody>
               </table>
-            </div>
-          )}
-
-          {/* 🆕 STEP 5: Prize Leaders Display - Shows all 10 prizes */}
-          {codeValidated && (
-            <div style={{marginTop: '60px'}}>
-              <LeaderDisplay
-                allPicks={allPicks}
-                actualScores={actualScores}
-                games={PLAYOFF_WEEKS}
-                officialWinners={officialWinners}
-                weekData={PLAYOFF_WEEKS}
-              />
-            </div>
-          )}
-
-          {/* 🆕 STEP 5: Winner Declaration - Pool Manager Only */}
-          {codeValidated && isPoolManager() && (
-            <div style={{marginTop: '40px'}}>
-              <WinnerDeclaration
-                allPicks={allPicks}
-                actualScores={actualScores}
-                games={PLAYOFF_WEEKS}
-                officialWinners={officialWinners}
-                onDeclareWinner={handleDeclareWinner}
-                isPoolManager={true}
-              />
             </div>
           )}
         </div>
