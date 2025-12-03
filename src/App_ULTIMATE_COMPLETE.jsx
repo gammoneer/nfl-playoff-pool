@@ -1088,9 +1088,9 @@ function App() {
       return;
     }
 
-    // Check if player already has picks for this week
+    // Check if player already has picks for this week (use playerCode for reliability)
     const existingPick = allPicks.find(
-      pick => pick.playerName === playerName && pick.week === currentWeek
+      pick => pick.playerCode === playerCode && pick.week === currentWeek
     );
 
     const pickData = {
@@ -1103,9 +1103,11 @@ function App() {
     };
 
     try {
-      if (existingPick) {
+      if (existingPick && existingPick.firebaseKey) {
+        // Update existing pick
         await set(ref(database, `picks/${existingPick.firebaseKey}`), pickData);
       } else {
+        // Create new pick
         await push(ref(database, 'picks'), pickData);
       }
       

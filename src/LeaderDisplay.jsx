@@ -233,13 +233,11 @@ function PrizeLeaderCard({
                       : `${leader.score} pts (off by ${leader.difference})`
                     }
                   </span>
-                  {/* Show LEADING badge if NOT the official winner */}
-                  {!officialWinner && (
-                    <span className="leading-badge">🏆 LEADING</span>
-                  )}
-                  {/* Show OFFICIAL WINNER badge ONLY if this player is declared winner */}
-                  {officialWinner?.playerCode === leader.playerCode && (
+                  {/* Show ONLY ONE badge - OFFICIAL WINNER if declared, otherwise LEADING */}
+                  {officialWinner?.playerCode === leader.playerCode ? (
                     <span className="official-badge">👑 OFFICIAL WINNER</span>
+                  ) : (
+                    <span className="leading-badge">🏆 LEADING</span>
                   )}
                 </div>
               ))}
@@ -286,11 +284,13 @@ function PrizeLeaderCard({
                       : `${player.score} pts (off by ${player.difference})`
                     }
                   </span>
-                  {idx === 0 && !officialWinner && (
-                    <span className="leading-badge">🏆 LEADING</span>
-                  )}
-                  {idx === 0 && officialWinner?.playerCode === player.playerCode && (
-                    <span className="official-badge">👑 OFFICIAL WINNER</span>
+                  {/* Show badge for 1st place only - OFFICIAL WINNER if declared, otherwise LEADING */}
+                  {idx === 0 && (
+                    officialWinner?.playerCode === player.playerCode ? (
+                      <span className="official-badge">👑 OFFICIAL WINNER</span>
+                    ) : (
+                      <span className="leading-badge">🏆 LEADING</span>
+                    )
                   )}
                 </div>
               ))}
