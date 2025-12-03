@@ -248,7 +248,6 @@ function App() {
   const [rngPreview, setRngPreview] = useState(null);
   const [showRngPreview, setShowRngPreview] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null); // 'week' or 'all'
-  const [showClearWeekConfirm, setShowClearWeekConfirm] = useState(null); // weekKey to clear
 
 
   // Check if current user is Pool Manager
@@ -540,112 +539,6 @@ function App() {
       console.error('❌ DEBUG: Error code:', error.code);
       alert(`❌ Error deleting picks: ${error.message}\n\nCheck browser console (F12) for details.`);
     }
-  };
-
-  /**
-   * Clear all week data (team names, scores, statuses) for a specific week
-   * Does NOT delete player picks
-   */
-  const clearWeekData = async (weekKey) => {
-    try {
-      console.log('🗑️ Clearing week data for:', weekKey);
-      
-      // Clear team codes for this week
-      if (teamCodes[weekKey]) {
-        await set(ref(database, `teamCodes/${weekKey}`), null);
-        console.log('✅ Cleared team codes');
-      }
-      
-      // Clear actual scores for this week
-      if (actualScores[weekKey]) {
-        await set(ref(database, `actualScores/${weekKey}`), null);
-        console.log('✅ Cleared actual scores');
-      }
-      
-      // Clear game status for this week
-      if (gameStatus[weekKey]) {
-        await set(ref(database, `gameStatus/${weekKey}`), null);
-        console.log('✅ Cleared game status');
-      }
-      
-      alert(`✅ Week ${weekKey === 'wildcard' ? '1' : weekKey === 'divisional' ? '2' : weekKey === 'conference' ? '3' : '4'} data cleared!\n\nTeam names, scores, and statuses have been deleted.\nPlayer picks are still intact.`);
-      setShowClearWeekConfirm(null);
-    } catch (error) {
-      console.error('❌ Error clearing week data:', error);
-      alert(`❌ Error clearing week data: ${error.message}`);
-    }
-  };
-
-  /**
-   * 🎨 5-COLOR HIGHLIGHTING SYSTEM
-   * Determines background color for player's pick cells based on:
-   * - Player's prediction
-   * - Actual scores  
-   * - Game status (none/live/final)
-   */
-  const getCellHighlight = (playerTeam1, playerTeam2, actualTeam1, actualTeam2, gameStatus, isTeam1Cell) => {
-    // Player's predicted winner
-    const playerPredictedTeam1 = Number(playerTeam1) > Number(playerTeam2);
-    const playerPredictedTeam2 = Number(playerTeam2) > Number(playerTeam1);
-    
-    // STAGE 1: No actual scores yet - Show predicted winner in YELLOW
-    if (!actualTeam1 && !actualTeam2 && !gameStatus) {
-      if (isTeam1Cell && playerPredictedTeam1) {
-        return { background: '#fff9c4', color: '#000' }; // Yellow
-      }
-      if (!isTeam1Cell && playerPredictedTeam2) {
-        return { background: '#fff9c4', color: '#000' }; // Yellow
-      }
-      return { background: 'transparent', color: '#000' };
-    }
-    
-    // If we have actual scores
-    if (actualTeam1 !== undefined && actualTeam2 !== undefined) {
-      const actualTeam1Winning = Number(actualTeam1) > Number(actualTeam2);
-      const actualTeam2Winning = Number(actualTeam2) > Number(actualTeam1);
-      
-      // STAGE 2: LIVE game - Show light green/red based on current score
-      if (gameStatus === 'live') {
-        // Team 1 cell
-        if (isTeam1Cell && playerPredictedTeam1) {
-          if (actualTeam1Winning) {
-            return { background: '#c8e6c9', color: '#000' }; // Light green - winning
-          } else {
-            return { background: '#ffcdd2', color: '#000' }; // Light red - losing
-          }
-        }
-        // Team 2 cell
-        if (!isTeam1Cell && playerPredictedTeam2) {
-          if (actualTeam2Winning) {
-            return { background: '#c8e6c9', color: '#000' }; // Light green - winning
-          } else {
-            return { background: '#ffcdd2', color: '#000' }; // Light red - losing
-          }
-        }
-      }
-      
-      // STAGE 3: FINAL game - Show bright green/red based on final result
-      if (gameStatus === 'final') {
-        // Team 1 cell
-        if (isTeam1Cell && playerPredictedTeam1) {
-          if (actualTeam1Winning) {
-            return { background: '#4caf50', color: '#000' }; // Bright green - correct
-          } else {
-            return { background: '#f44336', color: '#000' }; // Bright red - wrong
-          }
-        }
-        // Team 2 cell
-        if (!isTeam1Cell && playerPredictedTeam2) {
-          if (actualTeam2Winning) {
-            return { background: '#4caf50', color: '#000' }; // Bright green - correct
-          } else {
-            return { background: '#f44336', color: '#000' }; // Bright red - wrong
-          }
-        }
-      }
-    }
-    
-    return { background: 'transparent', color: '#000' };
   };
 
   // 🔒 NEW: Check if a week should be automatically locked based on date
@@ -1802,25 +1695,6 @@ function App() {
                     >
                       {isLocked ? '🔓 Unlock Week' : '🔒 Lock Week'}
                     </button>
-                    
-                    {/* Clear Week Data Button */}
-                    <button
-                      onClick={() => setShowClearWeekConfirm(weekKey)}
-                      style={{
-                        padding: '8px 12px',
-                        background: '#e67e22',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        fontSize: '0.85rem',
-                        fontWeight: '600',
-                        transition: 'all 0.2s',
-                        marginTop: '8px'
-                      }}
-                    >
-                      🗑️ Clear Week Data
-                    </button>
                   </div>
                 );
               })}
@@ -2317,97 +2191,6 @@ function App() {
                   </div>
                 </>
               )}
-            </div>
-          </div>
-        )}
-
-        {/* Clear Week Data Confirmation Popup */}
-        {showClearWeekConfirm && (
-          <div style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'rgba(0,0,0,0.85)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 10000,
-            padding: '20px'
-          }}>
-            <div style={{
-              background: 'white',
-              borderRadius: '12px',
-              padding: '30px',
-              maxWidth: '500px',
-              width: '100%',
-              boxShadow: '0 8px 32px rgba(0,0,0,0.3)'
-            }}>
-              <h3 style={{marginTop: 0, color: '#e67e22', display: 'flex', alignItems: 'center', gap: '10px'}}>
-                <span>🗑️</span>
-                <span>CLEAR WEEK DATA?</span>
-              </h3>
-              <div style={{marginBottom: '20px', color: '#666'}}>
-                <p><strong>Week:</strong> {showClearWeekConfirm === 'wildcard' ? 'Week 1 (Wildcard)' : showClearWeekConfirm === 'divisional' ? 'Week 2 (Divisional)' : showClearWeekConfirm === 'conference' ? 'Week 3 (Conference)' : 'Week 4 (Super Bowl)'}</p>
-              </div>
-              <div style={{
-                background: '#fff3cd',
-                border: '2px solid #ffc107',
-                color: '#856404',
-                padding: '15px',
-                borderRadius: '6px',
-                marginBottom: '20px',
-                fontSize: '0.95rem'
-              }}>
-                <strong>⚠️ This will DELETE:</strong>
-                <div style={{marginLeft: '20px', marginTop: '10px'}}>
-                  ✓ All team names for this week<br/>
-                  ✓ All actual scores for this week<br/>
-                  ✓ All game statuses (FINAL/LIVE) for this week
-                </div>
-                <br/>
-                <strong style={{color: '#d63031'}}>✅ This will KEEP:</strong>
-                <div style={{marginLeft: '20px', marginTop: '5px'}}>
-                  ✓ ALL player picks (NOT deleted!)
-                </div>
-                <br/>
-                <strong>This action CANNOT be undone!</strong>
-              </div>
-              <div style={{display: 'flex', gap: '10px'}}>
-                <button
-                  onClick={() => setShowClearWeekConfirm(null)}
-                  style={{
-                    flex: '1',
-                    padding: '14px',
-                    background: '#95a5a6',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    fontSize: '1rem',
-                    fontWeight: '700'
-                  }}
-                >
-                  ❌ Cancel
-                </button>
-                <button
-                  onClick={() => clearWeekData(showClearWeekConfirm)}
-                  style={{
-                    flex: '1',
-                    padding: '14px',
-                    background: '#e67e22',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    fontSize: '1rem',
-                    fontWeight: '700'
-                  }}
-                >
-                  🗑️ Yes, Clear Week Data
-                </button>
-              </div>
             </div>
           </div>
         )}
@@ -3325,49 +3108,13 @@ function App() {
                         <tr key={idx}>
                           <td className="player-name">{pick.playerName}</td>
                           {currentWeekData.games.map(game => {
-                            const pred = pick.predictions[game.id];
-                            const actual = actualScores[currentWeek]?.[game.id];
-                            const status = gameStatus[currentWeek]?.[game.id];
-                            
-                            // Get highlighting for each cell
-                            const team1Style = getCellHighlight(
-                              pred?.team1,
-                              pred?.team2,
-                              actual?.team1,
-                              actual?.team2,
-                              status,
-                              true // isTeam1Cell
-                            );
-                            
-                            const team2Style = getCellHighlight(
-                              pred?.team1,
-                              pred?.team2,
-                              actual?.team1,
-                              actual?.team2,
-                              status,
-                              false // isTeam2Cell
-                            );
-                            
+                            const isCorrect = hasCorrectPrediction(game.id);
                             return (
                               <React.Fragment key={`${idx}-${game.id}`}>
-                                <td 
-                                  className="score"
-                                  style={{
-                                    background: team1Style.background,
-                                    color: team1Style.color,
-                                    fontWeight: team1Style.background !== 'transparent' ? 'bold' : 'normal'
-                                  }}
-                                >
+                                <td className={`score ${isCorrect ? 'score-winner' : ''}`}>
                                   {pick.predictions[game.id]?.team1 || '-'}
                                 </td>
-                                <td 
-                                  className="score"
-                                  style={{
-                                    background: team2Style.background,
-                                    color: team2Style.color,
-                                    fontWeight: team2Style.background !== 'transparent' ? 'bold' : 'normal'
-                                  }}
-                                >
+                                <td className={`score ${isCorrect ? 'score-winner' : ''}`}>
                                   {pick.predictions[game.id]?.team2 || '-'}
                                 </td>
                               </React.Fragment>
