@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { initializeApp } from 'firebase/app';
-import { getDatabase, ref, push, onValue, set, update, get } from 'firebase/database';
+import { getDatabase, ref, push, onValue, set, update, get, remove } from 'firebase/database';
 import './App.css';
 import StandingsPage from './StandingsPage';
 import ESPNControls from './ESPNControls';
@@ -451,7 +451,7 @@ function App() {
         }
         
         if (keyToDelete) {
-          await set(ref(database, `picks/${keyToDelete}`), null); // Delete by setting to null
+          await remove(ref(database, `picks/${keyToDelete}`)); // Delete using remove()
           alert(`✅ ${selectedPlayer}'s picks for ${currentWeek === 'wildcard' ? 'Week 1' : currentWeek === 'divisional' ? 'Week 2' : currentWeek === 'conference' ? 'Week 3' : 'Week 4'} have been deleted!`);
         } else {
           alert(`ℹ️ ${selectedPlayer} has no picks for this week.`);
@@ -492,7 +492,7 @@ function App() {
         if (keysToDelete.length > 0) {
           // Delete all picks for this player
           const deletePromises = keysToDelete.map(key => 
-            set(ref(database, `picks/${key}`), null)
+            remove(ref(database, `picks/${key}`))
           );
           await Promise.all(deletePromises);
           
