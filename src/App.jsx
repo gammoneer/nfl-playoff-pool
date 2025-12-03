@@ -247,6 +247,7 @@ function App() {
   const [overrideAction, setOverrideAction] = useState(null); // 'rng', 'manual', 'view'
   const [rngPreview, setRngPreview] = useState(null);
   const [showRngPreview, setShowRngPreview] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(null); // 'week' or 'all'
 
 
   // Check if current user is Pool Manager
@@ -422,6 +423,91 @@ function App() {
     } catch (error) {
       console.error('Error submitting picks for player:', error);
       alert('❌ Error submitting picks. Please try again.');
+    }
+  };
+
+  /**
+   * Delete picks for selected player for CURRENT week only
+   */
+  const deletePicksForWeek = async () => {
+    if (!selectedPlayerForOverride) return;
+    
+    const selectedPlayer = PLAYER_CODES[selectedPlayerForOverride];
+    
+    try {
+      // Find the pick for this player and current week
+      const picksRef = ref(database, 'picks');
+      const snapshot = await get(picksRef);
+      
+      if (snapshot.exists()) {
+        const allFirebasePicks = snapshot.val();
+        let keyToDelete = null;
+        
+        for (const [key, pick] of Object.entries(allFirebasePicks)) {
+          if (pick.playerCode === selectedPlayerForOverride && pick.week === currentWeek) {
+            keyToDelete = key;
+            break;
+          }
+        }
+        
+        if (keyToDelete) {
+          await set(ref(database, `picks/${keyToDelete}`), null); // Delete by setting to null
+          alert(`✅ ${selectedPlayer}'s picks for ${currentWeek === 'wildcard' ? 'Week 1' : currentWeek === 'divisional' ? 'Week 2' : currentWeek === 'conference' ? 'Week 3' : 'Week 4'} have been deleted!`);
+        } else {
+          alert(`ℹ️ ${selectedPlayer} has no picks for this week.`);
+        }
+      }
+      
+      setShowDeleteConfirm(null);
+      setSelectedPlayerForOverride('');
+    } catch (error) {
+      console.error('Error deleting picks:', error);
+      alert('❌ Error deleting picks. Please try again.');
+    }
+  };
+
+  /**
+   * Delete ALL picks for selected player across ALL weeks
+   */
+  const deleteAllPicksForPlayer = async () => {
+    if (!selectedPlayerForOverride) return;
+    
+    const selectedPlayer = PLAYER_CODES[selectedPlayerForOverride];
+    
+    try {
+      // Find ALL picks for this player
+      const picksRef = ref(database, 'picks');
+      const snapshot = await get(picksRef);
+      
+      if (snapshot.exists()) {
+        const allFirebasePicks = snapshot.val();
+        const keysToDelete = [];
+        
+        for (const [key, pick] of Object.entries(allFirebasePicks)) {
+          if (pick.playerCode === selectedPlayerForOverride) {
+            keysToDelete.push(key);
+          }
+        }
+        
+        if (keysToDelete.length > 0) {
+          // Delete all picks for this player
+          const deletePromises = keysToDelete.map(key => 
+            set(ref(database, `picks/${key}`), null)
+          );
+          await Promise.all(deletePromises);
+          
+          alert(`✅ ALL picks for ${selectedPlayer} have been deleted!\n\nDeleted ${keysToDelete.length} pick(s) across all weeks.`);
+        } else {
+          alert(`ℹ️ ${selectedPlayer} has no picks in any week.`);
+        }
+      }
+      
+      setShowDeleteConfirm(null);
+      setSelectedPlayerForOverride('');
+      setOverrideMode(false);
+    } catch (error) {
+      console.error('Error deleting all picks:', error);
+      alert('❌ Error deleting picks. Please try again.');
     }
   };
 
@@ -1723,6 +1809,59 @@ function App() {
                         📝 Enter/Edit Manually
                       </button>
                     </div>
+
+                    {/* Delete Buttons - Only show if player has picks */}
+                    {allPicks.find(p => p.playerCode === selectedPlayerForOverride) && (
+                      <div style={{
+                        marginTop: '15px',
+                        padding: '15px',
+                        background: 'rgba(220, 53, 69, 0.1)',
+                        borderRadius: '6px',
+                        border: '2px solid rgba(220, 53, 69, 0.3)'
+                      }}>
+                        <div style={{marginBottom: '10px', fontWeight: '600', color: '#dc3545'}}>
+                          ⚠️ Danger Zone - Delete Operations
+                        </div>
+                        
+                        <div style={{display: 'flex', gap: '10px', flexWrap: 'wrap'}}>
+                          <button
+                            onClick={() => setShowDeleteConfirm('week')}
+                            style={{
+                              flex: '1',
+                              minWidth: '150px',
+                              padding: '12px',
+                              background: '#e67e22',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '6px',
+                              cursor: 'pointer',
+                              fontSize: '0.9rem',
+                              fontWeight: '600'
+                            }}
+                          >
+                            🗑️ Delete This Week Only
+                          </button>
+                          
+                          <button
+                            onClick={() => setShowDeleteConfirm('all')}
+                            style={{
+                              flex: '1',
+                              minWidth: '150px',
+                              padding: '12px',
+                              background: '#c0392b',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '6px',
+                              cursor: 'pointer',
+                              fontSize: '0.9rem',
+                              fontWeight: '600'
+                            }}
+                          >
+                            💥 Delete ALL Weeks
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -1874,6 +2013,154 @@ function App() {
                   ❌ Cancel
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Delete Confirmation Popups */}
+        {showDeleteConfirm && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0,0,0,0.85)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 10000,
+            padding: '20px'
+          }}>
+            <div style={{
+              background: 'white',
+              borderRadius: '12px',
+              padding: '30px',
+              maxWidth: '500px',
+              width: '100%',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.3)'
+            }}>
+              {showDeleteConfirm === 'week' ? (
+                <>
+                  <h3 style={{marginTop: 0, color: '#e67e22', display: 'flex', alignItems: 'center', gap: '10px'}}>
+                    <span>⚠️</span>
+                    <span>DELETE PICKS FOR THIS WEEK?</span>
+                  </h3>
+                  <div style={{marginBottom: '20px', color: '#666'}}>
+                    <p><strong>Player:</strong> {PLAYER_CODES[selectedPlayerForOverride]}</p>
+                    <p><strong>Week:</strong> {currentWeek === 'wildcard' ? 'Week 1 (Wildcard)' : currentWeek === 'divisional' ? 'Week 2 (Divisional)' : currentWeek === 'conference' ? 'Week 3 (Conference)' : 'Week 4 (Super Bowl)'}</p>
+                  </div>
+                  <div style={{
+                    background: '#fff3cd',
+                    border: '1px solid #ffc107',
+                    color: '#856404',
+                    padding: '15px',
+                    borderRadius: '6px',
+                    marginBottom: '20px',
+                    fontSize: '0.95rem'
+                  }}>
+                    <strong>⚠️ Warning:</strong> This will DELETE {PLAYER_CODES[selectedPlayerForOverride]}'s picks for this week only.<br/>
+                    <strong>This action CANNOT be undone!</strong>
+                  </div>
+                  <div style={{display: 'flex', gap: '10px'}}>
+                    <button
+                      onClick={() => setShowDeleteConfirm(null)}
+                      style={{
+                        flex: '1',
+                        padding: '14px',
+                        background: '#95a5a6',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        fontSize: '1rem',
+                        fontWeight: '700'
+                      }}
+                    >
+                      ❌ Cancel
+                    </button>
+                    <button
+                      onClick={deletePicksForWeek}
+                      style={{
+                        flex: '1',
+                        padding: '14px',
+                        background: '#e67e22',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        fontSize: '1rem',
+                        fontWeight: '700'
+                      }}
+                    >
+                      🗑️ Yes, Delete This Week
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <h3 style={{marginTop: 0, color: '#c0392b', display: 'flex', alignItems: 'center', gap: '10px'}}>
+                    <span>🚨</span>
+                    <span>DELETE ALL PICKS?</span>
+                  </h3>
+                  <div style={{marginBottom: '20px', color: '#666'}}>
+                    <p><strong>Player:</strong> {PLAYER_CODES[selectedPlayerForOverride]}</p>
+                  </div>
+                  <div style={{
+                    background: '#f8d7da',
+                    border: '2px solid #dc3545',
+                    color: '#721c24',
+                    padding: '15px',
+                    borderRadius: '6px',
+                    marginBottom: '20px',
+                    fontSize: '0.95rem'
+                  }}>
+                    <strong>🚨 DANGER:</strong> This will DELETE ALL of {PLAYER_CODES[selectedPlayerForOverride]}'s picks:<br/><br/>
+                    {allPicks.filter(p => p.playerCode === selectedPlayerForOverride).map(pick => (
+                      <div key={pick.week} style={{marginLeft: '20px'}}>
+                        ✓ {pick.week === 'wildcard' ? 'Week 1' : pick.week === 'divisional' ? 'Week 2' : pick.week === 'conference' ? 'Week 3' : 'Week 4'} picks
+                      </div>
+                    ))}
+                    <br/>
+                    <strong>This action CANNOT be undone!</strong><br/>
+                    <strong>Are you absolutely sure?</strong>
+                  </div>
+                  <div style={{display: 'flex', gap: '10px'}}>
+                    <button
+                      onClick={() => setShowDeleteConfirm(null)}
+                      style={{
+                        flex: '1',
+                        padding: '14px',
+                        background: '#95a5a6',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        fontSize: '1rem',
+                        fontWeight: '700'
+                      }}
+                    >
+                      ❌ Cancel
+                    </button>
+                    <button
+                      onClick={deleteAllPicksForPlayer}
+                      style={{
+                        flex: '1',
+                        padding: '14px',
+                        background: '#c0392b',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        fontSize: '1rem',
+                        fontWeight: '700'
+                      }}
+                    >
+                      💥 Yes, Delete Everything
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         )}
