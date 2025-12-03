@@ -1575,16 +1575,6 @@ function App() {
             allPicks={allPicks} 
             actualScores={actualScores}
             currentWeek={currentWeek}
-            playerName={playerName}
-            playerCode={playerCode}
-            isPoolManager={isPoolManager()}
-            onLogout={() => {
-              setCodeValidated(false);
-              setPlayerCode('');
-              setPlayerName('');
-              setPredictions({});
-              setCurrentView('picks'); // Go back to picks view
-            }}
           />
         ) : (
           <>
@@ -1865,16 +1855,8 @@ function App() {
                 fontWeight: '600'
               }}
             >
-              📥 Download CSV
+              📥 Download to Excel
             </button>
-            <div style={{
-              fontSize: '0.75rem',
-              color: '#666',
-              marginTop: '5px',
-              fontStyle: 'italic'
-            }}>
-              📱 Mobile: Open with Google Sheets (free app)
-            </div>
             <button 
               onClick={() => window.location.reload()}
               style={{

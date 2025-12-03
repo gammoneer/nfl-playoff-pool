@@ -4,7 +4,7 @@ import './StandingsPage.css';
 // Import scoring functions (we'll integrate these)
 // For now, we'll include the logic directly
 
-function StandingsPage({ allPicks, actualScores, currentWeek, playerName, playerCode, isPoolManager, onLogout }) {
+function StandingsPage({ allPicks, actualScores, currentWeek }) {
   
   // ============================================
   // SCORING CALCULATION FUNCTIONS
@@ -272,57 +272,6 @@ function StandingsPage({ allPicks, actualScores, currentWeek, playerName, player
   return (
     <div className="standings-page">
       <div className="container">
-        {/* Player Info and Logout Button */}
-        <div style={{
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          padding: '20px',
-          borderRadius: '8px',
-          marginBottom: '20px',
-          color: 'white'
-        }}>
-          <div style={{fontSize: '0.9rem', marginBottom: '5px'}}>
-            ✓ VERIFIED
-          </div>
-          <div style={{fontSize: '1.2rem', fontWeight: 'bold', marginBottom: '5px'}}>
-            Viewing as: {playerName}
-          </div>
-          {isPoolManager && (
-            <div style={{
-              fontSize: '0.9rem',
-              marginBottom: '10px',
-              color: '#ffd700',
-              fontWeight: '600'
-            }}>
-              👑 POOL MANAGER
-            </div>
-          )}
-          <button 
-            onClick={onLogout}
-            style={{
-              background: 'white',
-              color: '#764ba2',
-              border: 'none',
-              padding: '10px 20px',
-              borderRadius: '6px',
-              fontSize: '0.95rem',
-              fontWeight: '600',
-              cursor: 'pointer',
-              marginTop: '10px',
-              boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-            }}
-          >
-            🚪 Logout / Switch Entry
-          </button>
-          <p style={{
-            fontSize: '0.85rem',
-            marginTop: '10px',
-            opacity: 0.9,
-            fontStyle: 'italic'
-          }}>
-            💡 Playing with multiple entries? Logout to switch between your codes.
-          </p>
-        </div>
-
         <h1 className="standings-title">🏆 Standings & Prize Leaders</h1>
         
         <div className="prizes-grid">

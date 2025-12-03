@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { initializeApp } from 'firebase/app';
-import { getDatabase, ref, push, onValue, set, update, get } from 'firebase/database';
+import { getDatabase, ref, push, onValue, set, update } from 'firebase/database';
 import './App.css';
 import StandingsPage from './StandingsPage';
 import ESPNControls from './ESPNControls';
@@ -12,8 +12,7 @@ import {
   IncompleteEntryError,
   InvalidScoresError,
   SuccessConfirmation,
-  NoChangesInfo,
-  TiedGamesError
+  NoChangesInfo
 } from './ValidationPopups';
 import LeaderDisplay from './LeaderDisplay';
 import WinnerDeclaration from './WinnerDeclaration';
@@ -143,7 +142,6 @@ const PLAYER_CODES = {
 const PLAYOFF_WEEKS = {
   wildcard: {
     name: "Wild Card Round (Jan 10-12, 2026)",
-    deadline: "Friday, January 9, 2026 at 11:59 PM PST",
     games: [
       { id: 1, team1: "AFC #7", team2: "AFC #2" },
       { id: 2, team1: "AFC #6", team2: "AFC #3" },
@@ -155,7 +153,6 @@ const PLAYOFF_WEEKS = {
   },
   divisional: {
     name: "Divisional Round (Jan 17-18, 2026)",
-    deadline: "Friday, January 16, 2026 at 11:59 PM PST",
     games: [
       { id: 7, team1: "AFC Winner 1", team2: "AFC #1" },
       { id: 8, team1: "AFC Winner 2", team2: "AFC Winner 3" },
@@ -165,7 +162,6 @@ const PLAYOFF_WEEKS = {
   },
   conference: {
     name: "Conference Championships (Jan 25, 2026)",
-    deadline: "Friday, January 23, 2026 at 11:59 PM PST",
     games: [
       { id: 11, team1: "AFC Winner A", team2: "AFC Winner B" },
       { id: 12, team1: "NFC Winner A", team2: "NFC Winner B" }
@@ -173,7 +169,6 @@ const PLAYOFF_WEEKS = {
   },
   superbowl: {
     name: "Super Bowl LIX (Feb 8, 2026)",
-    deadline: "Friday, February 6, 2026 at 11:59 PM PST",
     games: [
       { id: 13, team1: "AFC Champion", team2: "NFC Champion" }
     ]
@@ -1086,22 +1081,6 @@ function App() {
       setShowPopup('invalidScores');
       return;
     }
-    
-    // STEP 5 VALIDATION: Check for tied games (playoff games NEVER tie!)
-    const tiedGames = [];
-    currentWeekData.games.forEach(game => {
-      const t1 = parseInt(predictions[game.id]?.team1);
-      const t2 = parseInt(predictions[game.id]?.team2);
-      if (t1 === t2) {
-        tiedGames.push(game.id);
-      }
-    });
-    
-    if (tiedGames.length > 0) {
-      setMissingGames(tiedGames); // Reuse missingGames state for highlighting
-      setShowPopup('tiedGames');
-      return;
-    }
 
     // Check if no changes were made
     if (!hasUnsavedChanges) {
@@ -1109,41 +1088,24 @@ function App() {
       return;
     }
 
+    // Check if player already has picks for this week
+    const existingPick = allPicks.find(
+      pick => pick.playerName === playerName && pick.week === currentWeek
+    );
+
+    const pickData = {
+      playerName,
+      playerCode,
+      week: currentWeek,
+      predictions,
+      timestamp: existingPick ? existingPick.timestamp : Date.now(),
+      lastUpdated: Date.now()
+    };
+
     try {
-      // CRITICAL FIX: Query Firebase DIRECTLY to check for existing pick
-      // This prevents race conditions and duplicate entries
-      const picksRef = ref(database, 'picks');
-      const snapshot = await get(picksRef);
-      
-      let existingPick = null;
-      let existingFirebaseKey = null;
-      
-      if (snapshot.exists()) {
-        const allFirebasePicks = snapshot.val();
-        // Find existing pick for this playerCode + week combination
-        for (const [key, pick] of Object.entries(allFirebasePicks)) {
-          if (pick.playerCode === playerCode && pick.week === currentWeek) {
-            existingPick = pick;
-            existingFirebaseKey = key;
-            break;
-          }
-        }
-      }
-
-      const pickData = {
-        playerName,
-        playerCode,
-        week: currentWeek,
-        predictions,
-        timestamp: existingPick ? existingPick.timestamp : Date.now(),
-        lastUpdated: Date.now()
-      };
-
-      if (existingFirebaseKey) {
-        // Update existing pick - NEVER create a duplicate!
-        await set(ref(database, `picks/${existingFirebaseKey}`), pickData);
+      if (existingPick) {
+        await set(ref(database, `picks/${existingPick.firebaseKey}`), pickData);
       } else {
-        // Create new pick - only if one doesn't exist!
         await push(ref(database, 'picks'), pickData);
       }
       
@@ -1575,16 +1537,6 @@ function App() {
             allPicks={allPicks} 
             actualScores={actualScores}
             currentWeek={currentWeek}
-            playerName={playerName}
-            playerCode={playerCode}
-            isPoolManager={isPoolManager()}
-            onLogout={() => {
-              setCodeValidated(false);
-              setPlayerCode('');
-              setPlayerName('');
-              setPredictions({});
-              setCurrentView('picks'); // Go back to picks view
-            }}
           />
         ) : (
           <>
@@ -1594,10 +1546,7 @@ function App() {
             <div className="code-entry-section">
               <h3>🔐 Enter Your Player Code</h3>
               <p style={{marginBottom: '20px', color: '#666'}}>
-                You received a 6-character code when you paid your $20 entry fee.
-              </p>
-              <p style={{marginBottom: '20px', color: '#666', fontSize: '0.9rem', fontStyle: 'italic'}}>
-                💡 Have multiple entries? Enter one code at a time.
+                You received a 6-character code when you paid your entry fee.
               </p>
               <div className="code-input-group">
                 <label htmlFor="playerCode">
@@ -1686,16 +1635,8 @@ function App() {
                   setPredictions({});
                 }}
               >
-                🚪 Logout / Switch Entry
+                🔄 Enter Different Code
               </button>
-              <p style={{
-                fontSize: '0.85rem',
-                color: '#666',
-                marginTop: '10px',
-                fontStyle: 'italic'
-              }}>
-                💡 Playing with multiple entries? Logout to switch between your codes.
-              </p>
             </div>
 
             {/* Lockout Warning */}
@@ -1865,16 +1806,8 @@ function App() {
                 fontWeight: '600'
               }}
             >
-              📥 Download CSV
+              📥 Download to Excel
             </button>
-            <div style={{
-              fontSize: '0.75rem',
-              color: '#666',
-              marginTop: '5px',
-              fontStyle: 'italic'
-            }}>
-              📱 Mobile: Open with Google Sheets (free app)
-            </div>
             <button 
               onClick={() => window.location.reload()}
               style={{
@@ -2394,16 +2327,12 @@ function App() {
                 setShowPopup(null);
               }}
               onSaveAndSwitch={async () => {
-                // Submit current week's picks
                 await handleSubmit(new Event('submit'));
-                // Always switch to the new week after saving
-                // (handleSubmit will show success popup, but we'll switch anyway)
-                setTimeout(() => {
+                if (!showPopup || showPopup === 'success') {
                   setCurrentWeek(pendingWeekChange);
                   loadWeekPicks(pendingWeekChange);
                   setShowPopup(null);
-                  setPendingWeekChange(null);
-                }, 100);
+                }
               }}
               onCancel={() => {
                 setPendingWeekChange(null);
@@ -2448,14 +2377,6 @@ function App() {
 
           {showPopup === 'noChanges' && (
             <NoChangesInfo
-              onClose={() => setShowPopup(null)}
-            />
-          )}
-
-          {showPopup === 'tiedGames' && (
-            <TiedGamesError
-              tiedGames={missingGames}
-              gameData={currentWeekData.games}
               onClose={() => setShowPopup(null)}
             />
           )}
