@@ -82,7 +82,7 @@ const AUTO_LOCK_DATES = {
 // TO ADD POOL MANAGERS:
 // Just add codes to the array below. Use 6 characters (letters/numbers).
 // You can have multiple pool managers!
-const POOL_MANAGER_CODES = ["76BB89", "Z9Y8X7"];  // Add more codes here as needed
+const POOL_MANAGER_CODES = ["76CC89", "34GH5T"];  // Add more codes here as needed
 // Pool Manager #1: 76BB89 (Richard)
 // Pool Manager #2: Z9Y8X7 (Dennis)
 // Example to add more: ["76BB89", "Z9Y8X7", "ABC123"]
@@ -97,8 +97,8 @@ const POOL_MANAGER_CODES = ["76BB89", "Z9Y8X7"];  // Add more codes here as need
 // Codes are now 6-character alphanumeric (A-Z, 2-9)
 // Avoid confusing characters: 0, O, I, 1, l
 const PLAYER_CODES = {
-  "76BB89": "POOL MANAGER - Richard",  // Pool Manager #1
-  "Z9Y8X7": "POOL MANAGER - Dennis",   // Pool Manager #2
+  "76CC89": "POOL MANAGER - Richard",  // Pool Manager #1
+  "34GH5T": "POOL MANAGER - Dennis",   // Pool Manager #2
   "J239W4": "Bob Casson",
   "B7Y4X3": "Bob Desrosiers",
   "D4F7G5": "Bonnie Biletski",
