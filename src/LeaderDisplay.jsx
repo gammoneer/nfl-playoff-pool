@@ -22,6 +22,88 @@ const PRIZE_INFO = {
 };
 
 /**
+ * Calculate game status for a prize
+ * Returns: { status: 'NOT_STARTED' | 'LIVE' | 'COMPLETE', gamesCompleted, totalGames, message }
+ */
+function calculateGameStatus(prizeInfo, actualScores, weekData) {
+  if (prizeInfo.week === 'all') {
+    // Overall prize - check all weeks
+    let totalGames = 0;
+    let gamesCompleted = 0;
+    
+    Object.keys(weekData).forEach(weekKey => {
+      const weekGames = weekData[weekKey].games;
+      totalGames += weekGames.length;
+      
+      weekGames.forEach(game => {
+        const score = actualScores[weekKey]?.[game.id];
+        if (score && (score.team1 !== undefined || score.team2 !== undefined)) {
+          gamesCompleted++;
+        }
+      });
+    });
+    
+    if (gamesCompleted === 0) {
+      return {
+        status: 'NOT_STARTED',
+        gamesCompleted: 0,
+        totalGames,
+        message: 'First game Saturday, January 11, 2026! Standings will update as games finish.'
+      };
+    } else if (gamesCompleted < totalGames) {
+      return {
+        status: 'LIVE',
+        gamesCompleted,
+        totalGames,
+        message: `LIVE NOW! ${gamesCompleted} of ${totalGames} playoff games completed. Standings updating in real-time!`
+      };
+    } else {
+      return {
+        status: 'COMPLETE',
+        gamesCompleted,
+        totalGames,
+        message: 'Playoffs complete! Final standings shown above.'
+      };
+    }
+  } else {
+    // Single week prize
+    const weekGames = weekData[prizeInfo.week]?.games || [];
+    const totalGames = weekGames.length;
+    let gamesCompleted = 0;
+    
+    weekGames.forEach(game => {
+      const score = actualScores[prizeInfo.week]?.[game.id];
+      if (score && (score.team1 !== undefined || score.team2 !== undefined)) {
+        gamesCompleted++;
+      }
+    });
+    
+    if (gamesCompleted === 0) {
+      return {
+        status: 'NOT_STARTED',
+        gamesCompleted: 0,
+        totalGames,
+        message: 'Games not started yet. Standings will update as games finish!'
+      };
+    } else if (gamesCompleted < totalGames) {
+      return {
+        status: 'LIVE',
+        gamesCompleted,
+        totalGames,
+        message: `LIVE NOW! ${gamesCompleted} of ${totalGames} games completed. Standings changing in real-time!`
+      };
+    } else {
+      return {
+        status: 'COMPLETE',
+        gamesCompleted,
+        totalGames,
+        message: 'All games complete! Final standings shown above.'
+      };
+    }
+  }
+}
+
+/**
  * Calculate leaders for a specific prize
  */
 function calculatePrizeLeaders(prizeNumber, allPicks, actualScores, weekData) {
@@ -34,13 +116,30 @@ function calculatePrizeLeaders(prizeNumber, allPicks, actualScores, weekData) {
   let games = [];
   
   if (prizeInfo.week === 'all') {
-    // Overall prizes - use all weeks
+    // Overall prizes - GROUP by playerCode and combine all weeks
     relevantPicks = allPicks;
     relevantScores = actualScores;
     // Combine all games
     Object.keys(weekData).forEach(weekKey => {
       games = games.concat(weekData[weekKey].games.map(g => ({...g, week: weekKey})));
     });
+    
+    // GROUP picks by playerCode for overall prizes
+    // This ensures ONE entry per player combining all their weeks
+    const playerMap = {};
+    relevantPicks.forEach(pick => {
+      if (!playerMap[pick.playerCode]) {
+        playerMap[pick.playerCode] = {
+          playerCode: pick.playerCode,
+          playerName: pick.playerName,
+          weeklyPicks: []
+        };
+      }
+      playerMap[pick.playerCode].weeklyPicks.push(pick);
+    });
+    
+    // Convert back to array format but keeping weekly picks grouped
+    relevantPicks = Object.values(playerMap);
   } else {
     // Single week prize
     relevantPicks = allPicks.filter(p => p.week === prizeInfo.week);
@@ -57,20 +156,26 @@ function calculatePrizeLeaders(prizeNumber, allPicks, actualScores, weekData) {
     const results = relevantPicks.map(pick => {
       let correctCount = 0;
       
-      games.forEach(game => {
-        const playerPrediction = pick.predictions?.[game.id];
-        const actualScore = prizeInfo.week === 'all' 
-          ? actualScores[game.week]?.[game.id]
-          : relevantScores[game.id];
-        
-        if (!playerPrediction || !actualScore) return;
-        
-        const playerWinner = parseInt(playerPrediction.team1) > parseInt(playerPrediction.team2) ? 'team1' : 'team2';
-        const actualWinner = parseInt(actualScore.team1) > parseInt(actualScore.team2) ? 'team1' : 'team2';
-        
-        if (playerWinner === actualWinner) {
-          correctCount++;
-        }
+      // For overall prizes, pick has weeklyPicks array
+      // For single week prizes, pick is the direct pick object
+      const picksToCheck = pick.weeklyPicks || [pick];
+      
+      picksToCheck.forEach(weekPick => {
+        games.forEach(game => {
+          const playerPrediction = weekPick.predictions?.[game.id];
+          const actualScore = prizeInfo.week === 'all' 
+            ? actualScores[game.week]?.[game.id]
+            : relevantScores[game.id];
+          
+          if (!playerPrediction || !actualScore) return;
+          
+          const playerWinner = parseInt(playerPrediction.team1) > parseInt(playerPrediction.team2) ? 'team1' : 'team2';
+          const actualWinner = parseInt(actualScore.team1) > parseInt(actualScore.team2) ? 'team1' : 'team2';
+          
+          if (playerWinner === actualWinner) {
+            correctCount++;
+          }
+        });
       });
       
       return {
@@ -110,11 +215,17 @@ function calculatePrizeLeaders(prizeNumber, allPicks, actualScores, weekData) {
     const results = relevantPicks.map(pick => {
       let playerTotal = 0;
       
-      games.forEach(game => {
-        const prediction = pick.predictions?.[game.id];
-        if (prediction) {
-          playerTotal += (parseInt(prediction.team1) || 0) + (parseInt(prediction.team2) || 0);
-        }
+      // For overall prizes, pick has weeklyPicks array
+      // For single week prizes, pick is the direct pick object
+      const picksToCheck = pick.weeklyPicks || [pick];
+      
+      picksToCheck.forEach(weekPick => {
+        games.forEach(game => {
+          const prediction = weekPick.predictions?.[game.id];
+          if (prediction) {
+            playerTotal += (parseInt(prediction.team1) || 0) + (parseInt(prediction.team2) || 0);
+          }
+        });
       });
       
       const difference = Math.abs(playerTotal - actualTotal);
@@ -199,6 +310,9 @@ function PrizeLeaderCard({
   }
 
   const { leaders, allPlayers, hasTie, tieCount } = leaderData;
+  
+  // Calculate game status for this prize
+  const gameStatus = calculateGameStatus(prizeInfo, actualScores, weekData);
 
   return (
     <div className={`leader-card ${hasTie ? 'has-tie' : ''}`}>
@@ -208,6 +322,23 @@ function PrizeLeaderCard({
       </div>
       
       <div className="leader-card-body">
+        {/* Game Status Indicator */}
+        <div className={`game-status ${gameStatus.status.toLowerCase()}`}>
+          <div className="status-badge">
+            {gameStatus.status === 'NOT_STARTED' && '⏳ NOT STARTED'}
+            {gameStatus.status === 'LIVE' && '🔴 LIVE'}
+            {gameStatus.status === 'COMPLETE' && '✅ COMPLETE'}
+          </div>
+          <div className="status-details">
+            {gameStatus.status !== 'NOT_STARTED' && (
+              <span className="games-count">
+                {gameStatus.gamesCompleted} of {gameStatus.totalGames} games
+              </span>
+            )}
+          </div>
+          <p className="status-message">{gameStatus.message}</p>
+        </div>
+        
         {/* Show tie warning with BLACK text on yellow */}
         {hasTie && (
           <div className="tie-warning">

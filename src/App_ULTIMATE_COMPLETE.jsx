@@ -143,6 +143,7 @@ const PLAYER_CODES = {
 const PLAYOFF_WEEKS = {
   wildcard: {
     name: "Wild Card Round (Jan 10-12, 2026)",
+    deadline: "Friday, January 9, 2026 at 11:59 PM PST",
     games: [
       { id: 1, team1: "AFC #7", team2: "AFC #2" },
       { id: 2, team1: "AFC #6", team2: "AFC #3" },
@@ -154,6 +155,7 @@ const PLAYOFF_WEEKS = {
   },
   divisional: {
     name: "Divisional Round (Jan 17-18, 2026)",
+    deadline: "Friday, January 16, 2026 at 11:59 PM PST",
     games: [
       { id: 7, team1: "AFC Winner 1", team2: "AFC #1" },
       { id: 8, team1: "AFC Winner 2", team2: "AFC Winner 3" },
@@ -163,6 +165,7 @@ const PLAYOFF_WEEKS = {
   },
   conference: {
     name: "Conference Championships (Jan 25, 2026)",
+    deadline: "Friday, January 23, 2026 at 11:59 PM PST",
     games: [
       { id: 11, team1: "AFC Winner A", team2: "AFC Winner B" },
       { id: 12, team1: "NFC Winner A", team2: "NFC Winner B" }
@@ -170,6 +173,7 @@ const PLAYOFF_WEEKS = {
   },
   superbowl: {
     name: "Super Bowl LIX (Feb 8, 2026)",
+    deadline: "Friday, February 6, 2026 at 11:59 PM PST",
     games: [
       { id: 13, team1: "AFC Champion", team2: "NFC Champion" }
     ]

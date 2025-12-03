@@ -385,3 +385,86 @@
     transform: none;
   }
 }
+
+/* ============================================
+   GAME STATUS INDICATORS
+   ============================================ */
+
+.game-status {
+  margin-bottom: 20px;
+  padding: 15px;
+  border-radius: 8px;
+  border: 2px solid;
+}
+
+.game-status.not_started {
+  background: #e3f2fd;
+  border-color: #2196f3;
+}
+
+.game-status.live {
+  background: #ffebee;
+  border-color: #f44336;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+.game-status.complete {
+  background: #e8f5e9;
+  border-color: #4caf50;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-weight: bold;
+  font-size: 0.85rem;
+  margin-bottom: 8px;
+}
+
+.game-status.not_started .status-badge {
+  background: #2196f3;
+  color: white;
+}
+
+.game-status.live .status-badge {
+  background: #f44336;
+  color: white;
+}
+
+.game-status.complete .status-badge {
+  background: #4caf50;
+  color: white;
+}
+
+.status-details {
+  margin-bottom: 8px;
+}
+
+.games-count {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: #333;
+}
+
+.status-message {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #666;
+  line-height: 1.5;
+  font-style: italic;
+}
+
+.game-status.live .status-message {
+  color: #c62828;
+  font-weight: 600;
+}

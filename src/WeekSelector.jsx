@@ -10,25 +10,25 @@ const PLAYOFF_WEEKS = {
   wildcard: {
     name: 'Week 1 - Wildcard Round',
     shortName: 'Wildcard',
-    deadline: 'Fri Jan 10, 11:59 PM PST',
+    deadline: 'Fri Jan 9, 11:59 PM PST',
     number: 1
   },
   divisional: {
     name: 'Week 2 - Divisional Round',
     shortName: 'Divisional',
-    deadline: 'Fri Jan 17, 11:59 PM PST',
+    deadline: 'Fri Jan 16, 11:59 PM PST',
     number: 2
   },
   conference: {
     name: 'Week 3 - Conference Championships',
     shortName: 'Conference',
-    deadline: 'Fri Jan 24, 11:59 PM PST',
+    deadline: 'Fri Jan 23, 11:59 PM PST',
     number: 3
   },
   superbowl: {
     name: 'Week 4 - Super Bowl LIX',
     shortName: 'Super Bowl',
-    deadline: 'Sun Feb 9, 3:30 PM PT',
+    deadline: 'Fri Feb 6, 11:59 PM PST',
     number: 4
   }
 };
