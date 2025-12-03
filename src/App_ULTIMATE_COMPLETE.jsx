@@ -2340,12 +2340,16 @@ function App() {
                 setShowPopup(null);
               }}
               onSaveAndSwitch={async () => {
+                // Submit current week's picks
                 await handleSubmit(new Event('submit'));
-                if (!showPopup || showPopup === 'success') {
+                // Always switch to the new week after saving
+                // (handleSubmit will show success popup, but we'll switch anyway)
+                setTimeout(() => {
                   setCurrentWeek(pendingWeekChange);
                   loadWeekPicks(pendingWeekChange);
                   setShowPopup(null);
-                }
+                  setPendingWeekChange(null);
+                }, 100);
               }}
               onCancel={() => {
                 setPendingWeekChange(null);
