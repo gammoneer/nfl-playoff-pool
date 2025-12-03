@@ -435,38 +435,25 @@ function App() {
     const selectedPlayer = PLAYER_CODES[selectedPlayerForOverride];
     
     try {
-      console.log('🔍 DEBUG: Starting delete for player:', selectedPlayer);
-      console.log('🔍 DEBUG: Player code:', selectedPlayerForOverride);
-      console.log('🔍 DEBUG: Current week:', currentWeek);
-      
       // Find the pick for this player and current week
       const picksRef = ref(database, 'picks');
       const snapshot = await get(picksRef);
       
-      console.log('🔍 DEBUG: Got snapshot, exists?', snapshot.exists());
-      
       if (snapshot.exists()) {
         const allFirebasePicks = snapshot.val();
-        console.log('🔍 DEBUG: Total picks in database:', Object.keys(allFirebasePicks).length);
-        
         let keyToDelete = null;
         
         for (const [key, pick] of Object.entries(allFirebasePicks)) {
-          console.log(`🔍 DEBUG: Checking pick ${key}:`, pick.playerCode, pick.week);
           if (pick.playerCode === selectedPlayerForOverride && pick.week === currentWeek) {
             keyToDelete = key;
-            console.log('🔍 DEBUG: FOUND KEY TO DELETE:', keyToDelete);
             break;
           }
         }
         
         if (keyToDelete) {
-          console.log('🔍 DEBUG: Attempting to delete key:', keyToDelete);
           await remove(ref(database, `picks/${keyToDelete}`)); // Delete using remove()
-          console.log('✅ DEBUG: Delete successful!');
           alert(`✅ ${selectedPlayer}'s picks for ${currentWeek === 'wildcard' ? 'Week 1' : currentWeek === 'divisional' ? 'Week 2' : currentWeek === 'conference' ? 'Week 3' : 'Week 4'} have been deleted!`);
         } else {
-          console.log('❌ DEBUG: No pick found to delete');
           alert(`ℹ️ ${selectedPlayer} has no picks for this week.`);
         }
       }
@@ -474,10 +461,8 @@ function App() {
       setShowDeleteConfirm(null);
       setSelectedPlayerForOverride('');
     } catch (error) {
-      console.error('❌ DEBUG: Error deleting picks:', error);
-      console.error('❌ DEBUG: Error message:', error.message);
-      console.error('❌ DEBUG: Error code:', error.code);
-      alert(`❌ Error deleting picks: ${error.message}\n\nCheck browser console (F12) for details.`);
+      console.error('Error deleting picks:', error);
+      alert('❌ Error deleting picks. Please try again.');
     }
   };
 
@@ -490,42 +475,29 @@ function App() {
     const selectedPlayer = PLAYER_CODES[selectedPlayerForOverride];
     
     try {
-      console.log('🔍 DEBUG: Starting delete ALL for player:', selectedPlayer);
-      console.log('🔍 DEBUG: Player code:', selectedPlayerForOverride);
-      
       // Find ALL picks for this player
       const picksRef = ref(database, 'picks');
       const snapshot = await get(picksRef);
-      
-      console.log('🔍 DEBUG: Got snapshot, exists?', snapshot.exists());
       
       if (snapshot.exists()) {
         const allFirebasePicks = snapshot.val();
         const keysToDelete = [];
         
-        console.log('🔍 DEBUG: Total picks in database:', Object.keys(allFirebasePicks).length);
-        
         for (const [key, pick] of Object.entries(allFirebasePicks)) {
           if (pick.playerCode === selectedPlayerForOverride) {
-            console.log('🔍 DEBUG: Found pick to delete:', key, pick.week);
             keysToDelete.push(key);
           }
         }
         
-        console.log('🔍 DEBUG: Total keys to delete:', keysToDelete.length);
-        
         if (keysToDelete.length > 0) {
           // Delete all picks for this player
-          console.log('🔍 DEBUG: Attempting to delete keys:', keysToDelete);
           const deletePromises = keysToDelete.map(key => 
             remove(ref(database, `picks/${key}`))
           );
           await Promise.all(deletePromises);
           
-          console.log('✅ DEBUG: Delete ALL successful!');
           alert(`✅ ALL picks for ${selectedPlayer} have been deleted!\n\nDeleted ${keysToDelete.length} pick(s) across all weeks.`);
         } else {
-          console.log('❌ DEBUG: No picks found to delete');
           alert(`ℹ️ ${selectedPlayer} has no picks in any week.`);
         }
       }
@@ -534,10 +506,8 @@ function App() {
       setSelectedPlayerForOverride('');
       setOverrideMode(false);
     } catch (error) {
-      console.error('❌ DEBUG: Error deleting all picks:', error);
-      console.error('❌ DEBUG: Error message:', error.message);
-      console.error('❌ DEBUG: Error code:', error.code);
-      alert(`❌ Error deleting picks: ${error.message}\n\nCheck browser console (F12) for details.`);
+      console.error('Error deleting all picks:', error);
+      alert('❌ Error deleting picks. Please try again.');
     }
   };
 
@@ -2543,17 +2513,13 @@ function App() {
                     {/* Show actual scores if available */}
                     {actualScores[currentWeek]?.[game.id] && (
                       <div style={{
-                        padding: '10px 15px',
-                        background: '#ffffff',
-                        border: '3px solid #4caf50',
-                        borderRadius: '6px',
-                        marginBottom: '12px',
-                        fontSize: '1rem'
+                        padding: '8px 12px',
+                        background: '#e8f5e9',
+                        borderRadius: '4px',
+                        marginBottom: '10px',
+                        fontSize: '0.9rem'
                       }}>
-                        <strong style={{color: '#000', fontSize: '1.05rem'}}>Actual Score:</strong>{' '}
-                        <span style={{color: '#000', fontWeight: '700', fontSize: '1.1rem'}}>
-                          {actualScores[currentWeek][game.id].team1 || '-'} - {actualScores[currentWeek][game.id].team2 || '-'}
-                        </span>
+                        <strong>Actual Score:</strong> {actualScores[currentWeek][game.id].team1 || '-'} - {actualScores[currentWeek][game.id].team2 || '-'}
                         {gameStatus[currentWeek]?.[game.id] === 'final' && (
                           <span style={{
                             marginLeft: '10px',
@@ -2961,11 +2927,11 @@ function App() {
                     <th rowSpan="2">Submitted</th>
                   </tr>
                   
-                  {/* ACTUAL SCORES ROW - Enhanced visibility */}
-                  <tr style={{background: '#ffffff', borderTop: '3px solid #4caf50', borderBottom: '3px solid #4caf50'}}>
+                  {/* ACTUAL SCORES ROW - 🔧 FIX #2: Changed white text to black */}
+                  <tr style={{background: '#e3f2fd'}}>
                     {currentWeekData.games.map(game => (
                       <React.Fragment key={`actual-${game.id}`}>
-                        <th style={{padding: '8px 4px', background: '#ffffff', borderLeft: '1px solid #ddd'}}>
+                        <th style={{padding: '8px 4px', background: '#e3f2fd'}}>
                           {isPoolManager() ? (
                             <div>
                               <input
@@ -2983,22 +2949,21 @@ function App() {
                                   fontWeight: 'bold',
                                   border: '2px solid #4caf50',
                                   borderRadius: '4px',
-                                  color: '#000',
-                                  background: '#f0fff0'
+                                  color: '#000'
                                 }}
                               />
-                              <div style={{fontSize: '0.75rem', marginTop: '3px', color: '#000', fontWeight: '700'}}>ACTUAL</div>
+                              <div style={{fontSize: '0.7rem', marginTop: '2px', color: '#000'}}>ACTUAL</div>
                             </div>
                           ) : (
                             <div>
-                              <div style={{fontSize: '1.1rem', fontWeight: 'bold', color: '#000'}}>
+                              <div style={{fontSize: '1rem', fontWeight: 'bold', color: '#000'}}>
                                 {actualScores[currentWeek]?.[game.id]?.team1 || '-'}
                               </div>
-                              <div style={{fontSize: '0.75rem', color: '#000', fontWeight: '700'}}>ACTUAL</div>
+                              <div style={{fontSize: '0.7rem', color: '#000'}}>ACTUAL</div>
                             </div>
                           )}
                         </th>
-                        <th style={{padding: '8px 4px', background: '#ffffff', borderRight: '1px solid #ddd'}}>
+                        <th style={{padding: '8px 4px', background: '#e3f2fd'}}>
                           {isPoolManager() ? (
                             <div>
                               <input
@@ -3016,11 +2981,10 @@ function App() {
                                   fontWeight: 'bold',
                                   border: '2px solid #4caf50',
                                   borderRadius: '4px',
-                                  color: '#000',
-                                  background: '#f0fff0'
+                                  color: '#000'
                                 }}
                               />
-                              <div style={{fontSize: '0.75rem', marginTop: '3px', color: '#000', fontWeight: '700'}}>ACTUAL</div>
+                              <div style={{fontSize: '0.7rem', marginTop: '2px', color: '#000'}}>ACTUAL</div>
                               {/* Game Status Dropdown */}
                               <select
                                 value={gameStatus[currentWeek]?.[game.id] || ''}
@@ -3041,10 +3005,10 @@ function App() {
                             </div>
                           ) : (
                             <div>
-                              <div style={{fontSize: '1.1rem', fontWeight: 'bold', color: '#000'}}>
+                              <div style={{fontSize: '1rem', fontWeight: 'bold', color: '#000'}}>
                                 {actualScores[currentWeek]?.[game.id]?.team2 || '-'}
                               </div>
-                              <div style={{fontSize: '0.75rem', color: '#000', fontWeight: '700'}}>ACTUAL</div>
+                              <div style={{fontSize: '0.7rem', color: '#000'}}>ACTUAL</div>
                               {/* Status Badge */}
                               {gameStatus[currentWeek]?.[game.id] === 'final' && (
                                 <div style={{

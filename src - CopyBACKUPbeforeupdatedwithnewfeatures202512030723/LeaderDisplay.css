@@ -1,0 +1,470 @@
+/* ============================================
+   LEADER DISPLAY STYLES
+   Prize leaders and CSV export
+   ============================================ */
+
+.leader-display-container {
+  padding: 30px 20px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.leader-display-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.leader-display-header h2 {
+  font-size: 2rem;
+  color: #333;
+  margin: 0 0 10px 0;
+  font-weight: 700;
+}
+
+.subtitle {
+  font-size: 1rem;
+  color: #666;
+  max-width: 700px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+/* Prize Grid */
+.prize-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+  gap: 30px;
+}
+
+/* Leader Card */
+.leader-card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  border: 2px solid #e0e0e0;
+  transition: all 0.3s ease;
+}
+
+.leader-card:hover {
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+  transform: translateY(-3px);
+}
+
+.leader-card.loading,
+.leader-card.no-data {
+  opacity: 0.6;
+}
+
+/* Card Header */
+.leader-card-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 20px;
+  color: white;
+}
+
+.prize-title h3 {
+  font-size: 1.2rem;
+  margin: 0 0 5px 0;
+  font-weight: 700;
+}
+
+.prize-week {
+  display: inline-block;
+  padding: 4px 10px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.prize-status {
+  margin-top: 12px;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.status-badge.pending {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+.status-badge.announced {
+  background: #28a745;
+  color: white;
+  border: 1px solid #1e7e34;
+}
+
+/* Card Body */
+.leader-card-body {
+  padding: 25px;
+}
+
+/* Official Winner Display */
+.official-winner {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 20px;
+  background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+  border-radius: 8px;
+  border: 3px solid #ffa500;
+}
+
+.winner-icon {
+  font-size: 3rem;
+}
+
+.winner-info {
+  flex: 1;
+}
+
+.winner-name {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 5px;
+}
+
+.winner-score {
+  font-size: 1.1rem;
+  color: #666;
+  font-weight: 600;
+}
+
+/* Leaders Section */
+.leaders-section h4 {
+  font-size: 1rem;
+  color: #666;
+  margin: 0 0 15px 0;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Leaders Table */
+.leaders-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 20px;
+}
+
+.leaders-table thead {
+  background: #f8f9fa;
+}
+
+.leaders-table th {
+  padding: 12px;
+  text-align: left;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #555;
+  border-bottom: 2px solid #dee2e6;
+}
+
+.leaders-table td {
+  padding: 12px;
+  border-bottom: 1px solid #e9ecef;
+  font-size: 0.95rem;
+}
+
+.leaders-table tr.leading {
+  background: #e7f3ff;
+  font-weight: 600;
+}
+
+.leaders-table tr:hover {
+  background: #f8f9fa;
+}
+
+.rank-cell {
+  font-weight: 700;
+  color: #667eea;
+  width: 60px;
+}
+
+.player-cell {
+  color: #333;
+}
+
+.score-cell {
+  font-weight: 600;
+  color: #28a745;
+  width: 100px;
+}
+
+.status-cell {
+  width: 100px;
+}
+
+.leading-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  background: #28a745;
+  color: white;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.trailing-badge {
+  color: #999;
+}
+
+/* Tie Warning */
+.tie-warning {
+  display: flex;
+  gap: 15px;
+  padding: 15px;
+  background: #fff3cd;
+  border: 2px solid #ffc107;
+  border-radius: 8px;
+  margin-top: 15px;
+  color: #000000; /* BLACK text on yellow background for readability */
+  font-weight: 600;
+}
+
+.tie-icon {
+  font-size: 2rem;
+}
+
+.tie-message {
+  flex: 1;
+}
+
+.tie-message strong {
+  display: block;
+  font-size: 1.1rem;
+  color: #856404;
+  margin-bottom: 5px;
+}
+
+.tie-message p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #856404;
+  line-height: 1.5;
+}
+
+/* Card Footer */
+.leader-card-footer {
+  padding: 15px 25px;
+  background: #f8f9fa;
+  border-top: 2px solid #e0e0e0;
+}
+
+.export-btn {
+  width: 100%;
+  padding: 12px 20px;
+  background: #17a2b8;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.export-btn:hover {
+  background: #138496;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.export-btn:active {
+  transform: translateY(0);
+}
+
+/* ============================================
+   RESPONSIVE DESIGN
+   ============================================ */
+
+@media (max-width: 1024px) {
+  .prize-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .leader-display-container {
+    padding: 20px 15px;
+  }
+
+  .leader-display-header h2 {
+    font-size: 1.5rem;
+  }
+
+  .subtitle {
+    font-size: 0.9rem;
+  }
+
+  .prize-grid {
+    gap: 20px;
+    grid-template-columns: 1fr;
+  }
+
+  .leader-card-header {
+    padding: 15px;
+  }
+
+  .prize-title h3 {
+    font-size: 1rem;
+  }
+
+  .leader-card-body {
+    padding: 15px;
+  }
+
+  .leaders-table th,
+  .leaders-table td {
+    padding: 8px 6px;
+    font-size: 0.85rem;
+  }
+
+  .official-winner {
+    flex-direction: column;
+    text-align: center;
+    gap: 10px;
+  }
+
+  .winner-name {
+    font-size: 1.2rem;
+  }
+
+  .winner-score {
+    font-size: 1rem;
+  }
+
+  .tie-warning {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .leaders-table {
+    font-size: 0.8rem;
+  }
+
+  .leaders-table th,
+  .leaders-table td {
+    padding: 6px 4px;
+  }
+
+  .player-cell {
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .export-btn {
+    font-size: 0.9rem;
+    padding: 10px 15px;
+  }
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .leader-card,
+  .export-btn {
+    transition: none;
+  }
+
+  .leader-card:hover,
+  .export-btn:hover {
+    transform: none;
+  }
+}
+
+/* ============================================
+   GAME STATUS INDICATORS
+   ============================================ */
+
+.game-status {
+  margin-bottom: 20px;
+  padding: 15px;
+  border-radius: 8px;
+  border: 2px solid;
+}
+
+.game-status.not_started {
+  background: #e3f2fd;
+  border-color: #2196f3;
+}
+
+.game-status.live {
+  background: #ffebee;
+  border-color: #f44336;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+.game-status.complete {
+  background: #e8f5e9;
+  border-color: #4caf50;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-weight: bold;
+  font-size: 0.85rem;
+  margin-bottom: 8px;
+}
+
+.game-status.not_started .status-badge {
+  background: #2196f3;
+  color: white;
+}
+
+.game-status.live .status-badge {
+  background: #f44336;
+  color: white;
+}
+
+.game-status.complete .status-badge {
+  background: #4caf50;
+  color: white;
+}
+
+.status-details {
+  margin-bottom: 8px;
+}
+
+.games-count {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: #333;
+}
+
+.status-message {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #666;
+  line-height: 1.5;
+  font-style: italic;
+}
+
+.game-status.live .status-message {
+  color: #c62828;
+  font-weight: 600;
+}

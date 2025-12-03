@@ -1,27 +1,14 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { initializeApp } from 'firebase/app';
-import { getDatabase, ref, push, onValue, set, update, get, remove } from 'firebase/database';
+import { getDatabase, ref, push, onValue, set, update } from 'firebase/database';
 import './App.css';
 import StandingsPage from './StandingsPage';
 import ESPNControls from './ESPNControls';
 import { fetchESPNScores, mapESPNGameToPlayoffGame, ESPNAutoRefresh } from './espnService';
-import WeekSelector from './WeekSelector';
-import {
-  UnsavedChangesPopup,
-  DiscardChangesPopup,
-  IncompleteEntryError,
-  InvalidScoresError,
-  SuccessConfirmation,
-  NoChangesInfo,
-  TiedGamesError
-} from './ValidationPopups';
+import WeekSelector from './WeekSelector_Richard';
 import LeaderDisplay from './LeaderDisplay';
 import WinnerDeclaration from './WinnerDeclaration';
-import { 
-  getPrizeLeaders, 
-  exportToCSV, 
-  downloadCSV 
-} from './winnerService';
+import { getPrizeLeaders } from './winnerService';
 
 // Firebase configuration
 const firebaseConfig = {
@@ -143,7 +130,6 @@ const PLAYER_CODES = {
 const PLAYOFF_WEEKS = {
   wildcard: {
     name: "Wild Card Round (Jan 10-12, 2026)",
-    deadline: "Friday, January 9, 2026 at 11:59 PM PST",
     games: [
       { id: 1, team1: "AFC #7", team2: "AFC #2" },
       { id: 2, team1: "AFC #6", team2: "AFC #3" },
@@ -155,7 +141,6 @@ const PLAYOFF_WEEKS = {
   },
   divisional: {
     name: "Divisional Round (Jan 17-18, 2026)",
-    deadline: "Friday, January 16, 2026 at 11:59 PM PST",
     games: [
       { id: 7, team1: "AFC Winner 1", team2: "AFC #1" },
       { id: 8, team1: "AFC Winner 2", team2: "AFC Winner 3" },
@@ -165,7 +150,6 @@ const PLAYOFF_WEEKS = {
   },
   conference: {
     name: "Conference Championships (Jan 25, 2026)",
-    deadline: "Friday, January 23, 2026 at 11:59 PM PST",
     games: [
       { id: 11, team1: "AFC Winner A", team2: "AFC Winner B" },
       { id: 12, team1: "NFC Winner A", team2: "NFC Winner B" }
@@ -173,7 +157,6 @@ const PLAYOFF_WEEKS = {
   },
   superbowl: {
     name: "Super Bowl LIX (Feb 8, 2026)",
-    deadline: "Friday, February 6, 2026 at 11:59 PM PST",
     games: [
       { id: 13, team1: "AFC Champion", team2: "NFC Champion" }
     ]
@@ -220,325 +203,14 @@ function App() {
   const [lastESPNFetch, setLastESPNFetch] = useState(null);
 
   // ============================================
-  // 🆕 STEP 5: COMPLETE FEATURE STATE
+  // 🆕 STEP 5: Additional state for new features
   // ============================================
-  
-  // Validation & Navigation State
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [showPopup, setShowPopup] = useState(null);
-  const [pendingWeekChange, setPendingWeekChange] = useState(null);
-  const [missingGames, setMissingGames] = useState([]);
-  const [invalidScores, setInvalidScores] = useState([]);
-  
-  // Official Winners (Pool Manager only)
-  const [officialWinners, setOfficialWinners] = useState({});
-  
-  // Track original picks for unsaved changes detection
-  const [originalPicks, setOriginalPicks] = useState({});
-  
-  // Track all picks completion status for WeekSelector
-  const [weekPicksStatus, setWeekPicksStatus] = useState({});
-
-  // ============================================
-  // 👑 POOL MANAGER OVERRIDE STATE
-  // ============================================
-  const [overrideMode, setOverrideMode] = useState(false);
-  const [selectedPlayerForOverride, setSelectedPlayerForOverride] = useState('');
-  const [overrideAction, setOverrideAction] = useState(null); // 'rng', 'manual', 'view'
-  const [rngPreview, setRngPreview] = useState(null);
-  const [showRngPreview, setShowRngPreview] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(null); // 'week' or 'all'
+  const [officialWinners, setOfficialWinners] = useState({});  // { 1: {playerCode, playerName, score}, ... }
 
 
   // Check if current user is Pool Manager
   const isPoolManager = () => {
     return POOL_MANAGER_CODES.includes(playerCode) && codeValidated;
-  };
-
-  // ============================================
-  // 👑 POOL MANAGER OVERRIDE FUNCTIONS
-  // ============================================
-
-  /**
-   * Generate RNG scores (10-50 inclusive, NO TIES)
-   * Returns { team1: number, team2: number }
-   */
-  const generateRNGScore = () => {
-    let team1Score = Math.floor(Math.random() * 41) + 10; // 10-50
-    let team2Score = Math.floor(Math.random() * 41) + 10; // 10-50
-    
-    // Ensure no tie - regenerate team2 if same
-    while (team1Score === team2Score) {
-      team2Score = Math.floor(Math.random() * 41) + 10;
-    }
-    
-    return { team1: team1Score, team2: team2Score };
-  };
-
-  /**
-   * Generate complete RNG picks for all games in a week
-   */
-  const generateRNGPicks = () => {
-    const weekGames = PLAYOFF_WEEKS[currentWeek].games;
-    const rngPredictions = {};
-    
-    weekGames.forEach(game => {
-      rngPredictions[game.id] = generateRNGScore();
-    });
-    
-    setRngPreview(rngPredictions);
-    setShowRngPreview(true);
-  };
-
-  /**
-   * Submit RNG picks for selected player
-   */
-  const submitRNGPicks = async () => {
-    if (!selectedPlayerForOverride || !rngPreview) return;
-    
-    const selectedPlayer = PLAYER_CODES[selectedPlayerForOverride];
-    if (!selectedPlayer) return;
-    
-    try {
-      // Check if player already has picks for this week
-      const picksRef = ref(database, 'picks');
-      const snapshot = await get(picksRef);
-      
-      let existingFirebaseKey = null;
-      if (snapshot.exists()) {
-        const allFirebasePicks = snapshot.val();
-        for (const [key, pick] of Object.entries(allFirebasePicks)) {
-          if (pick.playerCode === selectedPlayerForOverride && pick.week === currentWeek) {
-            existingFirebaseKey = key;
-            break;
-          }
-        }
-      }
-
-      const pickData = {
-        playerName: selectedPlayer,
-        playerCode: selectedPlayerForOverride,
-        week: currentWeek,
-        predictions: rngPreview,
-        timestamp: existingFirebaseKey ? (snapshot.val()[existingFirebaseKey].timestamp || Date.now()) : Date.now(),
-        lastUpdated: Date.now(),
-        enteredBy: 'POOL_MANAGER_RNG',
-        enteredByCode: playerCode,
-        enteredByName: playerName
-      };
-
-      if (existingFirebaseKey) {
-        await set(ref(database, `picks/${existingFirebaseKey}`), pickData);
-      } else {
-        await push(ref(database, 'picks'), pickData);
-      }
-
-      alert(`✅ RNG picks successfully submitted for ${selectedPlayer}!`);
-      setShowRngPreview(false);
-      setRngPreview(null);
-      setOverrideMode(false);
-      setSelectedPlayerForOverride('');
-    } catch (error) {
-      console.error('Error submitting RNG picks:', error);
-      alert('❌ Error submitting RNG picks. Please try again.');
-    }
-  };
-
-  /**
-   * Load picks for selected player in override mode
-   */
-  const loadPlayerPicksForOverride = () => {
-    if (!selectedPlayerForOverride) return;
-    
-    const playerPick = allPicks.find(
-      pick => pick.playerCode === selectedPlayerForOverride && pick.week === currentWeek
-    );
-    
-    if (playerPick && playerPick.predictions) {
-      // Load their existing picks into the form
-      setPredictions(playerPick.predictions);
-      setOriginalPicks({...playerPick.predictions});
-      setOverrideAction('manual');
-    } else {
-      // No picks exist, start with empty
-      setPredictions({});
-      setOriginalPicks({});
-      setOverrideAction('manual');
-    }
-  };
-
-  /**
-   * Submit picks on behalf of selected player
-   */
-  const submitPicksForPlayer = async (e) => {
-    e.preventDefault();
-    
-    if (!selectedPlayerForOverride) {
-      alert('Please select a player first.');
-      return;
-    }
-
-    const selectedPlayer = PLAYER_CODES[selectedPlayerForOverride];
-    const currentWeekData = PLAYOFF_WEEKS[currentWeek];
-
-    try {
-      // Check if player already has picks
-      const picksRef = ref(database, 'picks');
-      const snapshot = await get(picksRef);
-      
-      let existingFirebaseKey = null;
-      if (snapshot.exists()) {
-        const allFirebasePicks = snapshot.val();
-        for (const [key, pick] of Object.entries(allFirebasePicks)) {
-          if (pick.playerCode === selectedPlayerForOverride && pick.week === currentWeek) {
-            existingFirebaseKey = key;
-            break;
-          }
-        }
-      }
-
-      const pickData = {
-        playerName: selectedPlayer,
-        playerCode: selectedPlayerForOverride,
-        week: currentWeek,
-        predictions,
-        timestamp: existingFirebaseKey ? (snapshot.val()[existingFirebaseKey].timestamp || Date.now()) : Date.now(),
-        lastUpdated: Date.now(),
-        enteredBy: 'POOL_MANAGER_MANUAL',
-        enteredByCode: playerCode,
-        enteredByName: playerName
-      };
-
-      if (existingFirebaseKey) {
-        await set(ref(database, `picks/${existingFirebaseKey}`), pickData);
-      } else {
-        await push(ref(database, 'picks'), pickData);
-      }
-
-      alert(`✅ Picks successfully submitted for ${selectedPlayer}!`);
-      setPredictions({});
-      setOverrideMode(false);
-      setSelectedPlayerForOverride('');
-      setOverrideAction(null);
-    } catch (error) {
-      console.error('Error submitting picks for player:', error);
-      alert('❌ Error submitting picks. Please try again.');
-    }
-  };
-
-  /**
-   * Delete picks for selected player for CURRENT week only
-   */
-  const deletePicksForWeek = async () => {
-    if (!selectedPlayerForOverride) return;
-    
-    const selectedPlayer = PLAYER_CODES[selectedPlayerForOverride];
-    
-    try {
-      console.log('🔍 DEBUG: Starting delete for player:', selectedPlayer);
-      console.log('🔍 DEBUG: Player code:', selectedPlayerForOverride);
-      console.log('🔍 DEBUG: Current week:', currentWeek);
-      
-      // Find the pick for this player and current week
-      const picksRef = ref(database, 'picks');
-      const snapshot = await get(picksRef);
-      
-      console.log('🔍 DEBUG: Got snapshot, exists?', snapshot.exists());
-      
-      if (snapshot.exists()) {
-        const allFirebasePicks = snapshot.val();
-        console.log('🔍 DEBUG: Total picks in database:', Object.keys(allFirebasePicks).length);
-        
-        let keyToDelete = null;
-        
-        for (const [key, pick] of Object.entries(allFirebasePicks)) {
-          console.log(`🔍 DEBUG: Checking pick ${key}:`, pick.playerCode, pick.week);
-          if (pick.playerCode === selectedPlayerForOverride && pick.week === currentWeek) {
-            keyToDelete = key;
-            console.log('🔍 DEBUG: FOUND KEY TO DELETE:', keyToDelete);
-            break;
-          }
-        }
-        
-        if (keyToDelete) {
-          console.log('🔍 DEBUG: Attempting to delete key:', keyToDelete);
-          await remove(ref(database, `picks/${keyToDelete}`)); // Delete using remove()
-          console.log('✅ DEBUG: Delete successful!');
-          alert(`✅ ${selectedPlayer}'s picks for ${currentWeek === 'wildcard' ? 'Week 1' : currentWeek === 'divisional' ? 'Week 2' : currentWeek === 'conference' ? 'Week 3' : 'Week 4'} have been deleted!`);
-        } else {
-          console.log('❌ DEBUG: No pick found to delete');
-          alert(`ℹ️ ${selectedPlayer} has no picks for this week.`);
-        }
-      }
-      
-      setShowDeleteConfirm(null);
-      setSelectedPlayerForOverride('');
-    } catch (error) {
-      console.error('❌ DEBUG: Error deleting picks:', error);
-      console.error('❌ DEBUG: Error message:', error.message);
-      console.error('❌ DEBUG: Error code:', error.code);
-      alert(`❌ Error deleting picks: ${error.message}\n\nCheck browser console (F12) for details.`);
-    }
-  };
-
-  /**
-   * Delete ALL picks for selected player across ALL weeks
-   */
-  const deleteAllPicksForPlayer = async () => {
-    if (!selectedPlayerForOverride) return;
-    
-    const selectedPlayer = PLAYER_CODES[selectedPlayerForOverride];
-    
-    try {
-      console.log('🔍 DEBUG: Starting delete ALL for player:', selectedPlayer);
-      console.log('🔍 DEBUG: Player code:', selectedPlayerForOverride);
-      
-      // Find ALL picks for this player
-      const picksRef = ref(database, 'picks');
-      const snapshot = await get(picksRef);
-      
-      console.log('🔍 DEBUG: Got snapshot, exists?', snapshot.exists());
-      
-      if (snapshot.exists()) {
-        const allFirebasePicks = snapshot.val();
-        const keysToDelete = [];
-        
-        console.log('🔍 DEBUG: Total picks in database:', Object.keys(allFirebasePicks).length);
-        
-        for (const [key, pick] of Object.entries(allFirebasePicks)) {
-          if (pick.playerCode === selectedPlayerForOverride) {
-            console.log('🔍 DEBUG: Found pick to delete:', key, pick.week);
-            keysToDelete.push(key);
-          }
-        }
-        
-        console.log('🔍 DEBUG: Total keys to delete:', keysToDelete.length);
-        
-        if (keysToDelete.length > 0) {
-          // Delete all picks for this player
-          console.log('🔍 DEBUG: Attempting to delete keys:', keysToDelete);
-          const deletePromises = keysToDelete.map(key => 
-            remove(ref(database, `picks/${key}`))
-          );
-          await Promise.all(deletePromises);
-          
-          console.log('✅ DEBUG: Delete ALL successful!');
-          alert(`✅ ALL picks for ${selectedPlayer} have been deleted!\n\nDeleted ${keysToDelete.length} pick(s) across all weeks.`);
-        } else {
-          console.log('❌ DEBUG: No picks found to delete');
-          alert(`ℹ️ ${selectedPlayer} has no picks in any week.`);
-        }
-      }
-      
-      setShowDeleteConfirm(null);
-      setSelectedPlayerForOverride('');
-      setOverrideMode(false);
-    } catch (error) {
-      console.error('❌ DEBUG: Error deleting all picks:', error);
-      console.error('❌ DEBUG: Error message:', error.message);
-      console.error('❌ DEBUG: Error code:', error.code);
-      alert(`❌ Error deleting picks: ${error.message}\n\nCheck browser console (F12) for details.`);
-    }
   };
 
   // 🔒 NEW: Check if a week should be automatically locked based on date
@@ -924,11 +596,7 @@ function App() {
     set(ref(database, `manualWeekTotals/${weekKey}`), value);
   };
 
-  // ============================================
-  // 🆕 STEP 5: COMPLETE FEATURE HANDLERS
-  // ============================================
-  
-  // Pool Manager declares official winner
+  // 🆕 STEP 5: Pool Manager declares official winner
   const handleDeclareWinner = async (prizeNumber, winner) => {
     if (winner) {
       // Declare a winner
@@ -967,69 +635,6 @@ function App() {
       }
     }
   };
-
-  // Handle week change with unsaved changes check
-  const handleWeekChange = (newWeek) => {
-    if (hasUnsavedChanges) {
-      setPendingWeekChange(newWeek);
-      setShowPopup('unsavedChanges');
-    } else {
-      setCurrentWeek(newWeek);
-      loadWeekPicks(newWeek);
-    }
-  };
-
-  // Load picks for a specific week
-  const loadWeekPicks = (weekKey) => {
-    const existingPick = allPicks.find(
-      p => p.week === weekKey && p.playerCode === playerCode
-    );
-    
-    if (existingPick && existingPick.predictions) {
-      setPredictions(existingPick.predictions);
-      setOriginalPicks(existingPick.predictions);
-      setHasUnsavedChanges(false);
-    } else {
-      setPredictions({});
-      setOriginalPicks({});
-      setHasUnsavedChanges(false);
-    }
-  };
-
-  // Detect unsaved changes
-  useEffect(() => {
-    const hasChanges = JSON.stringify(predictions) !== JSON.stringify(originalPicks);
-    setHasUnsavedChanges(hasChanges);
-  }, [predictions, originalPicks]);
-
-  // Load picks when week changes
-  useEffect(() => {
-    if (codeValidated && playerCode) {
-      loadWeekPicks(currentWeek);
-    }
-  }, [currentWeek, codeValidated, playerCode, allPicks]);
-
-  // Update week picks status for WeekSelector
-  useEffect(() => {
-    if (allPicks.length > 0 && playerCode) {
-      const status = {};
-      ['wildcard', 'divisional', 'conference', 'superbowl'].forEach(week => {
-        const weekPick = allPicks.find(p => p.week === week && p.playerCode === playerCode);
-        if (weekPick && weekPick.predictions) {
-          const gameCount = PLAYOFF_WEEKS[week].games.length;
-          const filledCount = Object.keys(weekPick.predictions).filter(
-            gameId => weekPick.predictions[gameId]?.team1 && weekPick.predictions[gameId]?.team2
-          ).length;
-          status[week] = { 
-            complete: filledCount === gameCount,
-            count: filledCount,
-            total: gameCount
-          };
-        }
-      });
-      setWeekPicksStatus(status);
-    }
-  }, [allPicks, playerCode]);
 
   // Check if submissions are allowed based on day/time (PST)
   // Pool Manager bypasses lockout
@@ -1336,118 +941,67 @@ function App() {
   };
 
   // Submit predictions
-  // 🆕 STEP 5: Enhanced submit with complete validation
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Check if week is locked
+    // 🔒 FIX #1: Check if week is locked
     if (isWeekLocked(currentWeek)) {
-      alert('🔒 WEEK LOCKED\n\nThis week\'s games have been played.\nPicks are permanently locked.');
+      alert('🔒 WEEK LOCKED\n\nThis week\'s games have been played.\nPicks are permanently locked.\n\nYou can view your picks but cannot edit them.\n\nPlease select a different week to make picks.');
       return;
     }
     
     if (!isSubmissionAllowed()) {
-      alert('⛔ SUBMISSIONS CLOSED\n\nDuring playoff weekends, picks are locked from:\n• Friday 11:59 PM PST\n• Through Monday 12:01 AM PST');
+      const now = new Date();
+      const pstTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
+      const playoffStart = new Date(PLAYOFF_SEASON.firstFriday + 'T00:00:00');
+      
+      if (pstTime < playoffStart) {
+        // Should never happen, but just in case
+        alert('⛔ SUBMISSIONS CLOSED\n\nPicks are currently locked.\n\nPlease contact the pool manager for assistance.');
+      } else {
+        alert('⛔ SUBMISSIONS CLOSED\n\nDuring playoff weekends, picks are locked from:\n• Friday 11:59 PM PST\n• Through Monday 12:01 AM PST\n\nPicks will reopen Monday at 12:01 AM PST.\n\nYou have all week to make your picks!');
+      }
       return;
     }
 
     const currentWeekData = PLAYOFF_WEEKS[currentWeek];
-    
-    // STEP 5 VALIDATION: Check for incomplete entries
-    const missing = [];
-    currentWeekData.games.forEach(game => {
-      if (!predictions[game.id] || !predictions[game.id].team1 || !predictions[game.id].team2) {
-        missing.push(game.id);
-      }
-    });
-    
-    if (missing.length > 0) {
-      setMissingGames(missing);
-      setShowPopup('incomplete');
-      return;
-    }
-    
-    // STEP 5 VALIDATION: Check for invalid scores
-    const invalid = [];
-    currentWeekData.games.forEach(game => {
-      const t1 = parseInt(predictions[game.id]?.team1);
-      const t2 = parseInt(predictions[game.id]?.team2);
-      if (isNaN(t1) || isNaN(t2) || t1 < 0 || t2 < 0) {
-        invalid.push(game.id);
-      }
-    });
-    
-    if (invalid.length > 0) {
-      setInvalidScores(invalid);
-      setShowPopup('invalidScores');
-      return;
-    }
-    
-    // STEP 5 VALIDATION: Check for tied games (playoff games NEVER tie!)
-    const tiedGames = [];
-    currentWeekData.games.forEach(game => {
-      const t1 = parseInt(predictions[game.id]?.team1);
-      const t2 = parseInt(predictions[game.id]?.team2);
-      if (t1 === t2) {
-        tiedGames.push(game.id);
-      }
-    });
-    
-    if (tiedGames.length > 0) {
-      setMissingGames(tiedGames); // Reuse missingGames state for highlighting
-      setShowPopup('tiedGames');
+    const requiredGames = currentWeekData.games.length;
+    const submittedGames = Object.keys(predictions).filter(gameId => 
+      predictions[gameId].team1 && predictions[gameId].team2
+    ).length;
+
+    if (submittedGames < requiredGames) {
+      alert(`Please complete all ${requiredGames} games before submitting!\n\nYou've completed ${submittedGames} of ${requiredGames} games.`);
       return;
     }
 
-    // Check if no changes were made
-    if (!hasUnsavedChanges) {
-      setShowPopup('noChanges');
-      return;
-    }
+    // Check if player already has picks for this week
+    const existingPick = allPicks.find(
+      pick => pick.playerName === playerName && pick.week === currentWeek
+    );
+
+    const pickData = {
+      playerName,
+      week: currentWeek,
+      predictions,
+      timestamp: existingPick ? existingPick.timestamp : Date.now(),
+      lastUpdated: Date.now()
+    };
 
     try {
-      // CRITICAL FIX: Query Firebase DIRECTLY to check for existing pick
-      // This prevents race conditions and duplicate entries
-      const picksRef = ref(database, 'picks');
-      const snapshot = await get(picksRef);
-      
-      let existingPick = null;
-      let existingFirebaseKey = null;
-      
-      if (snapshot.exists()) {
-        const allFirebasePicks = snapshot.val();
-        // Find existing pick for this playerCode + week combination
-        for (const [key, pick] of Object.entries(allFirebasePicks)) {
-          if (pick.playerCode === playerCode && pick.week === currentWeek) {
-            existingPick = pick;
-            existingFirebaseKey = key;
-            break;
-          }
-        }
-      }
-
-      const pickData = {
-        playerName,
-        playerCode,
-        week: currentWeek,
-        predictions,
-        timestamp: existingPick ? existingPick.timestamp : Date.now(),
-        lastUpdated: Date.now()
-      };
-
-      if (existingFirebaseKey) {
-        // Update existing pick - NEVER create a duplicate!
-        await set(ref(database, `picks/${existingFirebaseKey}`), pickData);
+      if (existingPick) {
+        // Update existing pick
+        await set(ref(database, `picks/${existingPick.firebaseKey}`), pickData);
+        alert(`✅ PICKS UPDATED!\n\n${playerName}, your picks for ${currentWeekData.name} have been updated successfully!\n\nYou can edit and resubmit anytime except during playoff weekends (Friday 11:59 PM - Monday 12:01 AM PST).`);
       } else {
-        // Create new pick - only if one doesn't exist!
+        // Add new pick
         await push(ref(database, 'picks'), pickData);
+        alert(`🎉 PICKS SUBMITTED!\n\n${playerName}, your picks for ${currentWeekData.name} have been submitted successfully!\n\nYou can edit and resubmit anytime except during playoff weekends (Friday 11:59 PM - Monday 12:01 AM PST).`);
       }
       
       setSubmitted(true);
-      setOriginalPicks({...predictions});
-      setHasUnsavedChanges(false);
-      setShowPopup('success');
       
+      // Scroll to show the picks table
       setTimeout(() => {
         const picksTable = document.querySelector('.all-picks');
         if (picksTable) {
@@ -1605,7 +1159,7 @@ function App() {
               📖 View Full Rulebook (13 Pages)
             </a>
           </div>
-          <p style={{fontSize: '1.1em', marginTop: '10px', color: '#ffffff', fontWeight: '500'}}>
+          <p style={{fontSize: '0.8rem', marginTop: '10px', color: '#000'}}>
             Entry Fee: $20 - Must be paid before end of regular season
           </p>
         </div>
@@ -1702,496 +1256,6 @@ function App() {
             <p style={{fontSize: '0.8rem', marginTop: '12px', marginBottom: '0', opacity: 0.9}}>
               ℹ️ Manual locks override automatic locks. Players cannot edit picks for locked weeks.
             </p>
-          </div>
-        )}
-
-        {/* 👑 POOL MANAGER OVERRIDE - ENTER PICKS FOR ANY PLAYER */}
-        {isPoolManager() && codeValidated && (
-          <div style={{
-            background: 'linear-gradient(135deg, #f39c12 0%, #e74c3c 100%)',
-            color: 'white',
-            padding: '20px',
-            borderRadius: '8px',
-            marginBottom: '20px',
-            boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
-          }}>
-            <h3 style={{margin: '0 0 15px 0', display: 'flex', alignItems: 'center', gap: '10px'}}>
-              <span>⚡</span>
-              <span>POOL MANAGER OVERRIDE - ENTER/EDIT PICKS FOR ANY PLAYER</span>
-            </h3>
-            
-            {!overrideMode ? (
-              <div>
-                <p style={{marginBottom: '15px', fontSize: '0.9rem'}}>
-                  ℹ️ Enter picks on behalf of players who missed the deadline or need assistance.
-                  Works even when week is locked.
-                </p>
-                <button
-                  onClick={() => setOverrideMode(true)}
-                  style={{
-                    padding: '12px 24px',
-                    background: 'white',
-                    color: '#e74c3c',
-                    border: 'none',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    fontSize: '1rem',
-                    fontWeight: '700',
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-                  }}
-                >
-                  🚀 Enter Override Mode
-                </button>
-              </div>
-            ) : (
-              <div>
-                {/* Player Selection Dropdown */}
-                <div style={{marginBottom: '20px'}}>
-                  <label style={{display: 'block', marginBottom: '8px', fontWeight: '600', fontSize: '0.95rem'}}>
-                    Select Player:
-                  </label>
-                  <select
-                    value={selectedPlayerForOverride}
-                    onChange={(e) => {
-                      setSelectedPlayerForOverride(e.target.value);
-                      setOverrideAction(null);
-                      setRngPreview(null);
-                      setShowRngPreview(false);
-                    }}
-                    style={{
-                      width: '100%',
-                      padding: '12px',
-                      fontSize: '1rem',
-                      borderRadius: '6px',
-                      border: '2px solid white',
-                      background: 'rgba(255,255,255,0.95)',
-                      color: '#333',
-                      fontWeight: '600'
-                    }}
-                  >
-                    <option value="">-- Select a Player --</option>
-                    {Object.keys(PLAYER_CODES).sort((a, b) => {
-                      const nameA = PLAYER_CODES[a].toUpperCase();
-                      const nameB = PLAYER_CODES[b].toUpperCase();
-                      return nameA.localeCompare(nameB);
-                    }).map(code => (
-                      <option key={code} value={code}>
-                        {PLAYER_CODES[code]} ({code})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Player Status and Action Buttons */}
-                {selectedPlayerForOverride && (
-                  <div style={{
-                    background: 'rgba(255,255,255,0.2)',
-                    padding: '15px',
-                    borderRadius: '6px',
-                    marginBottom: '15px'
-                  }}>
-                    <div style={{marginBottom: '15px'}}>
-                      <strong>Selected:</strong> {PLAYER_CODES[selectedPlayerForOverride]} ({selectedPlayerForOverride})
-                      <br/>
-                      <strong>Week:</strong> {currentWeek === 'wildcard' ? 'Week 1' : currentWeek === 'divisional' ? 'Week 2' : currentWeek === 'conference' ? 'Week 3' : 'Week 4'}
-                      <br/>
-                      <strong>Status:</strong> {
-                        allPicks.find(p => p.playerCode === selectedPlayerForOverride && p.week === currentWeek)
-                          ? '✅ HAS PICKS'
-                          : '❌ NO PICKS'
-                      }
-                    </div>
-
-                    <div style={{display: 'flex', gap: '10px', flexWrap: 'wrap'}}>
-                      <button
-                        onClick={generateRNGPicks}
-                        style={{
-                          flex: '1',
-                          minWidth: '150px',
-                          padding: '12px',
-                          background: '#9b59b6',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '6px',
-                          cursor: 'pointer',
-                          fontSize: '0.9rem',
-                          fontWeight: '600'
-                        }}
-                      >
-                        🎲 Generate RNG Picks
-                      </button>
-                      
-                      <button
-                        onClick={loadPlayerPicksForOverride}
-                        style={{
-                          flex: '1',
-                          minWidth: '150px',
-                          padding: '12px',
-                          background: '#3498db',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '6px',
-                          cursor: 'pointer',
-                          fontSize: '0.9rem',
-                          fontWeight: '600'
-                        }}
-                      >
-                        📝 Enter/Edit Manually
-                      </button>
-                    </div>
-
-                    {/* Delete Buttons - Only show if player has picks */}
-                    {allPicks.find(p => p.playerCode === selectedPlayerForOverride) && (
-                      <div style={{
-                        marginTop: '15px',
-                        padding: '15px',
-                        background: 'rgba(220, 53, 69, 0.1)',
-                        borderRadius: '6px',
-                        border: '2px solid rgba(220, 53, 69, 0.3)'
-                      }}>
-                        <div style={{marginBottom: '10px', fontWeight: '600', color: '#dc3545'}}>
-                          ⚠️ Danger Zone - Delete Operations
-                        </div>
-                        
-                        <div style={{display: 'flex', gap: '10px', flexWrap: 'wrap'}}>
-                          <button
-                            onClick={() => setShowDeleteConfirm('week')}
-                            style={{
-                              flex: '1',
-                              minWidth: '150px',
-                              padding: '12px',
-                              background: '#e67e22',
-                              color: 'white',
-                              border: 'none',
-                              borderRadius: '6px',
-                              cursor: 'pointer',
-                              fontSize: '0.9rem',
-                              fontWeight: '600'
-                            }}
-                          >
-                            🗑️ Delete This Week Only
-                          </button>
-                          
-                          <button
-                            onClick={() => setShowDeleteConfirm('all')}
-                            style={{
-                              flex: '1',
-                              minWidth: '150px',
-                              padding: '12px',
-                              background: '#c0392b',
-                              color: 'white',
-                              border: 'none',
-                              borderRadius: '6px',
-                              cursor: 'pointer',
-                              fontSize: '0.9rem',
-                              fontWeight: '600'
-                            }}
-                          >
-                            💥 Delete ALL Weeks
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Cancel Override Mode Button */}
-                <button
-                  onClick={() => {
-                    setOverrideMode(false);
-                    setSelectedPlayerForOverride('');
-                    setOverrideAction(null);
-                    setRngPreview(null);
-                    setShowRngPreview(false);
-                  }}
-                  style={{
-                    padding: '10px 20px',
-                    background: '#95a5a6',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    fontSize: '0.9rem',
-                    fontWeight: '600'
-                  }}
-                >
-                  ❌ Exit Override Mode
-                </button>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* RNG Preview Popup */}
-        {showRngPreview && rngPreview && (
-          <div style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'rgba(0,0,0,0.8)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 10000,
-            padding: '20px'
-          }}>
-            <div style={{
-              background: 'white',
-              borderRadius: '12px',
-              padding: '30px',
-              maxWidth: '600px',
-              width: '100%',
-              maxHeight: '90vh',
-              overflow: 'auto',
-              boxShadow: '0 8px 32px rgba(0,0,0,0.3)'
-            }}>
-              <h3 style={{marginTop: 0, color: '#9b59b6'}}>🎲 RNG PICKS GENERATED</h3>
-              <p style={{color: '#666', marginBottom: '20px'}}>
-                Player: <strong>{PLAYER_CODES[selectedPlayerForOverride]}</strong><br/>
-                Week: <strong>{currentWeek === 'wildcard' ? 'Week 1' : currentWeek === 'divisional' ? 'Week 2' : currentWeek === 'conference' ? 'Week 3' : 'Week 4'}</strong>
-              </p>
-              
-              <div style={{marginBottom: '20px'}}>
-                {PLAYOFF_WEEKS[currentWeek].games.map(game => (
-                  <div key={game.id} style={{
-                    padding: '12px',
-                    background: '#f8f9fa',
-                    borderRadius: '6px',
-                    marginBottom: '10px',
-                    border: '2px solid #e9ecef'
-                  }}>
-                    <div style={{fontWeight: '600', marginBottom: '5px', color: '#333'}}>
-                      Game {game.id}: {game.team1} vs {game.team2}
-                    </div>
-                    <div style={{fontSize: '1.2rem', fontWeight: '700', color: '#9b59b6'}}>
-                      {rngPreview[game.id].team1} - {rngPreview[game.id].team2}
-                      {rngPreview[game.id].team1 > rngPreview[game.id].team2 
-                        ? ` (${game.team1} wins)` 
-                        : ` (${game.team2} wins)`}
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div style={{
-                background: '#d4edda',
-                border: '1px solid #c3e6cb',
-                color: '#155724',
-                padding: '12px',
-                borderRadius: '6px',
-                marginBottom: '20px',
-                fontSize: '0.9rem'
-              }}>
-                ✅ All scores between 10-50 (inclusive)<br/>
-                ✅ No tied games<br/>
-                ✅ Will be marked as "POOL_MANAGER_RNG" in database
-              </div>
-
-              <div style={{display: 'flex', gap: '10px', flexWrap: 'wrap'}}>
-                <button
-                  onClick={submitRNGPicks}
-                  style={{
-                    flex: '1',
-                    padding: '14px 24px',
-                    background: '#28a745',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    fontSize: '1rem',
-                    fontWeight: '700'
-                  }}
-                >
-                  ✅ Submit RNG Picks
-                </button>
-                
-                <button
-                  onClick={generateRNGPicks}
-                  style={{
-                    flex: '1',
-                    padding: '14px 24px',
-                    background: '#ffc107',
-                    color: '#333',
-                    border: 'none',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    fontSize: '1rem',
-                    fontWeight: '700'
-                  }}
-                >
-                  🔄 Regenerate
-                </button>
-                
-                <button
-                  onClick={() => {
-                    setShowRngPreview(false);
-                    setRngPreview(null);
-                  }}
-                  style={{
-                    padding: '14px 24px',
-                    background: '#dc3545',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    fontSize: '1rem',
-                    fontWeight: '700'
-                  }}
-                >
-                  ❌ Cancel
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Delete Confirmation Popups */}
-        {showDeleteConfirm && (
-          <div style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'rgba(0,0,0,0.85)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 10000,
-            padding: '20px'
-          }}>
-            <div style={{
-              background: 'white',
-              borderRadius: '12px',
-              padding: '30px',
-              maxWidth: '500px',
-              width: '100%',
-              boxShadow: '0 8px 32px rgba(0,0,0,0.3)'
-            }}>
-              {showDeleteConfirm === 'week' ? (
-                <>
-                  <h3 style={{marginTop: 0, color: '#e67e22', display: 'flex', alignItems: 'center', gap: '10px'}}>
-                    <span>⚠️</span>
-                    <span>DELETE PICKS FOR THIS WEEK?</span>
-                  </h3>
-                  <div style={{marginBottom: '20px', color: '#666'}}>
-                    <p><strong>Player:</strong> {PLAYER_CODES[selectedPlayerForOverride]}</p>
-                    <p><strong>Week:</strong> {currentWeek === 'wildcard' ? 'Week 1 (Wildcard)' : currentWeek === 'divisional' ? 'Week 2 (Divisional)' : currentWeek === 'conference' ? 'Week 3 (Conference)' : 'Week 4 (Super Bowl)'}</p>
-                  </div>
-                  <div style={{
-                    background: '#fff3cd',
-                    border: '1px solid #ffc107',
-                    color: '#856404',
-                    padding: '15px',
-                    borderRadius: '6px',
-                    marginBottom: '20px',
-                    fontSize: '0.95rem'
-                  }}>
-                    <strong>⚠️ Warning:</strong> This will DELETE {PLAYER_CODES[selectedPlayerForOverride]}'s picks for this week only.<br/>
-                    <strong>This action CANNOT be undone!</strong>
-                  </div>
-                  <div style={{display: 'flex', gap: '10px'}}>
-                    <button
-                      onClick={() => setShowDeleteConfirm(null)}
-                      style={{
-                        flex: '1',
-                        padding: '14px',
-                        background: '#95a5a6',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '6px',
-                        cursor: 'pointer',
-                        fontSize: '1rem',
-                        fontWeight: '700'
-                      }}
-                    >
-                      ❌ Cancel
-                    </button>
-                    <button
-                      onClick={deletePicksForWeek}
-                      style={{
-                        flex: '1',
-                        padding: '14px',
-                        background: '#e67e22',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '6px',
-                        cursor: 'pointer',
-                        fontSize: '1rem',
-                        fontWeight: '700'
-                      }}
-                    >
-                      🗑️ Yes, Delete This Week
-                    </button>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <h3 style={{marginTop: 0, color: '#c0392b', display: 'flex', alignItems: 'center', gap: '10px'}}>
-                    <span>🚨</span>
-                    <span>DELETE ALL PICKS?</span>
-                  </h3>
-                  <div style={{marginBottom: '20px', color: '#666'}}>
-                    <p><strong>Player:</strong> {PLAYER_CODES[selectedPlayerForOverride]}</p>
-                  </div>
-                  <div style={{
-                    background: '#f8d7da',
-                    border: '2px solid #dc3545',
-                    color: '#721c24',
-                    padding: '15px',
-                    borderRadius: '6px',
-                    marginBottom: '20px',
-                    fontSize: '0.95rem'
-                  }}>
-                    <strong>🚨 DANGER:</strong> This will DELETE ALL of {PLAYER_CODES[selectedPlayerForOverride]}'s picks:<br/><br/>
-                    {allPicks.filter(p => p.playerCode === selectedPlayerForOverride).map(pick => (
-                      <div key={pick.week} style={{marginLeft: '20px'}}>
-                        ✓ {pick.week === 'wildcard' ? 'Week 1' : pick.week === 'divisional' ? 'Week 2' : pick.week === 'conference' ? 'Week 3' : 'Week 4'} picks
-                      </div>
-                    ))}
-                    <br/>
-                    <strong>This action CANNOT be undone!</strong><br/>
-                    <strong>Are you absolutely sure?</strong>
-                  </div>
-                  <div style={{display: 'flex', gap: '10px'}}>
-                    <button
-                      onClick={() => setShowDeleteConfirm(null)}
-                      style={{
-                        flex: '1',
-                        padding: '14px',
-                        background: '#95a5a6',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '6px',
-                        cursor: 'pointer',
-                        fontSize: '1rem',
-                        fontWeight: '700'
-                      }}
-                    >
-                      ❌ Cancel
-                    </button>
-                    <button
-                      onClick={deleteAllPicksForPlayer}
-                      style={{
-                        flex: '1',
-                        padding: '14px',
-                        background: '#c0392b',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '6px',
-                        cursor: 'pointer',
-                        fontSize: '1rem',
-                        fontWeight: '700'
-                      }}
-                    >
-                      💥 Yes, Delete Everything
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
           </div>
         )}
 
@@ -2324,19 +1388,7 @@ function App() {
             </p>
           </div>
         )}
-
-        {/* 🆕 STEP 5: Week Selector - Complete with lock status and validation */}
-        {codeValidated && (
-          <WeekSelector
-            currentWeek={currentWeek}
-            onWeekChange={handleWeekChange}
-            weekPicks={weekPicksStatus}
-            weekLockStatus={weekLockStatus}
-            hasUnsavedChanges={hasUnsavedChanges}
-            isPoolManager={isPoolManager()}
-          />
-        )}
-        
+       
         {/* 🆕 Navigation Buttons - Show after code validation */}
         {codeValidated && (
           <div className="view-navigation">
@@ -2361,16 +1413,6 @@ function App() {
             allPicks={allPicks} 
             actualScores={actualScores}
             currentWeek={currentWeek}
-            playerName={playerName}
-            playerCode={playerCode}
-            isPoolManager={isPoolManager()}
-            onLogout={() => {
-              setCodeValidated(false);
-              setPlayerCode('');
-              setPlayerName('');
-              setPredictions({});
-              setCurrentView('picks'); // Go back to picks view
-            }}
           />
         ) : (
           <>
@@ -2380,10 +1422,7 @@ function App() {
             <div className="code-entry-section">
               <h3>🔐 Enter Your Player Code</h3>
               <p style={{marginBottom: '20px', color: '#666'}}>
-                You received a 6-character code when you paid your $20 entry fee.
-              </p>
-              <p style={{marginBottom: '20px', color: '#666', fontSize: '0.9rem', fontStyle: 'italic'}}>
-                💡 Have multiple entries? Enter one code at a time.
+                You received a 6-character code when you paid your entry fee.
               </p>
               <div className="code-input-group">
                 <label htmlFor="playerCode">
@@ -2440,6 +1479,14 @@ function App() {
           </div>
         ) : (
           <>
+            {/* 🆕 STEP 5: Week Selector - Purple buttons matching your theme */}
+            <WeekSelector
+              currentWeek={currentWeek}
+              onWeekChange={setCurrentWeek}
+              weekLockStatus={weekLockStatus}
+              hasUnsavedChanges={false}
+            />
+
             {/* Player Confirmed */}
             <div className="player-confirmed">
               <span className="confirmation-badge">✓ VERIFIED</span>
@@ -2472,16 +1519,8 @@ function App() {
                   setPredictions({});
                 }}
               >
-                🚪 Logout / Switch Entry
+                🔄 Enter Different Code
               </button>
-              <p style={{
-                fontSize: '0.85rem',
-                color: '#666',
-                marginTop: '10px',
-                fontStyle: 'italic'
-              }}>
-                💡 Playing with multiple entries? Logout to switch between your codes.
-              </p>
             </div>
 
             {/* Lockout Warning */}
@@ -2493,13 +1532,7 @@ function App() {
 
             {/* Prediction Form */}
             <div className="prediction-form">
-              {overrideAction === 'manual' ? (
-                <h2 style={{color: '#e74c3c'}}>
-                  ⚡ OVERRIDE MODE: Entering Picks for {PLAYER_CODES[selectedPlayerForOverride]}
-                </h2>
-              ) : (
-                <h2>Enter Your Predictions</h2>
-              )}
+              <h2>Enter Your Predictions</h2>
               
               {/* Progress Indicator */}
               <div className="progress-indicator">
@@ -2527,7 +1560,7 @@ function App() {
                 </div>
               </div>
 
-              <form onSubmit={overrideAction === 'manual' ? submitPicksForPlayer : handleSubmit}>
+              <form onSubmit={handleSubmit}>
                 {currentWeekData.games.map(game => (
                   <div key={game.id} className="game-prediction">
                     <h3>
@@ -2543,17 +1576,13 @@ function App() {
                     {/* Show actual scores if available */}
                     {actualScores[currentWeek]?.[game.id] && (
                       <div style={{
-                        padding: '10px 15px',
-                        background: '#ffffff',
-                        border: '3px solid #4caf50',
-                        borderRadius: '6px',
-                        marginBottom: '12px',
-                        fontSize: '1rem'
+                        padding: '8px 12px',
+                        background: '#e8f5e9',
+                        borderRadius: '4px',
+                        marginBottom: '10px',
+                        fontSize: '0.9rem'
                       }}>
-                        <strong style={{color: '#000', fontSize: '1.05rem'}}>Actual Score:</strong>{' '}
-                        <span style={{color: '#000', fontWeight: '700', fontSize: '1.1rem'}}>
-                          {actualScores[currentWeek][game.id].team1 || '-'} - {actualScores[currentWeek][game.id].team2 || '-'}
-                        </span>
+                        <strong>Actual Score:</strong> {actualScores[currentWeek][game.id].team1 || '-'} - {actualScores[currentWeek][game.id].team2 || '-'}
                         {gameStatus[currentWeek]?.[game.id] === 'final' && (
                           <span style={{
                             marginLeft: '10px',
@@ -2624,20 +1653,13 @@ function App() {
                 <button 
                   type="submit" 
                   className="submit-btn"
-                  disabled={overrideAction === 'manual' ? false : (!isSubmissionAllowed() || isWeekLocked(currentWeek))}
-                  style={overrideAction === 'manual' ? {
-                    background: '#e74c3c',
-                    fontSize: '1.1rem',
-                    fontWeight: '700'
-                  } : {}}
+                  disabled={!isSubmissionAllowed() || isWeekLocked(currentWeek)}
                 >
-                  {overrideAction === 'manual' 
-                    ? `⚡ Submit for ${PLAYER_CODES[selectedPlayerForOverride]}`
-                    : isWeekLocked(currentWeek) && !isPoolManager()
-                      ? '🔒 Week Locked - Cannot Edit Picks'
-                      : isSubmissionAllowed() 
-                        ? '📤 Submit / Update My Picks' 
-                        : '⛔ Submissions Locked (Playoff Weekend)'}
+                  {isWeekLocked(currentWeek) && !isPoolManager()
+                    ? '🔒 Week Locked - Cannot Edit Picks'
+                    : isSubmissionAllowed() 
+                      ? '📤 Submit / Update My Picks' 
+                      : '⛔ Submissions Locked (Playoff Weekend)'}
                 </button>
                 
                 {isSubmissionAllowed() && !isWeekLocked(currentWeek) && (
@@ -2668,16 +1690,8 @@ function App() {
                 fontWeight: '600'
               }}
             >
-              📥 Download CSV
+              📥 Download to Excel
             </button>
-            <div style={{
-              fontSize: '0.75rem',
-              color: '#666',
-              marginTop: '5px',
-              fontStyle: 'italic'
-            }}>
-              📱 Mobile: Open with Google Sheets (free app)
-            </div>
             <button 
               onClick={() => window.location.reload()}
               style={{
@@ -2961,11 +1975,11 @@ function App() {
                     <th rowSpan="2">Submitted</th>
                   </tr>
                   
-                  {/* ACTUAL SCORES ROW - Enhanced visibility */}
-                  <tr style={{background: '#ffffff', borderTop: '3px solid #4caf50', borderBottom: '3px solid #4caf50'}}>
+                  {/* ACTUAL SCORES ROW - 🔧 FIX #2: Changed white text to black */}
+                  <tr style={{background: '#e3f2fd'}}>
                     {currentWeekData.games.map(game => (
                       <React.Fragment key={`actual-${game.id}`}>
-                        <th style={{padding: '8px 4px', background: '#ffffff', borderLeft: '1px solid #ddd'}}>
+                        <th style={{padding: '8px 4px', background: '#e3f2fd'}}>
                           {isPoolManager() ? (
                             <div>
                               <input
@@ -2983,22 +1997,21 @@ function App() {
                                   fontWeight: 'bold',
                                   border: '2px solid #4caf50',
                                   borderRadius: '4px',
-                                  color: '#000',
-                                  background: '#f0fff0'
+                                  color: '#000'
                                 }}
                               />
-                              <div style={{fontSize: '0.75rem', marginTop: '3px', color: '#000', fontWeight: '700'}}>ACTUAL</div>
+                              <div style={{fontSize: '0.7rem', marginTop: '2px', color: '#000'}}>ACTUAL</div>
                             </div>
                           ) : (
                             <div>
-                              <div style={{fontSize: '1.1rem', fontWeight: 'bold', color: '#000'}}>
+                              <div style={{fontSize: '1rem', fontWeight: 'bold', color: '#000'}}>
                                 {actualScores[currentWeek]?.[game.id]?.team1 || '-'}
                               </div>
-                              <div style={{fontSize: '0.75rem', color: '#000', fontWeight: '700'}}>ACTUAL</div>
+                              <div style={{fontSize: '0.7rem', color: '#000'}}>ACTUAL</div>
                             </div>
                           )}
                         </th>
-                        <th style={{padding: '8px 4px', background: '#ffffff', borderRight: '1px solid #ddd'}}>
+                        <th style={{padding: '8px 4px', background: '#e3f2fd'}}>
                           {isPoolManager() ? (
                             <div>
                               <input
@@ -3016,11 +2029,10 @@ function App() {
                                   fontWeight: 'bold',
                                   border: '2px solid #4caf50',
                                   borderRadius: '4px',
-                                  color: '#000',
-                                  background: '#f0fff0'
+                                  color: '#000'
                                 }}
                               />
-                              <div style={{fontSize: '0.75rem', marginTop: '3px', color: '#000', fontWeight: '700'}}>ACTUAL</div>
+                              <div style={{fontSize: '0.7rem', marginTop: '2px', color: '#000'}}>ACTUAL</div>
                               {/* Game Status Dropdown */}
                               <select
                                 value={gameStatus[currentWeek]?.[game.id] || ''}
@@ -3041,10 +2053,10 @@ function App() {
                             </div>
                           ) : (
                             <div>
-                              <div style={{fontSize: '1.1rem', fontWeight: 'bold', color: '#000'}}>
+                              <div style={{fontSize: '1rem', fontWeight: 'bold', color: '#000'}}>
                                 {actualScores[currentWeek]?.[game.id]?.team2 || '-'}
                               </div>
-                              <div style={{fontSize: '0.75rem', color: '#000', fontWeight: '700'}}>ACTUAL</div>
+                              <div style={{fontSize: '0.7rem', color: '#000'}}>ACTUAL</div>
                               {/* Status Badge */}
                               {gameStatus[currentWeek]?.[game.id] === 'final' && (
                                 <div style={{
@@ -3162,7 +2174,7 @@ function App() {
             </div>
           )}
 
-          {/* 🆕 STEP 5: Prize Leaders Display */}
+          {/* 🆕 STEP 5: Prize Leaders Display - Shows all 10 prizes */}
           {codeValidated && (
             <div style={{marginTop: '60px'}}>
               <LeaderDisplay
@@ -3187,82 +2199,6 @@ function App() {
                 isPoolManager={true}
               />
             </div>
-          )}
-
-          {/* 🆕 STEP 5: All Validation Popups */}
-          {showPopup === 'unsavedChanges' && (
-            <UnsavedChangesPopup
-              currentWeek={PLAYOFF_WEEKS[currentWeek].name}
-              onDiscard={() => {
-                setCurrentWeek(pendingWeekChange);
-                loadWeekPicks(pendingWeekChange);
-                setShowPopup(null);
-              }}
-              onSaveAndSwitch={async () => {
-                // Submit current week's picks
-                await handleSubmit(new Event('submit'));
-                // Always switch to the new week after saving
-                // (handleSubmit will show success popup, but we'll switch anyway)
-                setTimeout(() => {
-                  setCurrentWeek(pendingWeekChange);
-                  loadWeekPicks(pendingWeekChange);
-                  setShowPopup(null);
-                  setPendingWeekChange(null);
-                }, 100);
-              }}
-              onCancel={() => {
-                setPendingWeekChange(null);
-                setShowPopup(null);
-              }}
-            />
-          )}
-
-          {showPopup === 'discardChanges' && (
-            <DiscardChangesPopup
-              onKeepEditing={() => setShowPopup(null)}
-              onDiscard={() => {
-                setPredictions({...originalPicks});
-                setHasUnsavedChanges(false);
-                setShowPopup(null);
-              }}
-            />
-          )}
-
-          {showPopup === 'incomplete' && (
-            <IncompleteEntryError
-              missingGames={missingGames}
-              totalGames={currentWeekData.games.length}
-              onClose={() => setShowPopup(null)}
-            />
-          )}
-
-          {showPopup === 'invalidScores' && (
-            <InvalidScoresError
-              invalidScores={invalidScores}
-              onClose={() => setShowPopup(null)}
-            />
-          )}
-
-          {showPopup === 'success' && (
-            <SuccessConfirmation
-              weekName={currentWeekData.name}
-              deadline={currentWeekData.deadline}
-              onClose={() => setShowPopup(null)}
-            />
-          )}
-
-          {showPopup === 'noChanges' && (
-            <NoChangesInfo
-              onClose={() => setShowPopup(null)}
-            />
-          )}
-
-          {showPopup === 'tiedGames' && (
-            <TiedGamesError
-              tiedGames={missingGames}
-              gameData={currentWeekData.games}
-              onClose={() => setShowPopup(null)}
-            />
           )}
         </div>
           </>
