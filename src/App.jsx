@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { initializeApp } from 'firebase/app';
-import { getDatabase, ref, push, onValue, set, update } from 'firebase/database';
+import { getDatabase, ref, push, onValue, set, update, get } from 'firebase/database';
 import './App.css';
 import StandingsPage from './StandingsPage';
 import ESPNControls from './ESPNControls';
@@ -82,7 +82,7 @@ const AUTO_LOCK_DATES = {
 // TO ADD POOL MANAGERS:
 // Just add codes to the array below. Use 6 characters (letters/numbers).
 // You can have multiple pool managers!
-const POOL_MANAGER_CODES = ["76CC89", "34GH5T"];  // Add more codes here as needed
+const POOL_MANAGER_CODES = ["76BB89", "Z9Y8X7"];  // Add more codes here as needed
 // Pool Manager #1: 76BB89 (Richard)
 // Pool Manager #2: Z9Y8X7 (Dennis)
 // Example to add more: ["76BB89", "Z9Y8X7", "ABC123"]
@@ -97,8 +97,8 @@ const POOL_MANAGER_CODES = ["76CC89", "34GH5T"];  // Add more codes here as need
 // Codes are now 6-character alphanumeric (A-Z, 2-9)
 // Avoid confusing characters: 0, O, I, 1, l
 const PLAYER_CODES = {
-  "76CC89": "POOL MANAGER - Richard",  // Pool Manager #1
-  "34GH5T": "POOL MANAGER - Dennis",   // Pool Manager #2
+  "76BB89": "POOL MANAGER - Richard",  // Pool Manager #1
+  "Z9Y8X7": "POOL MANAGER - Dennis",   // Pool Manager #2
   "J239W4": "Bob Casson",
   "B7Y4X3": "Bob Desrosiers",
   "D4F7G5": "Bonnie Biletski",
@@ -1109,26 +1109,41 @@ function App() {
       return;
     }
 
-    // Check if player already has picks for this week (use playerCode for reliability)
-    const existingPick = allPicks.find(
-      pick => pick.playerCode === playerCode && pick.week === currentWeek
-    );
-
-    const pickData = {
-      playerName,
-      playerCode,
-      week: currentWeek,
-      predictions,
-      timestamp: existingPick ? existingPick.timestamp : Date.now(),
-      lastUpdated: Date.now()
-    };
-
     try {
-      if (existingPick && existingPick.firebaseKey) {
-        // Update existing pick
-        await set(ref(database, `picks/${existingPick.firebaseKey}`), pickData);
+      // CRITICAL FIX: Query Firebase DIRECTLY to check for existing pick
+      // This prevents race conditions and duplicate entries
+      const picksRef = ref(database, 'picks');
+      const snapshot = await get(picksRef);
+      
+      let existingPick = null;
+      let existingFirebaseKey = null;
+      
+      if (snapshot.exists()) {
+        const allFirebasePicks = snapshot.val();
+        // Find existing pick for this playerCode + week combination
+        for (const [key, pick] of Object.entries(allFirebasePicks)) {
+          if (pick.playerCode === playerCode && pick.week === currentWeek) {
+            existingPick = pick;
+            existingFirebaseKey = key;
+            break;
+          }
+        }
+      }
+
+      const pickData = {
+        playerName,
+        playerCode,
+        week: currentWeek,
+        predictions,
+        timestamp: existingPick ? existingPick.timestamp : Date.now(),
+        lastUpdated: Date.now()
+      };
+
+      if (existingFirebaseKey) {
+        // Update existing pick - NEVER create a duplicate!
+        await set(ref(database, `picks/${existingFirebaseKey}`), pickData);
       } else {
-        // Create new pick
+        // Create new pick - only if one doesn't exist!
         await push(ref(database, 'picks'), pickData);
       }
       

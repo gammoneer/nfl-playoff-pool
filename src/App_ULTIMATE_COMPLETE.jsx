@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { initializeApp } from 'firebase/app';
-import { getDatabase, ref, push, onValue, set, update } from 'firebase/database';
+import { getDatabase, ref, push, onValue, set, update, get } from 'firebase/database';
 import './App.css';
 import StandingsPage from './StandingsPage';
 import ESPNControls from './ESPNControls';
@@ -1109,26 +1109,41 @@ function App() {
       return;
     }
 
-    // Check if player already has picks for this week (use playerCode for reliability)
-    const existingPick = allPicks.find(
-      pick => pick.playerCode === playerCode && pick.week === currentWeek
-    );
-
-    const pickData = {
-      playerName,
-      playerCode,
-      week: currentWeek,
-      predictions,
-      timestamp: existingPick ? existingPick.timestamp : Date.now(),
-      lastUpdated: Date.now()
-    };
-
     try {
-      if (existingPick && existingPick.firebaseKey) {
-        // Update existing pick
-        await set(ref(database, `picks/${existingPick.firebaseKey}`), pickData);
+      // CRITICAL FIX: Query Firebase DIRECTLY to check for existing pick
+      // This prevents race conditions and duplicate entries
+      const picksRef = ref(database, 'picks');
+      const snapshot = await get(picksRef);
+      
+      let existingPick = null;
+      let existingFirebaseKey = null;
+      
+      if (snapshot.exists()) {
+        const allFirebasePicks = snapshot.val();
+        // Find existing pick for this playerCode + week combination
+        for (const [key, pick] of Object.entries(allFirebasePicks)) {
+          if (pick.playerCode === playerCode && pick.week === currentWeek) {
+            existingPick = pick;
+            existingFirebaseKey = key;
+            break;
+          }
+        }
+      }
+
+      const pickData = {
+        playerName,
+        playerCode,
+        week: currentWeek,
+        predictions,
+        timestamp: existingPick ? existingPick.timestamp : Date.now(),
+        lastUpdated: Date.now()
+      };
+
+      if (existingFirebaseKey) {
+        // Update existing pick - NEVER create a duplicate!
+        await set(ref(database, `picks/${existingFirebaseKey}`), pickData);
       } else {
-        // Create new pick
+        // Create new pick - only if one doesn't exist!
         await push(ref(database, 'picks'), pickData);
       }
       
