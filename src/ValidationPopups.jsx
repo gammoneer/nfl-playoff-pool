@@ -249,11 +249,68 @@ export function NoChangesInfo({ onClose }) {
   );
 }
 
+/**
+ * Tied Games Error
+ * Shown when user tries to submit picks with tied scores
+ * Playoff games NEVER end in a tie - they go to overtime!
+ */
+export function TiedGamesError({ tiedGames, gameData, onClose }) {
+  return (
+    <div className="popup-overlay">
+      <div className="popup-container error-popup">
+        <div className="popup-header error">
+          <span className="popup-icon">🚫</span>
+          <h3>PLAYOFF GAMES CANNOT END IN A TIE!</h3>
+        </div>
+
+        <div className="popup-body">
+          <p style={{fontWeight: 'bold', marginBottom: '15px'}}>
+            The following game(s) have tied scores:
+          </p>
+          <ul style={{listStyle: 'none', padding: 0, marginBottom: '15px'}}>
+            {tiedGames.map(gameId => {
+              const game = gameData.find(g => g.id === gameId);
+              return (
+                <li key={gameId} style={{
+                  padding: '8px',
+                  background: '#ffebee',
+                  border: '1px solid #ef5350',
+                  borderRadius: '4px',
+                  marginBottom: '8px',
+                  color: '#c62828'
+                }}>
+                  ⚠️ {game.team1} vs. {game.team2}
+                </li>
+              );
+            })}
+          </ul>
+          <p style={{fontStyle: 'italic', color: '#666'}}>
+            NFL Playoff games go to overtime until there's a winner!
+          </p>
+          <p style={{fontWeight: 'bold'}}>
+            Please change the scores so one team wins.
+          </p>
+        </div>
+
+        <div className="popup-buttons">
+          <button 
+            className="popup-btn btn-primary"
+            onClick={onClose}
+          >
+            Fix Scores
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default {
   UnsavedChangesPopup,
   DiscardChangesPopup,
   IncompleteEntryError,
   InvalidScoresError,
   SuccessConfirmation,
-  NoChangesInfo
+  NoChangesInfo,
+  TiedGamesError
 };

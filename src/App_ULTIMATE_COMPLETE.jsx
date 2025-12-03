@@ -12,7 +12,8 @@ import {
   IncompleteEntryError,
   InvalidScoresError,
   SuccessConfirmation,
-  NoChangesInfo
+  NoChangesInfo,
+  TiedGamesError
 } from './ValidationPopups';
 import LeaderDisplay from './LeaderDisplay';
 import WinnerDeclaration from './WinnerDeclaration';
@@ -1079,6 +1080,22 @@ function App() {
     if (invalid.length > 0) {
       setInvalidScores(invalid);
       setShowPopup('invalidScores');
+      return;
+    }
+    
+    // STEP 5 VALIDATION: Check for tied games (playoff games NEVER tie!)
+    const tiedGames = [];
+    currentWeekData.games.forEach(game => {
+      const t1 = parseInt(predictions[game.id]?.team1);
+      const t2 = parseInt(predictions[game.id]?.team2);
+      if (t1 === t2) {
+        tiedGames.push(game.id);
+      }
+    });
+    
+    if (tiedGames.length > 0) {
+      setMissingGames(tiedGames); // Reuse missingGames state for highlighting
+      setShowPopup('tiedGames');
       return;
     }
 
@@ -2394,6 +2411,14 @@ function App() {
 
           {showPopup === 'noChanges' && (
             <NoChangesInfo
+              onClose={() => setShowPopup(null)}
+            />
+          )}
+
+          {showPopup === 'tiedGames' && (
+            <TiedGamesError
+              tiedGames={missingGames}
+              gameData={currentWeekData.games}
               onClose={() => setShowPopup(null)}
             />
           )}
