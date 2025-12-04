@@ -3193,6 +3193,13 @@ function App() {
                         )}
                       </th>
                     ))}
+                    
+                    {/* CORRECT PICKS COLUMN */}
+                    <th rowSpan="2" style={{backgroundColor: '#e8f5e9', fontWeight: 'bold', color: '#000', minWidth: '50px'}}>
+                      <div style={{fontSize: '0.75rem', marginBottom: '4px'}}>Correct</div>
+                      <div style={{fontSize: '0.75rem'}}>Picks</div>
+                    </th>
+                    
                     {currentWeek === 'superbowl' ? (
                       <>
                         <th rowSpan="2" style={{backgroundColor: '#fff3cd', fontWeight: 'bold', color: '#000'}}>
@@ -3328,8 +3335,8 @@ function App() {
                           Week 1<br/>Total
                         </th>
                         <th rowSpan="2" className="grand-total">
-                          {/* Compact auto-calculated total - single line */}
-                          {(() => {
+                          {/* Show auto-calculated ONLY if no override */}
+                          {!manualWeekTotals.superbowl_grand && (() => {
                             const actualTotal = currentWeekData.games.reduce((sum, game) => {
                               const score1 = parseInt(actualScores[currentWeek]?.[game.id]?.team1) || 0;
                               const score2 = parseInt(actualScores[currentWeek]?.[game.id]?.team2) || 0;
@@ -3365,21 +3372,25 @@ function App() {
                                 }}
                               />
                             </div>
-                          ) : (
+                          ) : null}
+                          
+                          {/* Show official override if set */}
+                          {manualWeekTotals.superbowl_grand && (
                             <div style={{marginBottom: '8px'}}>
                               <div style={{fontSize: '0.7rem', color: '#fff', marginBottom: '2px'}}>Official</div>
                               <div style={{fontSize: '1.2rem', fontWeight: 'bold', color: '#fff'}}>
-                                {manualWeekTotals.superbowl_grand || '-'}
+                                {manualWeekTotals.superbowl_grand}
                               </div>
                             </div>
                           )}
+                          
                           GRAND<br/>TOTAL
                         </th>
                       </>
                     ) : (
                       <th rowSpan="2" style={{backgroundColor: '#f8f9fa', fontWeight: 'bold', color: '#000'}}>
-                        {/* Compact auto-calculated total - single line */}
-                        {(() => {
+                        {/* Show auto-calculated ONLY if no override */}
+                        {!manualWeekTotals[currentWeek] && (() => {
                           const actualTotal = currentWeekData.games.reduce((sum, game) => {
                             const score1 = parseInt(actualScores[currentWeek]?.[game.id]?.team1) || 0;
                             const score2 = parseInt(actualScores[currentWeek]?.[game.id]?.team2) || 0;
@@ -3414,14 +3425,18 @@ function App() {
                               }}
                             />
                           </div>
-                        ) : (
+                        ) : null}
+                        
+                        {/* Show official override if set */}
+                        {manualWeekTotals[currentWeek] && (
                           <div style={{marginBottom: '8px'}}>
                             <div style={{fontSize: '0.7rem', color: '#000', marginBottom: '2px'}}>Official</div>
                             <div style={{fontSize: '1rem', fontWeight: 'bold', color: '#d63031'}}>
-                              {manualWeekTotals[currentWeek] || '-'}
+                              {manualWeekTotals[currentWeek]}
                             </div>
                           </div>
                         )}
+                        
                         Official<br/>Total
                       </th>
                     )}
@@ -3623,6 +3638,27 @@ function App() {
                               </React.Fragment>
                             );
                           })}
+                          
+                          {/* CORRECT PICKS CELL */}
+                          {(() => {
+                            let correctCount = 0;
+                            currentWeekData.games.forEach(game => {
+                              if (hasCorrectPrediction(game.id)) {
+                                correctCount++;
+                              }
+                            });
+                            return (
+                              <td style={{
+                                backgroundColor: '#e8f5e9',
+                                fontWeight: 'bold',
+                                fontSize: '18px',
+                                color: correctCount > 0 ? '#2e7d32' : '#666',
+                                textAlign: 'center'
+                              }}>
+                                {correctCount}
+                              </td>
+                            );
+                          })()}
                           
                           {/* Total Points Columns */}
                           {currentWeek === 'superbowl' ? (
