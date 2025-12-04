@@ -3328,21 +3328,35 @@ function App() {
                           Week 1<br/>Total
                         </th>
                         <th rowSpan="2" className="grand-total">
-                          {/* Official Total Input at top */}
+                          {/* Compact auto-calculated total - single line */}
+                          {(() => {
+                            const actualTotal = currentWeekData.games.reduce((sum, game) => {
+                              const score1 = parseInt(actualScores[currentWeek]?.[game.id]?.team1) || 0;
+                              const score2 = parseInt(actualScores[currentWeek]?.[game.id]?.team2) || 0;
+                              return sum + score1 + score2;
+                            }, 0);
+                            
+                            return (
+                              <div style={{fontSize: '0.95rem', color: '#ffd700', marginBottom: '8px', fontWeight: '700'}}>
+                                Total: {actualTotal > 0 ? actualTotal : '-'}
+                              </div>
+                            );
+                          })()}
+                          
+                          {/* Official Total Input */}
                           {isPoolManager() ? (
                             <div style={{marginBottom: '8px'}}>
-                              <div style={{fontSize: '0.7rem', marginBottom: '4px', color: '#fff'}}>OFFICIAL</div>
                               <input
                                 type="number"
                                 min="0"
                                 value={manualWeekTotals.superbowl_grand || ''}
                                 onChange={(e) => handleManualTotalChange('superbowl_grand', e.target.value)}
-                                placeholder="-"
+                                placeholder="override"
                                 style={{
                                   width: '70px',
                                   padding: '4px',
                                   textAlign: 'center',
-                                  fontSize: '1.1rem',
+                                  fontSize: '1rem',
                                   fontWeight: 'bold',
                                   border: '3px solid #f39c12',
                                   borderRadius: '4px',
@@ -3364,21 +3378,35 @@ function App() {
                       </>
                     ) : (
                       <th rowSpan="2" style={{backgroundColor: '#f8f9fa', fontWeight: 'bold', color: '#000'}}>
-                        {/* Official Total Input at top */}
+                        {/* Compact auto-calculated total - single line */}
+                        {(() => {
+                          const actualTotal = currentWeekData.games.reduce((sum, game) => {
+                            const score1 = parseInt(actualScores[currentWeek]?.[game.id]?.team1) || 0;
+                            const score2 = parseInt(actualScores[currentWeek]?.[game.id]?.team2) || 0;
+                            return sum + score1 + score2;
+                          }, 0);
+                          
+                          return (
+                            <div style={{fontSize: '0.85rem', color: '#16a085', marginBottom: '6px', fontWeight: '700'}}>
+                              Total: {actualTotal > 0 ? actualTotal : '-'}
+                            </div>
+                          );
+                        })()}
+                        
+                        {/* Official Total Input */}
                         {isPoolManager() ? (
                           <div style={{marginBottom: '8px'}}>
-                            <div style={{fontSize: '0.7rem', marginBottom: '4px', color: '#000'}}>OFFICIAL</div>
                             <input
                               type="number"
                               min="0"
                               value={manualWeekTotals[currentWeek] || ''}
                               onChange={(e) => handleManualTotalChange(currentWeek, e.target.value)}
-                              placeholder="-"
+                              placeholder="override"
                               style={{
                                 width: '60px',
                                 padding: '4px',
                                 textAlign: 'center',
-                                fontSize: '1rem',
+                                fontSize: '0.9rem',
                                 fontWeight: 'bold',
                                 border: '2px solid #f39c12',
                                 borderRadius: '4px',

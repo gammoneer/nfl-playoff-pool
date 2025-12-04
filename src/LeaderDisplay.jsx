@@ -152,6 +152,18 @@ function calculatePrizeLeaders(prizeNumber, allPicks, actualScores, weekData) {
   }
   
   if (isCorrectWinners) {
+    // Calculate actual total for ALL prize types
+    let actualTotal = 0;
+    games.forEach(game => {
+      const score = prizeInfo.week === 'all'
+        ? actualScores[game.week]?.[game.id]
+        : relevantScores[game.id];
+      
+      if (score) {
+        actualTotal += (parseInt(score.team1) || 0) + (parseInt(score.team2) || 0);
+      }
+    });
+    
     // Calculate Most Correct Winners
     const results = relevantPicks.map(pick => {
       let correctCount = 0;
@@ -181,7 +193,8 @@ function calculatePrizeLeaders(prizeNumber, allPicks, actualScores, weekData) {
       return {
         playerCode: pick.playerCode,
         playerName: pick.playerName,
-        score: correctCount
+        score: correctCount,
+        actualTotal  // Add actualTotal to each player
       };
     });
     
@@ -195,7 +208,8 @@ function calculatePrizeLeaders(prizeNumber, allPicks, actualScores, weekData) {
       leaders: tiedLeaders,
       allPlayers: results,
       hasTie: tiedLeaders.length > 1,
-      tieCount: tiedLeaders.length
+      tieCount: tiedLeaders.length,
+      actualTotal  // Add actualTotal to return object
     };
     
   } else {
