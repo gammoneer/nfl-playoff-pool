@@ -356,39 +356,20 @@ function PrizeLeaderCard({
                   key={idx} 
                   className={`leader-item ${officialWinner?.playerCode === leader.playerCode ? 'official-winner' : 'tied-leader'}`}
                 >
-                  <div className="leader-main-info">
-                    <span className="leader-rank">{idx + 1}.</span>
-                    <span className="leader-name">{leader.playerName}</span>
-                    {/* Show ONLY ONE badge - OFFICIAL WINNER if declared, otherwise LEADING */}
-                    {officialWinner?.playerCode === leader.playerCode ? (
-                      <span className="official-badge">👑 OFFICIAL WINNER</span>
-                    ) : (
-                      <span className="leading-badge">🏆 LEADING</span>
-                    )}
-                  </div>
-                  <div className="leader-stats">
-                    {isCorrectWinners ? (
-                      <div className="stat-line">
-                        <span className="stat-label">Correct Predictions:</span>
-                        <span className="stat-value">{leader.score} games</span>
-                      </div>
-                    ) : (
-                      <>
-                        <div className="stat-line">
-                          <span className="stat-label">Player's Total Score:</span>
-                          <span className="stat-value">{leader.score} points</span>
-                        </div>
-                        <div className="stat-line">
-                          <span className="stat-label">Actual NFL Total:</span>
-                          <span className="stat-value">{leader.actualTotal || 0} points</span>
-                        </div>
-                        <div className="stat-line">
-                          <span className="stat-label">Accuracy Gap:</span>
-                          <span className="stat-value">{leader.difference} points away</span>
-                        </div>
-                      </>
-                    )}
-                  </div>
+                  <span className="leader-rank">{idx + 1}.</span>
+                  <span className="leader-name">{leader.playerName}</span>
+                  <span className="leader-score">
+                    {isCorrectWinners 
+                      ? `${leader.score} correct`
+                      : `${leader.score} pts (off by ${leader.difference})`
+                    }
+                  </span>
+                  {/* Show ONLY ONE badge - OFFICIAL WINNER if declared, otherwise LEADING */}
+                  {officialWinner?.playerCode === leader.playerCode ? (
+                    <span className="official-badge">👑 OFFICIAL WINNER</span>
+                  ) : (
+                    <span className="leading-badge">🏆 LEADING</span>
+                  )}
                 </div>
               ))}
             </div>
@@ -402,33 +383,14 @@ function PrizeLeaderCard({
             <div className="leaders-list">
               {allPlayers.slice(tieCount, tieCount + 10).map((player, idx) => (
                 <div key={idx} className="leader-item">
-                  <div className="leader-main-info">
-                    <span className="leader-rank">{tieCount + idx + 1}.</span>
-                    <span className="leader-name">{player.playerName}</span>
-                  </div>
-                  <div className="leader-stats">
-                    {isCorrectWinners ? (
-                      <div className="stat-line">
-                        <span className="stat-label">Correct Predictions:</span>
-                        <span className="stat-value">{player.score} games</span>
-                      </div>
-                    ) : (
-                      <>
-                        <div className="stat-line">
-                          <span className="stat-label">Player's Total:</span>
-                          <span className="stat-value">{player.score} pts</span>
-                        </div>
-                        <div className="stat-line">
-                          <span className="stat-label">Actual Total:</span>
-                          <span className="stat-value">{player.actualTotal || 0} pts</span>
-                        </div>
-                        <div className="stat-line">
-                          <span className="stat-label">Off by:</span>
-                          <span className="stat-value">{player.difference} pts</span>
-                        </div>
-                      </>
-                    )}
-                  </div>
+                  <span className="leader-rank">{tieCount + idx + 1}.</span>
+                  <span className="leader-name">{player.playerName}</span>
+                  <span className="leader-score">
+                    {isCorrectWinners 
+                      ? `${player.score} correct`
+                      : `${player.score} pts (off by ${player.difference})`
+                    }
+                  </span>
                 </div>
               ))}
             </div>
@@ -445,41 +407,22 @@ function PrizeLeaderCard({
                   key={idx} 
                   className={`leader-item ${idx === 0 && officialWinner?.playerCode === player.playerCode ? 'official-winner' : ''}`}
                 >
-                  <div className="leader-main-info">
-                    <span className="leader-rank">{idx + 1}.</span>
-                    <span className="leader-name">{player.playerName}</span>
-                    {/* Show badge for 1st place only - OFFICIAL WINNER if declared, otherwise LEADING */}
-                    {idx === 0 && (
-                      officialWinner?.playerCode === player.playerCode ? (
-                        <span className="official-badge">👑 OFFICIAL WINNER</span>
-                      ) : (
-                        <span className="leading-badge">🏆 LEADING</span>
-                      )
-                    )}
-                  </div>
-                  <div className="leader-stats">
-                    {isCorrectWinners ? (
-                      <div className="stat-line">
-                        <span className="stat-label">Correct Predictions:</span>
-                        <span className="stat-value">{player.score} games</span>
-                      </div>
+                  <span className="leader-rank">{idx + 1}.</span>
+                  <span className="leader-name">{player.playerName}</span>
+                  <span className="leader-score">
+                    {isCorrectWinners 
+                      ? `${player.score} correct`
+                      : `${player.score} pts (off by ${player.difference})`
+                    }
+                  </span>
+                  {/* Show badge for 1st place only - OFFICIAL WINNER if declared, otherwise LEADING */}
+                  {idx === 0 && (
+                    officialWinner?.playerCode === player.playerCode ? (
+                      <span className="official-badge">👑 OFFICIAL WINNER</span>
                     ) : (
-                      <>
-                        <div className="stat-line">
-                          <span className="stat-label">Player's Total:</span>
-                          <span className="stat-value">{player.score} pts</span>
-                        </div>
-                        <div className="stat-line">
-                          <span className="stat-label">Actual Total:</span>
-                          <span className="stat-value">{player.actualTotal || 0} pts</span>
-                        </div>
-                        <div className="stat-line">
-                          <span className="stat-label">Off by:</span>
-                          <span className="stat-value">{player.difference} pts</span>
-                        </div>
-                      </>
-                    )}
-                  </div>
+                      <span className="leading-badge">🏆 LEADING</span>
+                    )
+                  )}
                 </div>
               ))}
             </div>
