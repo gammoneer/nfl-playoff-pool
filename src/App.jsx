@@ -3901,6 +3901,9 @@ function App() {
                       borderRadius: '6px'
                     }}
                   />
+                  <div style={{fontSize: '0.85rem', color: '#666', marginTop: '5px'}}>
+                    Total number of players in the pool
+                  </div>
                 </div>
                 
                 <div style={{marginBottom: '20px'}}>
@@ -3920,6 +3923,9 @@ function App() {
                       borderRadius: '6px'
                     }}
                   />
+                  <div style={{fontSize: '0.85rem', color: '#666', marginTop: '5px'}}>
+                    Amount each player paid to enter ($20, $50, etc.)
+                  </div>
                 </div>
                 
                 <div style={{
@@ -4194,20 +4200,21 @@ function App() {
                       border: '2px solid #ffc107',
                       padding: '15px',
                       borderRadius: '8px',
-                      marginBottom: '20px'
+                      marginBottom: '20px',
+                      color: '#000' // BLACK TEXT FOR READABILITY
                     }}>
-                      <div style={{fontWeight: '600', marginBottom: '10px'}}>📊 Summary:</div>
+                      <div style={{fontWeight: '700', marginBottom: '10px', color: '#000', fontSize: '1.05rem'}}>📊 Summary:</div>
                       {selectedWinners.every(w => w.name) ? (
-                        <div>
+                        <div style={{color: '#000'}}>
                           {selectedWinners.map((winner, idx) => {
                             const split = useCustomSplit ? customSplits[idx] : calculateSplit(prizePool.prizeValue, numberOfWinners)[idx];
                             return (
-                              <div key={idx} style={{marginBottom: '5px'}}>
+                              <div key={idx} style={{marginBottom: '5px', color: '#000', fontWeight: '600'}}>
                                 🏆 {winner.name}: {split?.percentage.toFixed(2)}% = ${split?.amount.toFixed(2)}
                               </div>
                             );
                           })}
-                          <div style={{marginTop: '10px', paddingTop: '10px', borderTop: '1px solid #ccc', fontWeight: '600'}}>
+                          <div style={{marginTop: '10px', paddingTop: '10px', borderTop: '2px solid #856404', fontWeight: '700', color: '#000'}}>
                             Total: {useCustomSplit 
                               ? customSplits.reduce((sum, s) => sum + (s.percentage || 0), 0).toFixed(2)
                               : '100.00'}% = $
@@ -4217,7 +4224,7 @@ function App() {
                           </div>
                         </div>
                       ) : (
-                        <div style={{color: '#856404'}}>Select all winners to see summary</div>
+                        <div style={{color: '#856404', fontWeight: '600'}}>Select all winners to see summary</div>
                       )}
                     </div>
                   </>
