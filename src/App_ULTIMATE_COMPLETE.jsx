@@ -1188,6 +1188,44 @@ function App() {
     }));
   };
 
+  // RNG Pick - Auto-fill all games with random scores
+  const handleRNGPick = () => {
+    // Check if any predictions already exist
+    const hasExistingPicks = Object.keys(predictions).some(gameId => 
+      predictions[gameId]?.team1 || predictions[gameId]?.team2
+    );
+    
+    // Show warning if picks exist
+    if (hasExistingPicks) {
+      const confirmed = window.confirm(
+        '⚠️ WARNING!\n\n' +
+        'Clicking RNG will OVERWRITE all your current picks!\n\n' +
+        'Are you sure you want to continue?'
+      );
+      
+      if (!confirmed) {
+        return; // User cancelled
+      }
+    }
+    
+    // Generate random scores between 3 and 45 (realistic NFL range)
+    const newPredictions = {};
+    currentWeekData.games.forEach(game => {
+      const team1Score = Math.floor(Math.random() * (45 - 3 + 1)) + 3;
+      const team2Score = Math.floor(Math.random() * (45 - 3 + 1)) + 3;
+      newPredictions[game.id] = {
+        team1: team1Score.toString(),
+        team2: team2Score.toString()
+      };
+    });
+    setPredictions(newPredictions);
+    alert(
+      `🎲 RNG picks generated for all ${currentWeekData.games.length} games!\n\n` +
+      `Score range: 3-45 points per team\n\n` +
+      `You can now edit any scores before submitting.`
+    );
+  };
+
   // Pool Manager functions to update team codes
   const handleTeamCodeChange = (gameId, team, code) => {
     const updatedCodes = {
@@ -2937,7 +2975,37 @@ function App() {
                   ⚡ OVERRIDE MODE: Entering Picks for {PLAYER_CODES[selectedPlayerForOverride]}
                 </h2>
               ) : (
-                <h2>Enter Your Predictions</h2>
+                <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '15px'}}>
+                  <h2 style={{margin: 0}}>Enter Your Predictions</h2>
+                  {!isWeekLocked(currentWeek) && (
+                    <button
+                      type="button"
+                      onClick={handleRNGPick}
+                      style={{
+                        padding: '10px 20px',
+                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        fontSize: '0.95rem',
+                        fontWeight: '600',
+                        boxShadow: '0 4px 15px rgba(102, 126, 234, 0.4)',
+                        transition: 'all 0.3s ease'
+                      }}
+                      onMouseOver={(e) => {
+                        e.target.style.transform = 'translateY(-2px)';
+                        e.target.style.boxShadow = '0 6px 20px rgba(102, 126, 234, 0.6)';
+                      }}
+                      onMouseOut={(e) => {
+                        e.target.style.transform = 'translateY(0)';
+                        e.target.style.boxShadow = '0 4px 15px rgba(102, 126, 234, 0.4)';
+                      }}
+                    >
+                      🎲 Quick RNG Pick - Auto-fill all games
+                    </button>
+                  )}
+                </div>
               )}
               
               {/* Progress Indicator */}
@@ -3115,7 +3183,7 @@ function App() {
               marginTop: '5px',
               fontStyle: 'italic'
             }}>
-              📱 Mobile: Open with Google Sheets (free app)
+              📱 Mobile: Open the DOWNLOADABLE CSV file with Google Sheets (free app) or MS Office EXCEL
             </div>
             <button 
               onClick={() => window.location.reload()}
@@ -3195,9 +3263,9 @@ function App() {
                     ))}
                     
                     {/* CORRECT PICKS COLUMN */}
-                    <th rowSpan="2" style={{backgroundColor: '#e8f5e9', fontWeight: 'bold', color: '#000', minWidth: '50px'}}>
-                      <div style={{fontSize: '0.75rem', marginBottom: '4px'}}>Correct</div>
-                      <div style={{fontSize: '0.75rem'}}>Picks</div>
+                    <th rowSpan="2" style={{backgroundColor: '#ff0000', fontWeight: 'bold', color: '#ffffff', minWidth: '80px', border: '5px solid blue', fontSize: '20px'}}>
+                      <div style={{marginBottom: '4px'}}>🎯 CORRECT</div>
+                      <div>PICKS 🎯</div>
                     </th>
                     
                     {currentWeek === 'superbowl' ? (
@@ -3649,13 +3717,15 @@ function App() {
                             });
                             return (
                               <td style={{
-                                backgroundColor: '#e8f5e9',
+                                backgroundColor: '#00ff00',
                                 fontWeight: 'bold',
-                                fontSize: '18px',
-                                color: correctCount > 0 ? '#2e7d32' : '#666',
-                                textAlign: 'center'
+                                fontSize: '24px',
+                                color: '#000',
+                                textAlign: 'center',
+                                border: '3px solid red',
+                                minWidth: '80px'
                               }}>
-                                {correctCount}
+                                CORRECT: {correctCount}
                               </td>
                             );
                           })()}
