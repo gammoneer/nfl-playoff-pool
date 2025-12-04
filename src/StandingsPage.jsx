@@ -4,7 +4,7 @@ import './StandingsPage.css';
 // Import scoring functions (we'll integrate these)
 // For now, we'll include the logic directly
 
-function StandingsPage({ allPicks, actualScores, currentWeek, playerName, playerCode, isPoolManager, onLogout }) {
+function StandingsPage({ allPicks, actualScores, currentWeek, playerName, playerCode, isPoolManager, prizePool, officialWinners, onLogout }) {
   
   // ============================================
   // SCORING CALCULATION FUNCTIONS
@@ -324,6 +324,141 @@ function StandingsPage({ allPicks, actualScores, currentWeek, playerName, player
         </div>
 
         <h1 className="standings-title">🏆 Standings & Prize Leaders</h1>
+        
+        {/* Prize Pool Information */}
+        {prizePool && prizePool.totalFees > 0 && (
+          <div style={{
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            color: 'white',
+            padding: '25px',
+            borderRadius: '12px',
+            marginBottom: '30px',
+            boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+          }}>
+            <h2 style={{margin: '0 0 20px 0', fontSize: '1.5rem'}}>💰 Prize Pool Information</h2>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+              gap: '20px',
+              marginBottom: '15px'
+            }}>
+              <div style={{background: 'rgba(255,255,255,0.2)', padding: '15px', borderRadius: '8px'}}>
+                <div style={{fontSize: '0.9rem', opacity: 0.9, marginBottom: '5px'}}>Total Pool Fees</div>
+                <div style={{fontSize: '2rem', fontWeight: 'bold'}}>${prizePool.totalFees.toFixed(2)}</div>
+              </div>
+              <div style={{background: 'rgba(255,255,255,0.2)', padding: '15px', borderRadius: '8px'}}>
+                <div style={{fontSize: '0.9rem', opacity: 0.9, marginBottom: '5px'}}>Number of Players</div>
+                <div style={{fontSize: '2rem', fontWeight: 'bold'}}>{prizePool.numberOfPlayers}</div>
+              </div>
+              <div style={{background: 'rgba(255,255,255,0.2)', padding: '15px', borderRadius: '8px'}}>
+                <div style={{fontSize: '0.9rem', opacity: 0.9, marginBottom: '5px'}}>Entry Fee</div>
+                <div style={{fontSize: '2rem', fontWeight: 'bold'}}>${prizePool.entryFee}</div>
+              </div>
+              <div style={{background: 'rgba(255,255,255,0.2)', padding: '15px', borderRadius: '8px'}}>
+                <div style={{fontSize: '0.9rem', opacity: 0.9, marginBottom: '5px'}}>Each Prize (10%)</div>
+                <div style={{fontSize: '2rem', fontWeight: 'bold'}}>${prizePool.prizeValue.toFixed(2)}</div>
+              </div>
+            </div>
+            <div style={{fontSize: '0.9rem', opacity: 0.9}}>
+              📊 10 prizes total • Equal 10% distribution • Ties split equally
+            </div>
+          </div>
+        )}
+        
+        {/* Official Prize Winners */}
+        {officialWinners && Object.keys(officialWinners).length > 0 && (
+          <div style={{
+            background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+            color: 'white',
+            padding: '25px',
+            borderRadius: '12px',
+            marginBottom: '30px',
+            boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+          }}>
+            <h2 style={{margin: '0 0 20px 0', fontSize: '1.5rem'}}>🏆 OFFICIAL PRIZE WINNERS</h2>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+              gap: '20px'
+            }}>
+              {Object.entries(officialWinners).sort((a, b) => {
+                return a[1].prizeNumber - b[1].prizeNumber;
+              }).map(([key, prize]) => (
+                <div key={key} style={{
+                  background: 'rgba(255,255,255,0.95)',
+                  color: '#333',
+                  padding: '20px',
+                  borderRadius: '10px',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
+                }}>
+                  <div style={{
+                    fontWeight: 'bold',
+                    fontSize: '1.1rem',
+                    marginBottom: '8px',
+                    color: '#f5576c'
+                  }}>
+                    Prize #{prize.prizeNumber}
+                  </div>
+                  <div style={{
+                    fontSize: '0.9rem',
+                    color: '#666',
+                    marginBottom: '12px'
+                  }}>
+                    {prize.prizeName.replace(`Prize #${prize.prizeNumber} - `, '')}
+                  </div>
+                  <div style={{
+                    fontSize: '0.85rem',
+                    fontWeight: '600',
+                    color: '#999',
+                    marginBottom: '12px'
+                  }}>
+                    Prize Value: ${prize.prizeValue.toFixed(2)}
+                  </div>
+                  <div style={{
+                    borderTop: '2px solid #f093fb',
+                    paddingTop: '12px'
+                  }}>
+                    {prize.winners.map((winner, idx) => (
+                      <div key={idx} style={{
+                        padding: '8px 0',
+                        borderBottom: idx < prize.winners.length - 1 ? '1px solid #eee' : 'none'
+                      }}>
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: '10px'
+                        }}>
+                          <div style={{
+                            fontWeight: '700',
+                            fontSize: '1rem',
+                            color: '#333'
+                          }}>
+                            🏆 {winner.playerName}
+                          </div>
+                          <div style={{
+                            fontSize: '0.95rem',
+                            fontWeight: '600',
+                            color: '#f5576c'
+                          }}>
+                            ${winner.amount.toFixed(2)}
+                          </div>
+                        </div>
+                        <div style={{
+                          fontSize: '0.8rem',
+                          color: '#888',
+                          marginTop: '2px'
+                        }}>
+                          {winner.percentage.toFixed(2)}% of prize
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         
         <div className="prizes-grid">
           {prizeLeaders.map(prize => (
