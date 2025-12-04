@@ -577,74 +577,98 @@ function App() {
   };
 
   /**
-   * 🎨 5-COLOR HIGHLIGHTING SYSTEM
-   * Determines background color for player's pick cells based on:
-   * - Player's prediction
-   * - Actual scores  
-   * - Game status (none/live/final)
+   * 🎨 6-COLOR HIGHLIGHTING SYSTEM
+   * Three game states, only colors predicted WINNER cell:
+   * 
+   * STATE 1: Actual scores entered, but status NOT set (empty/blank)
+   *   - Yellow = Predicted winner is currently winning
+   *   - Light Blue = Predicted winner is currently losing
+   * 
+   * STATE 2: Game status = LIVE
+   *   - Light Green = Predicted winner is currently winning
+   *   - Light Red = Predicted winner is currently losing
+   * 
+   * STATE 3: Game status = FINAL
+   *   - Bright Green = Predicted winner WON (correct!)
+   *   - Bright Red = Predicted winner LOST (wrong!)
    */
   const getCellHighlight = (playerTeam1, playerTeam2, actualTeam1, actualTeam2, gameStatus, isTeam1Cell) => {
-    // Player's predicted winner
+    // Determine which team player predicted to win
     const playerPredictedTeam1 = Number(playerTeam1) > Number(playerTeam2);
     const playerPredictedTeam2 = Number(playerTeam2) > Number(playerTeam1);
     
-    // STAGE 1: No actual scores yet - Show predicted winner in YELLOW
-    if (!actualTeam1 && !actualTeam2 && !gameStatus) {
-      if (isTeam1Cell && playerPredictedTeam1) {
-        return { background: '#fff9c4', color: '#000' }; // Yellow
-      }
-      if (!isTeam1Cell && playerPredictedTeam2) {
-        return { background: '#fff9c4', color: '#000' }; // Yellow
-      }
+    // If player predicted a tie or has no valid prediction, no highlighting
+    if (playerTeam1 === playerTeam2 || !playerTeam1 || !playerTeam2) {
       return { background: 'transparent', color: '#000' };
     }
     
-    // If we have actual scores
-    if (actualTeam1 !== undefined && actualTeam2 !== undefined) {
+    // If we have actual scores entered
+    if (actualTeam1 !== undefined && actualTeam2 !== undefined && actualTeam1 !== '' && actualTeam2 !== '') {
       const actualTeam1Winning = Number(actualTeam1) > Number(actualTeam2);
       const actualTeam2Winning = Number(actualTeam2) > Number(actualTeam1);
       
-      // STAGE 2: LIVE game - Show light green/red based on current score
-      if (gameStatus === 'live') {
-        // Team 1 cell
+      // STATE 1: Actual scores entered, but NO status set (empty/blank)
+      // Use Yellow/Light Blue
+      if (!gameStatus || gameStatus === '') {
+        // Only color the predicted winner cell
         if (isTeam1Cell && playerPredictedTeam1) {
           if (actualTeam1Winning) {
-            return { background: '#c8e6c9', color: '#000' }; // Light green - winning
+            return { background: '#fff9c4', color: '#000' }; // Yellow - looks good (not confirmed)
           } else {
-            return { background: '#ffcdd2', color: '#000' }; // Light red - losing
+            return { background: '#b3e5fc', color: '#000' }; // Light Blue - looks bad (not confirmed)
           }
         }
-        // Team 2 cell
         if (!isTeam1Cell && playerPredictedTeam2) {
           if (actualTeam2Winning) {
-            return { background: '#c8e6c9', color: '#000' }; // Light green - winning
+            return { background: '#fff9c4', color: '#000' }; // Yellow - looks good (not confirmed)
           } else {
-            return { background: '#ffcdd2', color: '#000' }; // Light red - losing
+            return { background: '#b3e5fc', color: '#000' }; // Light Blue - looks bad (not confirmed)
           }
         }
       }
       
-      // STAGE 3: FINAL game - Show bright green/red based on final result
-      if (gameStatus === 'final') {
-        // Team 1 cell
+      // STATE 2: Game status = LIVE
+      // Use Light Green/Light Red
+      if (gameStatus === 'live') {
+        // Only color the predicted winner cell
         if (isTeam1Cell && playerPredictedTeam1) {
           if (actualTeam1Winning) {
-            return { background: '#4caf50', color: '#000' }; // Bright green - correct
+            return { background: '#c8e6c9', color: '#000' }; // Light Green - winning now!
           } else {
-            return { background: '#f44336', color: '#000' }; // Bright red - wrong
+            return { background: '#ffcdd2', color: '#000' }; // Light Red - losing now!
           }
         }
-        // Team 2 cell
         if (!isTeam1Cell && playerPredictedTeam2) {
           if (actualTeam2Winning) {
-            return { background: '#4caf50', color: '#000' }; // Bright green - correct
+            return { background: '#c8e6c9', color: '#000' }; // Light Green - winning now!
           } else {
-            return { background: '#f44336', color: '#000' }; // Bright red - wrong
+            return { background: '#ffcdd2', color: '#000' }; // Light Red - losing now!
+          }
+        }
+      }
+      
+      // STATE 3: Game status = FINAL
+      // Use Bright Green/Bright Red
+      if (gameStatus === 'final') {
+        // Only color the predicted winner cell
+        if (isTeam1Cell && playerPredictedTeam1) {
+          if (actualTeam1Winning) {
+            return { background: '#4caf50', color: '#000' }; // Bright Green - CORRECT! ✅
+          } else {
+            return { background: '#f44336', color: '#000' }; // Bright Red - WRONG! ❌
+          }
+        }
+        if (!isTeam1Cell && playerPredictedTeam2) {
+          if (actualTeam2Winning) {
+            return { background: '#4caf50', color: '#000' }; // Bright Green - CORRECT! ✅
+          } else {
+            return { background: '#f44336', color: '#000' }; // Bright Red - WRONG! ❌
           }
         }
       }
     }
     
+    // Default: No highlighting
     return { background: 'transparent', color: '#000' };
   };
 
