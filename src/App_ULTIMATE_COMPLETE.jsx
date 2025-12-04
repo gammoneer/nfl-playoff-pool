@@ -3146,7 +3146,7 @@ function App() {
                     {currentWeekData.games.map(game => (
                       <th key={game.id} colSpan="2">
                         Game {game.id}<br/>
-                        <small>{game.team1} @ {game.team2}</small>
+                        <small style={{color: '#ffffff', fontWeight: '700'}}>{game.team1} @ {game.team2}</small>
                         {/* Team codes row for Pool Manager */}
                         {isPoolManager() && (
                           <div style={{marginTop: '5px', display: 'flex', gap: '5px', justifyContent: 'center', alignItems: 'center'}}>
@@ -3187,7 +3187,7 @@ function App() {
                         )}
                         {/* Team codes display for players */}
                         {!isPoolManager() && teamCodes[currentWeek]?.[game.id] && (
-                          <div style={{fontSize: '0.8rem', color: '#666', marginTop: '3px'}}>
+                          <div style={{fontSize: '0.8rem', color: '#ffffff', fontWeight: '700', marginTop: '3px'}}>
                             {teamCodes[currentWeek][game.id].team1 || '?'} @ {teamCodes[currentWeek][game.id].team2 || '?'}
                           </div>
                         )}

@@ -470,19 +470,21 @@
 }
 
 /* ============================================
-   LEADER ITEM - SINGLE LINE COMPACT LAYOUT
+   LEADER ITEM - SUPER COMPACT SINGLE LINE
+   Maximum density for 50 players
    ============================================ */
 
 .leader-item {
   display: flex;
   align-items: center;
-  gap: 15px;
-  padding: 12px 15px;
+  gap: 10px;
+  padding: 8px 12px;
   background: #f8f9fa;
-  border-radius: 8px;
-  margin-bottom: 10px;
+  border-radius: 6px;
+  margin-bottom: 6px;
   border: 2px solid #e0e0e0;
   transition: all 0.2s ease;
+  font-size: 0.9rem;
 }
 
 .leader-item:hover {
@@ -503,23 +505,30 @@
 .leader-rank {
   font-weight: 700;
   color: #667eea;
-  font-size: 1.1rem;
-  min-width: 30px;
+  font-size: 0.95rem;
+  min-width: 24px;
+  flex-shrink: 0;
 }
 
 .leader-name {
   font-weight: 700;
   color: #333;
-  font-size: 1.05rem;
-  min-width: 150px;
+  font-size: 0.95rem;
+  min-width: 120px;
+  max-width: 150px;
   flex-shrink: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .leader-score {
   flex: 1;
   color: #333;
   font-weight: 600;
-  font-size: 0.95rem;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  min-width: 0;
 }
 
 .leading-badge,
@@ -527,23 +536,37 @@
   flex-shrink: 0;
   white-space: nowrap;
   margin-left: auto;
+  font-size: 0.75rem;
+  padding: 3px 8px;
 }
 
 /* Responsive */
 @media (max-width: 768px) {
   .leader-item {
     flex-wrap: wrap;
-    gap: 10px;
+    gap: 8px;
+    font-size: 0.85rem;
+  }
+  
+  .leader-rank {
+    font-size: 0.9rem;
+  }
+  
+  .leader-name {
+    font-size: 0.9rem;
+    min-width: 100px;
   }
   
   .leader-score {
     flex-basis: 100%;
     order: 3;
+    font-size: 0.8rem;
   }
   
   .leading-badge,
   .official-badge {
     order: 4;
+    font-size: 0.7rem;
   }
 }
 

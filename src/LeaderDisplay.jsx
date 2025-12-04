@@ -361,7 +361,7 @@ function PrizeLeaderCard({
                   <span className="leader-score">
                     {isCorrectWinners 
                       ? `${leader.score} correct`
-                      : `${leader.score} pts · Actual: ${leaderData?.actualTotal || 0} pts · Off by: ${leader.difference} pts`
+                      : `${leader.score} pts · Actual: ${leader.actualTotal || 0} pts · Off by: ${leader.difference} pts`
                     }
                   </span>
                   {/* Show ONLY ONE badge - OFFICIAL WINNER if declared, otherwise LEADING */}
@@ -388,7 +388,7 @@ function PrizeLeaderCard({
                   <span className="leader-score">
                     {isCorrectWinners 
                       ? `${player.score} correct`
-                      : `${player.score} pts · Actual: ${leaderData?.actualTotal || 0} pts · Off by: ${player.difference} pts`
+                      : `${player.score} pts · Actual: ${player.actualTotal || 0} pts · Off by: ${player.difference} pts`
                     }
                   </span>
                 </div>
@@ -412,7 +412,7 @@ function PrizeLeaderCard({
                   <span className="leader-score">
                     {isCorrectWinners 
                       ? `${player.score} correct`
-                      : `${player.score} pts · Actual: ${leaderData?.actualTotal || 0} pts · Off by: ${player.difference} pts`
+                      : `${player.score} pts · Actual: ${player.actualTotal || 0} pts · Off by: ${player.difference} pts`
                     }
                   </span>
                   {/* Show badge for 1st place only - OFFICIAL WINNER if declared, otherwise LEADING */}
