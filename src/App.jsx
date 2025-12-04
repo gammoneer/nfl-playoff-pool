@@ -3022,7 +3022,7 @@ function App() {
                       <div className="team-score">
                         <label>
                           <span className="team-designation">AWAY TEAM</span>
-                          <span className="team-name-label">{game.team1}</span>
+                          <span className="team-name-label" style={{color: '#ffffff', fontWeight: '700'}}>{game.team1}</span>
                         </label>
                         <input
                           type="number"
@@ -3042,7 +3042,7 @@ function App() {
                       <div className="team-score">
                         <label>
                           <span className="team-designation">HOME TEAM</span>
-                          <span className="team-name-label">{game.team2}</span>
+                          <span className="team-name-label" style={{color: '#ffffff', fontWeight: '700'}}>{game.team2}</span>
                         </label>
                         <input
                           type="number"
@@ -3626,7 +3626,8 @@ function App() {
                               month: '2-digit',
                               day: '2-digit',
                               hour: '2-digit',
-                              minute: '2-digit'
+                              minute: '2-digit',
+                              second: '2-digit'
                             })}
                           </td>
                         </tr>
