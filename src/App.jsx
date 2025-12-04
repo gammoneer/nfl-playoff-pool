@@ -1290,6 +1290,116 @@ function App() {
   };
 
   // ============================================
+  // 🎲 POOL MANAGER RNG - QUICK TEST DATA
+  // ============================================
+  
+  // All 32 NFL teams
+  const NFL_TEAMS = [
+    'ARI', 'ATL', 'BAL', 'BUF', 'CAR', 'CHI', 'CIN', 'CLE',
+    'DAL', 'DEN', 'DET', 'GB', 'HOU', 'IND', 'JAC', 'KC',
+    'LV', 'LAC', 'LAR', 'MIA', 'MIN', 'NE', 'NO', 'NYG',
+    'NYJ', 'PHI', 'PIT', 'SF', 'SEA', 'TB', 'TEN', 'WAS'
+  ];
+
+  // Pool Manager RNG - Auto-populate everything for testing
+  const handlePoolManagerRNG = () => {
+    // Check if any data already exists
+    const hasExistingTeams = currentWeekData.games.some(game => 
+      teamCodes[currentWeek]?.[game.id]?.team1 || teamCodes[currentWeek]?.[game.id]?.team2
+    );
+    const hasExistingScores = currentWeekData.games.some(game =>
+      actualScores[currentWeek]?.[game.id]?.team1 || actualScores[currentWeek]?.[game.id]?.team2
+    );
+    const hasExistingStatus = currentWeekData.games.some(game =>
+      gameStatus[currentWeek]?.[game.id]
+    );
+
+    // Show warning if any data exists
+    if (hasExistingTeams || hasExistingScores || hasExistingStatus) {
+      const confirmed = window.confirm(
+        '⚠️ POOL MANAGER RNG WARNING!\n\n' +
+        'This will OVERWRITE:\n' +
+        '• All team codes\n' +
+        '• All actual scores\n' +
+        '• All game statuses\n\n' +
+        'Are you sure you want to continue?'
+      );
+      
+      if (!confirmed) {
+        return; // User cancelled
+      }
+    }
+
+    // Shuffle and select random teams (ensure each team used only once)
+    const shuffledTeams = [...NFL_TEAMS].sort(() => Math.random() - 0.5);
+    const gamesCount = currentWeekData.games.length;
+    const teamsNeeded = gamesCount * 2;
+    
+    if (teamsNeeded > shuffledTeams.length) {
+      alert('⚠️ Not enough unique teams for all games!');
+      return;
+    }
+
+    const selectedTeams = shuffledTeams.slice(0, teamsNeeded);
+
+    // Generate data for each game
+    const newTeamCodes = { ...teamCodes };
+    const newActualScores = { ...actualScores };
+    const newGameStatus = { ...gameStatus };
+
+    if (!newTeamCodes[currentWeek]) newTeamCodes[currentWeek] = {};
+    if (!newActualScores[currentWeek]) newActualScores[currentWeek] = {};
+    if (!newGameStatus[currentWeek]) newGameStatus[currentWeek] = {};
+
+    currentWeekData.games.forEach((game, index) => {
+      const team1 = selectedTeams[index * 2];
+      const team2 = selectedTeams[index * 2 + 1];
+      const score1 = Math.floor(Math.random() * (50 - 3 + 1)) + 3;
+      const score2 = Math.floor(Math.random() * (50 - 3 + 1)) + 3;
+
+      // Set team codes
+      newTeamCodes[currentWeek][game.id] = {
+        team1: team1,
+        team2: team2
+      };
+
+      // Set actual scores
+      newActualScores[currentWeek][game.id] = {
+        team1: score1.toString(),
+        team2: score2.toString()
+      };
+
+      // Set status to final
+      newGameStatus[currentWeek][game.id] = 'final';
+
+      // Save to Firebase
+      set(ref(database, `teamCodes/${currentWeek}/${game.id}`), {
+        team1: team1,
+        team2: team2
+      });
+      set(ref(database, `actualScores/${currentWeek}/${game.id}`), {
+        team1: score1.toString(),
+        team2: score2.toString()
+      });
+      set(ref(database, `gameStatus/${currentWeek}/${game.id}`), 'final');
+    });
+
+    // Update state
+    setTeamCodes(newTeamCodes);
+    setActualScores(newActualScores);
+    setGameStatus(newGameStatus);
+
+    alert(
+      `🎲 POOL MANAGER RNG Complete!\n\n` +
+      `✅ ${gamesCount} games populated\n` +
+      `✅ Random teams assigned (each used once)\n` +
+      `✅ Scores: 3-50 points\n` +
+      `✅ All games marked FINAL\n\n` +
+      `Ready for testing!`
+    );
+  };
+
+  // ============================================
   // 🆕 STEP 5: COMPLETE FEATURE HANDLERS
   // ============================================
   
@@ -2684,6 +2794,56 @@ function App() {
           />
         )}
 
+        {/* 🎲 POOL MANAGER RNG - Quick Test Data (Pool Manager Only) */}
+        {isPoolManager() && codeValidated && (
+          <div style={{
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            color: 'white',
+            padding: '20px',
+            borderRadius: '8px',
+            marginBottom: '20px',
+            boxShadow: '0 4px 15px rgba(102, 126, 234, 0.4)'
+          }}>
+            <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
+              <div>
+                <h3 style={{margin: '0 0 8px 0', display: 'flex', alignItems: 'center', gap: '10px'}}>
+                  <span>🎲</span>
+                  <span>POOL MANAGER RNG - Quick Test Data</span>
+                </h3>
+                <p style={{margin: 0, fontSize: '0.9rem', opacity: 0.9}}>
+                  Auto-populate teams, scores, and mark games as FINAL for testing
+                </p>
+              </div>
+              <button
+                onClick={handlePoolManagerRNG}
+                style={{
+                  padding: '12px 24px',
+                  background: 'white',
+                  color: '#667eea',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontSize: '1rem',
+                  fontWeight: '700',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+                  transition: 'all 0.3s ease',
+                  whiteSpace: 'nowrap'
+                }}
+                onMouseOver={(e) => {
+                  e.target.style.transform = 'translateY(-2px)';
+                  e.target.style.boxShadow = '0 6px 16px rgba(0,0,0,0.3)';
+                }}
+                onMouseOut={(e) => {
+                  e.target.style.transform = 'translateY(0)';
+                  e.target.style.boxShadow = '0 4px 12px rgba(0,0,0,0.2)';
+                }}
+              >
+                🎲 Generate Test Data
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* 👥 NEW: Player Codes Display for Pool Manager */}
         {isPoolManager() && codeValidated && (
           <div style={{
@@ -2820,12 +2980,32 @@ function App() {
               onClick={() => setCurrentView('picks')}
             >
               📝 Make Picks
+              {currentView === 'picks' && (
+                <span style={{
+                  marginLeft: '8px',
+                  fontSize: '0.75rem',
+                  opacity: 0.9,
+                  fontStyle: 'italic'
+                }}>
+                  (you are here)
+                </span>
+              )}
             </button>
             <button
               className={`nav-btn ${currentView === 'standings' ? 'active' : ''}`}
               onClick={() => setCurrentView('standings')}
             >
               🏆 Standings & Prizes
+              {currentView === 'standings' && (
+                <span style={{
+                  marginLeft: '8px',
+                  fontSize: '0.75rem',
+                  opacity: 0.9,
+                  fontStyle: 'italic'
+                }}>
+                  (you are here)
+                </span>
+              )}
             </button>
           </div>
         )}
@@ -3263,9 +3443,9 @@ function App() {
                     ))}
                     
                     {/* CORRECT PICKS COLUMN */}
-                    <th rowSpan="2" style={{backgroundColor: '#ff0000', fontWeight: 'bold', color: '#ffffff', minWidth: '80px', border: '5px solid blue', fontSize: '20px'}}>
-                      <div style={{marginBottom: '4px'}}>🎯 CORRECT</div>
-                      <div>PICKS 🎯</div>
+                    <th rowSpan="2" style={{backgroundColor: '#e8f5e9', fontWeight: 'bold', color: '#2e7d32', minWidth: '60px', fontSize: '0.75rem', padding: '8px 4px'}}>
+                      <div style={{marginBottom: '2px'}}>Correct</div>
+                      <div>Picks</div>
                     </th>
                     
                     {currentWeek === 'superbowl' ? (
@@ -3717,15 +3897,14 @@ function App() {
                             });
                             return (
                               <td style={{
-                                backgroundColor: '#00ff00',
+                                backgroundColor: '#f1f8f4',
                                 fontWeight: 'bold',
-                                fontSize: '24px',
-                                color: '#000',
+                                fontSize: '1rem',
+                                color: correctCount > 0 ? '#2e7d32' : '#999',
                                 textAlign: 'center',
-                                border: '3px solid red',
-                                minWidth: '80px'
+                                padding: '8px 4px'
                               }}>
-                                CORRECT: {correctCount}
+                                {correctCount}
                               </td>
                             );
                           })()}
