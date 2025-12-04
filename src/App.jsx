@@ -1211,8 +1211,14 @@ function App() {
     // Generate random scores between 3 and 45 (realistic NFL range)
     const newPredictions = {};
     currentWeekData.games.forEach(game => {
-      const team1Score = Math.floor(Math.random() * (45 - 3 + 1)) + 3;
-      const team2Score = Math.floor(Math.random() * (45 - 3 + 1)) + 3;
+      let team1Score = Math.floor(Math.random() * (45 - 3 + 1)) + 3;
+      let team2Score = Math.floor(Math.random() * (45 - 3 + 1)) + 3;
+      
+      // Ensure no ties - regenerate team2 if scores match
+      while (team1Score === team2Score) {
+        team2Score = Math.floor(Math.random() * (45 - 3 + 1)) + 3;
+      }
+      
       newPredictions[game.id] = {
         team1: team1Score.toString(),
         team2: team2Score.toString()
@@ -1221,7 +1227,8 @@ function App() {
     setPredictions(newPredictions);
     alert(
       `🎲 RNG picks generated for all ${currentWeekData.games.length} games!\n\n` +
-      `Score range: 3-45 points per team\n\n` +
+      `Score range: 3-45 points per team\n` +
+      `No tied games guaranteed!\n\n` +
       `You can now edit any scores before submitting.`
     );
   };
@@ -1354,8 +1361,13 @@ function App() {
     currentWeekData.games.forEach((game, index) => {
       const team1 = selectedTeams[index * 2];
       const team2 = selectedTeams[index * 2 + 1];
-      const score1 = Math.floor(Math.random() * (50 - 3 + 1)) + 3;
-      const score2 = Math.floor(Math.random() * (50 - 3 + 1)) + 3;
+      let score1 = Math.floor(Math.random() * (50 - 3 + 1)) + 3;
+      let score2 = Math.floor(Math.random() * (50 - 3 + 1)) + 3;
+
+      // Ensure no ties - regenerate score2 if scores match
+      while (score1 === score2) {
+        score2 = Math.floor(Math.random() * (50 - 3 + 1)) + 3;
+      }
 
       // Set team codes
       newTeamCodes[currentWeek][game.id] = {
@@ -1394,9 +1406,65 @@ function App() {
       `✅ ${gamesCount} games populated\n` +
       `✅ Random teams assigned (each used once)\n` +
       `✅ Scores: 3-50 points\n` +
+      `✅ No tied games guaranteed\n` +
       `✅ All games marked FINAL\n\n` +
       `Ready for testing!`
     );
+  };
+
+  // ============================================
+  // 🚪 LOGOUT HANDLER WITH UNSAVED CHANGES CHECK
+  // ============================================
+  
+  const handleLogout = () => {
+    // Check if there are unsaved changes
+    if (hasUnsavedChanges) {
+      const choice = window.confirm(
+        '⚠️ UNSAVED CHANGES!\n\n' +
+        'You have unsaved picks that will be lost.\n\n' +
+        'Click OK to DISCARD changes and logout\n' +
+        'Click CANCEL to stay and save your picks'
+      );
+      
+      if (!choice) {
+        return; // User wants to stay and save
+      }
+    }
+    
+    // Proceed with logout
+    setCodeValidated(false);
+    setPlayerCode('');
+    setPlayerName('');
+    setPredictions({});
+    setCurrentView('picks');
+    setHasUnsavedChanges(false);
+  };
+
+  // ============================================
+  // ❌ CANCEL PICKS HANDLER
+  // ============================================
+  
+  const handleCancelPicks = () => {
+    if (hasUnsavedChanges) {
+      const confirmed = window.confirm(
+        '⚠️ DISCARD CHANGES?\n\n' +
+        'This will reset your picks to the last saved version.\n\n' +
+        'Are you sure you want to discard your changes?'
+      );
+      
+      if (!confirmed) {
+        return; // User cancelled
+      }
+    }
+    
+    // Reset to last saved picks or empty
+    const playerPick = allPicks.find(p => p.playerCode === playerCode && p.week === currentWeek);
+    if (playerPick) {
+      setPredictions(playerPick.predictions);
+    } else {
+      setPredictions({});
+    }
+    setHasUnsavedChanges(false);
   };
 
   // ============================================
@@ -3021,13 +3089,7 @@ function App() {
             isPoolManager={isPoolManager()}
             prizePool={prizePool}
             officialWinners={officialWinners}
-            onLogout={() => {
-              setCodeValidated(false);
-              setPlayerCode('');
-              setPlayerName('');
-              setPredictions({});
-              setCurrentView('picks'); // Go back to picks view
-            }}
+            onLogout={handleLogout}
           />
         ) : (
           <>
@@ -3308,24 +3370,55 @@ function App() {
                   </div>
                 ))}
 
-                <button 
-                  type="submit" 
-                  className="submit-btn"
-                  disabled={overrideAction === 'manual' ? false : (!isSubmissionAllowed() || isWeekLocked(currentWeek))}
-                  style={overrideAction === 'manual' ? {
-                    background: '#e74c3c',
-                    fontSize: '1.1rem',
-                    fontWeight: '700'
-                  } : {}}
-                >
-                  {overrideAction === 'manual' 
-                    ? `⚡ Submit for ${PLAYER_CODES[selectedPlayerForOverride]}`
-                    : isWeekLocked(currentWeek) && !isPoolManager()
-                      ? '🔒 Week Locked - Cannot Edit Picks'
-                      : isSubmissionAllowed() 
-                        ? '📤 Submit / Update My Picks' 
-                        : '⛔ Submissions Locked (Playoff Weekend)'}
-                </button>
+                <div style={{display: 'flex', gap: '15px', marginTop: '20px'}}>
+                  <button 
+                    type="submit" 
+                    className="submit-btn"
+                    disabled={overrideAction === 'manual' ? false : (!isSubmissionAllowed() || isWeekLocked(currentWeek))}
+                    style={overrideAction === 'manual' ? {
+                      background: '#e74c3c',
+                      fontSize: '1.1rem',
+                      fontWeight: '700',
+                      flex: '1'
+                    } : {flex: '1'}}
+                  >
+                    {overrideAction === 'manual' 
+                      ? `⚡ Submit for ${PLAYER_CODES[selectedPlayerForOverride]}`
+                      : isWeekLocked(currentWeek) && !isPoolManager()
+                        ? '🔒 Week Locked - Cannot Edit Picks'
+                        : isSubmissionAllowed() 
+                          ? '📤 Submit / Update My Picks' 
+                          : '⛔ Submissions Locked (Playoff Weekend)'}
+                  </button>
+                  
+                  {!isWeekLocked(currentWeek) && overrideAction !== 'manual' && (
+                    <button
+                      type="button"
+                      onClick={handleCancelPicks}
+                      style={{
+                        padding: '15px 30px',
+                        background: '#6c757d',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        fontSize: '1.1rem',
+                        fontWeight: '600',
+                        transition: 'all 0.3s ease',
+                        flex: '0 0 auto',
+                        minWidth: '150px'
+                      }}
+                      onMouseOver={(e) => {
+                        e.target.style.background = '#5a6268';
+                      }}
+                      onMouseOut={(e) => {
+                        e.target.style.background = '#6c757d';
+                      }}
+                    >
+                      ❌ Cancel
+                    </button>
+                  )}
+                </div>
                 
                 {isSubmissionAllowed() && !isWeekLocked(currentWeek) && (
                   <p style={{textAlign: 'center', marginTop: '15px', color: '#666', fontSize: '0.9rem'}}>
