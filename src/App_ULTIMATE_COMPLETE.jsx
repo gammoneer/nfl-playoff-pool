@@ -1225,6 +1225,7 @@ function App() {
       };
     });
     setPredictions(newPredictions);
+    setHasUnsavedChanges(true); // Mark as having unsaved changes
     alert(
       `🎲 RNG picks generated for all ${currentWeekData.games.length} games!\n\n` +
       `Score range: 3-45 points per team\n` +
