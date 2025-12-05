@@ -9,15 +9,15 @@ import React, { useState, useEffect } from 'react';
 import './LeaderDisplay.css';
 
 const PRIZE_INFO = {
-  1: { name: 'Most Correct Predictions', week: 'wildcard', weekName: 'Week 1' },
+  1: { name: 'Most Correct Winners', week: 'wildcard', weekName: 'Week 1' },
   2: { name: 'Closest Total Points', week: 'wildcard', weekName: 'Week 1' },
-  3: { name: 'Most Correct Predictions', week: 'divisional', weekName: 'Week 2' },
+  3: { name: 'Most Correct Winners', week: 'divisional', weekName: 'Week 2' },
   4: { name: 'Closest Total Points', week: 'divisional', weekName: 'Week 2' },
-  5: { name: 'Most Correct Predictions', week: 'conference', weekName: 'Week 3' },
+  5: { name: 'Most Correct Winners', week: 'conference', weekName: 'Week 3' },
   6: { name: 'Closest Total Points', week: 'conference', weekName: 'Week 3' },
-  7: { name: 'Most Correct Predictions', week: 'superbowl', weekName: 'Week 4' },
+  7: { name: 'Most Correct Winners', week: 'superbowl', weekName: 'Week 4' },
   8: { name: 'Closest Total Points', week: 'superbowl', weekName: 'Week 4' },
-  9: { name: 'Overall Most Correct Predictions', week: 'all', weekName: 'All Weeks' },
+  9: { name: 'Overall Most Correct Winners', week: 'all', weekName: 'All Weeks' },
   10: { name: 'Overall Closest Total Points', week: 'all', weekName: 'All Weeks' }
 };
 
@@ -164,7 +164,7 @@ function calculatePrizeLeaders(prizeNumber, allPicks, actualScores, weekData) {
       }
     });
     
-    // Calculate Most Correct Predictions
+    // Calculate Most Correct Winners
     const results = relevantPicks.map(pick => {
       let correctCount = 0;
       

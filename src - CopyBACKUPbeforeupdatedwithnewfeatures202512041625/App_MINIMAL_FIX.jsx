@@ -1541,8 +1541,8 @@ function App() {
     );
     
     if (existingPick && existingPick.predictions) {
-      setPredictions(existingPick.predictions);
-      setOriginalPicks(existingPick.predictions);
+      setPredictions(JSON.parse(JSON.stringify(existingPick.predictions)));
+      setOriginalPicks(JSON.parse(JSON.stringify(existingPick.predictions)));
       setHasUnsavedChanges(false);
     } else {
       setPredictions({});
@@ -1999,7 +1999,7 @@ function App() {
       }
       
       setSubmitted(true);
-      setOriginalPicks({...predictions});
+      setOriginalPicks(JSON.parse(JSON.stringify(predictions)));
       setHasUnsavedChanges(false);
       setShowPopup('success');
       
@@ -3196,12 +3196,7 @@ function App() {
               <button 
                 className="validate-btn" 
                 style={{marginTop: '15px', padding: '10px 20px', fontSize: '0.9rem'}}
-                onClick={() => {
-                  setCodeValidated(false);
-                  setPlayerCode('');
-                  setPlayerName('');
-                  setPredictions({});
-                }}
+                onClick={handleLogout}
               >
                 🚪 Logout / Switch Entry
               </button>

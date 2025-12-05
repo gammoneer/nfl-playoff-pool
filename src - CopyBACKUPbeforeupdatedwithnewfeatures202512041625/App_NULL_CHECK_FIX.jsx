@@ -3293,7 +3293,7 @@ function App() {
                 <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px'}}>
                   <strong>Progress:</strong>
                   <span>
-                    {Object.keys(predictions).filter(gameId => predictions[gameId].team1 && predictions[gameId].team2).length} 
+                    {Object.keys(predictions).filter(gameId => predictions[gameId] && predictions[gameId].team1 && predictions[gameId].team2).length} 
                     {' of '} 
                     {currentWeekData.games.length} games completed
                   </span>
@@ -3303,12 +3303,12 @@ function App() {
                     className="progress-fill"
                     style={{
                       width: `${(Object.keys(predictions).filter(gameId => 
-                        predictions[gameId].team1 && predictions[gameId].team2
+                        predictions[gameId] && predictions[gameId].team1 && predictions[gameId].team2
                       ).length / currentWeekData.games.length) * 100}%`
                     }}
                   >
                     {Math.round((Object.keys(predictions).filter(gameId => 
-                      predictions[gameId].team1 && predictions[gameId].team2
+                      predictions[gameId] && predictions[gameId].team1 && predictions[gameId].team2
                     ).length / currentWeekData.games.length) * 100)}%
                   </div>
                 </div>

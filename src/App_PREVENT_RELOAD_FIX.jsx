@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { initializeApp } from 'firebase/app';
 import { getDatabase, ref, push, onValue, set, update, get, remove } from 'firebase/database';
 import './App.css';
@@ -229,6 +229,9 @@ function App() {
   const [pendingWeekChange, setPendingWeekChange] = useState(null);
   const [missingGames, setMissingGames] = useState([]);
   const [invalidScores, setInvalidScores] = useState([]);
+  
+  // Ref to prevent reload immediately after submit
+  const justSubmittedRef = useRef(false);
   
   // Official Winners (Pool Manager only)
   const [officialWinners, setOfficialWinners] = useState({});
@@ -1420,13 +1423,16 @@ function App() {
   // ============================================
   
   const handleLogout = () => {
-    console.log('🚪 handleLogout called');
-    console.log('📊 hasUnsavedChanges:', hasUnsavedChanges);
-    console.log('📦 predictions:', predictions);
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log('🚪 HANDLE LOGOUT CALLED');
+    console.log('📊 Current hasUnsavedChanges value:', hasUnsavedChanges);
+    console.log('📦 Current predictions:', JSON.stringify(predictions));
+    console.log('📦 Current originalPicks:', JSON.stringify(originalPicks));
+    console.log('🔍 Are they equal?', JSON.stringify(predictions) === JSON.stringify(originalPicks));
     
     // Check if there are unsaved changes
     if (hasUnsavedChanges) {
-      console.log('⚠️ Has unsaved changes - showing warning');
+      console.log('⚠️⚠️⚠️ HAS UNSAVED CHANGES - SHOWING WARNING ⚠️⚠️⚠️');
       const choice = window.confirm(
         '⚠️ UNSAVED CHANGES!\n\n' +
         'You have unsaved picks that will be lost.\n\n' +
@@ -1436,20 +1442,24 @@ function App() {
       
       if (!choice) {
         console.log('❌ User cancelled logout');
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
         return; // User wants to stay and save
       }
-      console.log('✅ User confirmed logout');
+      console.log('✅ User confirmed logout - discarding changes');
     } else {
-      console.log('✅ No unsaved changes - logging out directly');
+      console.log('✅✅✅ NO UNSAVED CHANGES - LOGGING OUT DIRECTLY ✅✅✅');
     }
     
     // Proceed with logout
+    console.log('🚪 Proceeding with logout...');
     setCodeValidated(false);
     setPlayerCode('');
     setPlayerName('');
     setPredictions({});
     setCurrentView('picks');
     setHasUnsavedChanges(false);
+    console.log('🚪 Logout complete');
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   };
 
   // ============================================
@@ -1536,30 +1546,58 @@ function App() {
 
   // Load picks for a specific week
   const loadWeekPicks = (weekKey) => {
+    console.log('📂📂📂 LOAD WEEK PICKS CALLED 📂📂📂');
+    console.log('📂 Loading picks for week:', weekKey);
+    
     const existingPick = allPicks.find(
       p => p.week === weekKey && p.playerCode === playerCode
     );
     
     if (existingPick && existingPick.predictions) {
-      setPredictions(existingPick.predictions);
-      setOriginalPicks(existingPick.predictions);
+      console.log('📂 Found existing picks:', JSON.stringify(existingPick.predictions));
+      console.log('📂 Creating deep copies for predictions and originalPicks');
+      
+      const predCopy = JSON.parse(JSON.stringify(existingPick.predictions));
+      const origCopy = JSON.parse(JSON.stringify(existingPick.predictions));
+      
+      setPredictions(predCopy);
+      setOriginalPicks(origCopy);
       setHasUnsavedChanges(false);
+      console.log('📂 Set hasUnsavedChanges to FALSE');
+      console.log('📂📂📂 LOAD WEEK PICKS COMPLETE 📂📂📂');
     } else {
+      console.log('📂 No existing picks found - clearing state');
       setPredictions({});
       setOriginalPicks({});
       setHasUnsavedChanges(false);
+      console.log('📂📂📂 LOAD WEEK PICKS COMPLETE (EMPTY) 📂📂📂');
     }
   };
 
   // Detect unsaved changes
   useEffect(() => {
-    const hasChanges = JSON.stringify(predictions) !== JSON.stringify(originalPicks);
+    const predStr = JSON.stringify(predictions);
+    const origStr = JSON.stringify(originalPicks);
+    const hasChanges = predStr !== origStr;
+    
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log('🔍 CHANGE DETECTION useEffect triggered');
+    console.log('📦 predictions:', predStr);
+    console.log('📦 originalPicks:', origStr);
+    console.log('🔄 hasChanges:', hasChanges);
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    
     setHasUnsavedChanges(hasChanges);
   }, [predictions, originalPicks]);
 
   // Load picks when week changes
   useEffect(() => {
     if (codeValidated && playerCode) {
+      // Skip reload if we just submitted (prevents overwriting our saved state)
+      if (justSubmittedRef.current) {
+        console.log('🚫🚫🚫 SKIPPING loadWeekPicks - just submitted! 🚫🚫🚫');
+        return;
+      }
       loadWeekPicks(currentWeek);
     }
   }, [currentWeek, codeValidated, playerCode, allPicks]);
@@ -1998,10 +2036,31 @@ function App() {
         await push(ref(database, 'picks'), pickData);
       }
       
+      console.log('✅✅✅ SUBMIT SUCCESS ✅✅✅');
+      console.log('📤 Setting submitted to TRUE');
       setSubmitted(true);
-      setOriginalPicks({...predictions});
+      
+      console.log('📦 Creating deep copy of predictions for originalPicks');
+      console.log('📦 predictions before copy:', JSON.stringify(predictions));
+      const deepCopy = JSON.parse(JSON.stringify(predictions));
+      console.log('📦 deepCopy created:', JSON.stringify(deepCopy));
+      
+      setOriginalPicks(deepCopy);
+      console.log('🔄 Setting hasUnsavedChanges to FALSE');
       setHasUnsavedChanges(false);
+      
+      // Set flag to prevent immediate reload from allPicks update
+      console.log('🚫 Setting justSubmittedRef to TRUE (prevent reload)');
+      justSubmittedRef.current = true;
+      
       setShowPopup('success');
+      console.log('✅✅✅ SUBMIT COMPLETE ✅✅✅');
+      
+      // Reset the flag after a short delay
+      setTimeout(() => {
+        console.log('🚫 Resetting justSubmittedRef to FALSE (allow reload)');
+        justSubmittedRef.current = false;
+      }, 1000);
       
       setTimeout(() => {
         const picksTable = document.querySelector('.all-picks');
@@ -3196,12 +3255,7 @@ function App() {
               <button 
                 className="validate-btn" 
                 style={{marginTop: '15px', padding: '10px 20px', fontSize: '0.9rem'}}
-                onClick={() => {
-                  setCodeValidated(false);
-                  setPlayerCode('');
-                  setPlayerName('');
-                  setPredictions({});
-                }}
+                onClick={handleLogout}
               >
                 🚪 Logout / Switch Entry
               </button>
@@ -3231,60 +3285,34 @@ function App() {
               ) : (
                 <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '15px', gap: '15px'}}>
                   <h2 style={{margin: 0, flex: '1'}}>Enter Your Predictions</h2>
-                  <div style={{display: 'flex', gap: '10px', alignItems: 'center'}}>
-                    {!isWeekLocked(currentWeek) && (
-                      <button
-                        type="button"
-                        onClick={handleRNGPick}
-                        style={{
-                          padding: '10px 20px',
-                          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '8px',
-                          cursor: 'pointer',
-                          fontSize: '0.95rem',
-                          fontWeight: '600',
-                          boxShadow: '0 4px 15px rgba(102, 126, 234, 0.4)',
-                          transition: 'all 0.3s ease'
-                        }}
-                        onMouseOver={(e) => {
-                          e.target.style.transform = 'translateY(-2px)';
-                          e.target.style.boxShadow = '0 6px 20px rgba(102, 126, 234, 0.6)';
-                        }}
-                        onMouseOut={(e) => {
-                          e.target.style.transform = 'translateY(0)';
-                          e.target.style.boxShadow = '0 4px 15px rgba(102, 126, 234, 0.4)';
-                        }}
-                      >
-                        🎲 Quick RNG Pick - Auto-fill all games
-                      </button>
-                    )}
+                  {!isWeekLocked(currentWeek) && (
                     <button
                       type="button"
-                      onClick={handleLogout}
+                      onClick={handleRNGPick}
                       style={{
                         padding: '10px 20px',
-                        background: '#dc3545',
+                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                         color: 'white',
                         border: 'none',
                         borderRadius: '8px',
                         cursor: 'pointer',
                         fontSize: '0.95rem',
                         fontWeight: '600',
-                        boxShadow: '0 4px 6px rgba(0,0,0,0.2)',
+                        boxShadow: '0 4px 15px rgba(102, 126, 234, 0.4)',
                         transition: 'all 0.3s ease'
                       }}
                       onMouseOver={(e) => {
-                        e.target.style.background = '#c82333';
+                        e.target.style.transform = 'translateY(-2px)';
+                        e.target.style.boxShadow = '0 6px 20px rgba(102, 126, 234, 0.6)';
                       }}
                       onMouseOut={(e) => {
-                        e.target.style.background = '#dc3545';
+                        e.target.style.transform = 'translateY(0)';
+                        e.target.style.boxShadow = '0 4px 15px rgba(102, 126, 234, 0.4)';
                       }}
                     >
-                      🚪 Logout
+                      🎲 Quick RNG Pick - Auto-fill all games
                     </button>
-                  </div>
+                  )}
                 </div>
               )}
               
@@ -3293,7 +3321,7 @@ function App() {
                 <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px'}}>
                   <strong>Progress:</strong>
                   <span>
-                    {Object.keys(predictions).filter(gameId => predictions[gameId].team1 && predictions[gameId].team2).length} 
+                    {Object.keys(predictions).filter(gameId => predictions[gameId] && predictions[gameId].team1 && predictions[gameId].team2).length} 
                     {' of '} 
                     {currentWeekData.games.length} games completed
                   </span>
@@ -3303,12 +3331,12 @@ function App() {
                     className="progress-fill"
                     style={{
                       width: `${(Object.keys(predictions).filter(gameId => 
-                        predictions[gameId].team1 && predictions[gameId].team2
+                        predictions[gameId] && predictions[gameId].team1 && predictions[gameId].team2
                       ).length / currentWeekData.games.length) * 100}%`
                     }}
                   >
                     {Math.round((Object.keys(predictions).filter(gameId => 
-                      predictions[gameId].team1 && predictions[gameId].team2
+                      predictions[gameId] && predictions[gameId].team1 && predictions[gameId].team2
                     ).length / currentWeekData.games.length) * 100)}%
                   </div>
                 </div>

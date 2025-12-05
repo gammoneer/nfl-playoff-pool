@@ -1541,8 +1541,8 @@ function App() {
     );
     
     if (existingPick && existingPick.predictions) {
-      setPredictions(existingPick.predictions);
-      setOriginalPicks(existingPick.predictions);
+      setPredictions(JSON.parse(JSON.stringify(existingPick.predictions)));
+      setOriginalPicks(JSON.parse(JSON.stringify(existingPick.predictions)));
       setHasUnsavedChanges(false);
     } else {
       setPredictions({});
@@ -1999,7 +1999,7 @@ function App() {
       }
       
       setSubmitted(true);
-      setOriginalPicks({...predictions});
+      setOriginalPicks(JSON.parse(JSON.stringify(predictions)));
       setHasUnsavedChanges(false);
       setShowPopup('success');
       
@@ -3196,12 +3196,7 @@ function App() {
               <button 
                 className="validate-btn" 
                 style={{marginTop: '15px', padding: '10px 20px', fontSize: '0.9rem'}}
-                onClick={() => {
-                  setCodeValidated(false);
-                  setPlayerCode('');
-                  setPlayerName('');
-                  setPredictions({});
-                }}
+                onClick={handleLogout}
               >
                 🚪 Logout / Switch Entry
               </button>
@@ -3231,60 +3226,34 @@ function App() {
               ) : (
                 <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '15px', gap: '15px'}}>
                   <h2 style={{margin: 0, flex: '1'}}>Enter Your Predictions</h2>
-                  <div style={{display: 'flex', gap: '10px', alignItems: 'center'}}>
-                    {!isWeekLocked(currentWeek) && (
-                      <button
-                        type="button"
-                        onClick={handleRNGPick}
-                        style={{
-                          padding: '10px 20px',
-                          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '8px',
-                          cursor: 'pointer',
-                          fontSize: '0.95rem',
-                          fontWeight: '600',
-                          boxShadow: '0 4px 15px rgba(102, 126, 234, 0.4)',
-                          transition: 'all 0.3s ease'
-                        }}
-                        onMouseOver={(e) => {
-                          e.target.style.transform = 'translateY(-2px)';
-                          e.target.style.boxShadow = '0 6px 20px rgba(102, 126, 234, 0.6)';
-                        }}
-                        onMouseOut={(e) => {
-                          e.target.style.transform = 'translateY(0)';
-                          e.target.style.boxShadow = '0 4px 15px rgba(102, 126, 234, 0.4)';
-                        }}
-                      >
-                        🎲 Quick RNG Pick - Auto-fill all games
-                      </button>
-                    )}
+                  {!isWeekLocked(currentWeek) && (
                     <button
                       type="button"
-                      onClick={handleLogout}
+                      onClick={handleRNGPick}
                       style={{
                         padding: '10px 20px',
-                        background: '#dc3545',
+                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                         color: 'white',
                         border: 'none',
                         borderRadius: '8px',
                         cursor: 'pointer',
                         fontSize: '0.95rem',
                         fontWeight: '600',
-                        boxShadow: '0 4px 6px rgba(0,0,0,0.2)',
+                        boxShadow: '0 4px 15px rgba(102, 126, 234, 0.4)',
                         transition: 'all 0.3s ease'
                       }}
                       onMouseOver={(e) => {
-                        e.target.style.background = '#c82333';
+                        e.target.style.transform = 'translateY(-2px)';
+                        e.target.style.boxShadow = '0 6px 20px rgba(102, 126, 234, 0.6)';
                       }}
                       onMouseOut={(e) => {
-                        e.target.style.background = '#dc3545';
+                        e.target.style.transform = 'translateY(0)';
+                        e.target.style.boxShadow = '0 4px 15px rgba(102, 126, 234, 0.4)';
                       }}
                     >
-                      🚪 Logout
+                      🎲 Quick RNG Pick - Auto-fill all games
                     </button>
-                  </div>
+                  )}
                 </div>
               )}
               
@@ -3293,7 +3262,7 @@ function App() {
                 <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px'}}>
                   <strong>Progress:</strong>
                   <span>
-                    {Object.keys(predictions).filter(gameId => predictions[gameId].team1 && predictions[gameId].team2).length} 
+                    {Object.keys(predictions).filter(gameId => predictions[gameId] && predictions[gameId].team1 && predictions[gameId].team2).length} 
                     {' of '} 
                     {currentWeekData.games.length} games completed
                   </span>
@@ -3303,12 +3272,12 @@ function App() {
                     className="progress-fill"
                     style={{
                       width: `${(Object.keys(predictions).filter(gameId => 
-                        predictions[gameId].team1 && predictions[gameId].team2
+                        predictions[gameId] && predictions[gameId].team1 && predictions[gameId].team2
                       ).length / currentWeekData.games.length) * 100}%`
                     }}
                   >
                     {Math.round((Object.keys(predictions).filter(gameId => 
-                      predictions[gameId].team1 && predictions[gameId].team2
+                      predictions[gameId] && predictions[gameId].team1 && predictions[gameId].team2
                     ).length / currentWeekData.games.length) * 100)}%
                   </div>
                 </div>
