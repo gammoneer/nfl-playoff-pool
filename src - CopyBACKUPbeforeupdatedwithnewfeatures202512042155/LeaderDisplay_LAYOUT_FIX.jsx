@@ -179,26 +179,12 @@ function calculatePrizeLeaders(prizeNumber, allPicks, actualScores, weekData) {
             ? actualScores[game.week]?.[game.id]
             : relevantScores[game.id];
           
-          // Skip if no prediction or no actual score
           if (!playerPrediction || !actualScore) return;
           
-          // CRITICAL FIX: Skip if actual scores are not valid numbers
-          const actualTeam1 = parseInt(actualScore.team1);
-          const actualTeam2 = parseInt(actualScore.team2);
-          const predTeam1 = parseInt(playerPrediction.team1);
-          const predTeam2 = parseInt(playerPrediction.team2);
+          const playerWinner = parseInt(playerPrediction.team1) > parseInt(playerPrediction.team2) ? 'team1' : 'team2';
+          const actualWinner = parseInt(actualScore.team1) > parseInt(actualScore.team2) ? 'team1' : 'team2';
           
-          // If actual scores are NaN or missing, skip this game
-          if (isNaN(actualTeam1) || isNaN(actualTeam2)) return;
-          // If prediction scores are NaN or missing, skip this game
-          if (isNaN(predTeam1) || isNaN(predTeam2)) return;
-          
-          // Determine winners (only if scores are valid)
-          const playerWinner = predTeam1 > predTeam2 ? 'team1' : predTeam2 > predTeam1 ? 'team2' : 'tie';
-          const actualWinner = actualTeam1 > actualTeam2 ? 'team1' : actualTeam2 > actualTeam1 ? 'team2' : 'tie';
-          
-          // Only count if both have a clear winner (not a tie) and they match
-          if (playerWinner !== 'tie' && actualWinner !== 'tie' && playerWinner === actualWinner) {
+          if (playerWinner === actualWinner) {
             correctCount++;
           }
         });
