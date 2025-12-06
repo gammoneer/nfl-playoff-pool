@@ -54,7 +54,7 @@ function calculateGameStatus(prizeInfo, actualScores, weekData) {
         status: 'NOT_STARTED',
         gamesCompleted: 0,
         totalGames,
-        message: 'First game Saturday, January 11, 2026! Standings will update as games finish.'
+        message: 'First game Saturday, January 10, 2026! Standings will update as games finish.'
       };
     } else if (gamesCompleted < totalGames) {
       return {
