@@ -64,8 +64,8 @@ const PLAYOFF_SEASON = {
 const AUTO_LOCK_DATES = {
   wildcard: "2026-01-10",    // Saturday 12:01 AM - Games: Sat-Sun-Mon (Jan 10-12) - Deadline: Fri Jan 9 @ 11:59 PM
   divisional: "2026-01-17",  // Saturday 12:01 AM - Games: Sat-Sun (Jan 17-18) - Deadline: Fri Jan 16 @ 11:59 PM
-  conference: "2026-01-24",  // Sunday 12:01 AM - Games: Sunday (Jan 25) - Deadline: Fri Jan 23 @ 11:59 PM
-  superbowl: "2026-02-07"    // Sunday 12:01 AM - Game: Sunday (Feb 8) - Deadline: Fri Feb 6 @ 11:59 PM
+  conference: "2026-01-25",  // Sunday 12:01 AM - Games: Sunday (Jan 25) - Deadline: Fri Jan 23 @ 11:59 PM
+  superbowl: "2026-02-08"    // Sunday 12:01 AM - Game: Sunday (Feb 8) - Deadline: Fri Feb 6 @ 11:59 PM
 };
 // ✅ UPDATED WITH ACTUAL NFL PLAYOFF 2025 DATES!
 // Wild Card Weekend: January 10-12, 2026 (Sat-Sun-Mon) - Locks Sat Jan 10 @ 12:01 AM
@@ -121,7 +121,7 @@ const PLAYER_CODES = {
   "H7P3N5": "Larry Bretecher",
   "B5R4T6": "Larry Strand",
   "L2W9X2": "Michelle Desrosiers",
-  "5GGPL3": "Michael Pilato",
+  "5GGPL3": "Mike Brkich",
   "T4M8Z8": "Neema Dadmand",
   "9CD72G": "Neil Banman",
   "T7Y4R8": "Neil Foster",
@@ -134,7 +134,6 @@ const PLAYER_CODES = {
   "H8M3N7": "Rob Kost",
   "WW3F44": "Ryan Moffatt",
   "E5G7G8": "Tony Creta",
-  
   // Add more players here...
   // Example: "Z8X5C3": "New Player",
 };

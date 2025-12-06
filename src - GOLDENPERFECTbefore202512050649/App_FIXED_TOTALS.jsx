@@ -64,8 +64,8 @@ const PLAYOFF_SEASON = {
 const AUTO_LOCK_DATES = {
   wildcard: "2026-01-10",    // Saturday 12:01 AM - Games: Sat-Sun-Mon (Jan 10-12) - Deadline: Fri Jan 9 @ 11:59 PM
   divisional: "2026-01-17",  // Saturday 12:01 AM - Games: Sat-Sun (Jan 17-18) - Deadline: Fri Jan 16 @ 11:59 PM
-  conference: "2026-01-24",  // Sunday 12:01 AM - Games: Sunday (Jan 25) - Deadline: Fri Jan 23 @ 11:59 PM
-  superbowl: "2026-02-07"    // Sunday 12:01 AM - Game: Sunday (Feb 8) - Deadline: Fri Feb 6 @ 11:59 PM
+  conference: "2026-01-25",  // Sunday 12:01 AM - Games: Sunday (Jan 25) - Deadline: Fri Jan 23 @ 11:59 PM
+  superbowl: "2026-02-08"    // Sunday 12:01 AM - Game: Sunday (Feb 8) - Deadline: Fri Feb 6 @ 11:59 PM
 };
 // ✅ UPDATED WITH ACTUAL NFL PLAYOFF 2025 DATES!
 // Wild Card Weekend: January 10-12, 2026 (Sat-Sun-Mon) - Locks Sat Jan 10 @ 12:01 AM
@@ -121,7 +121,7 @@ const PLAYER_CODES = {
   "H7P3N5": "Larry Bretecher",
   "B5R4T6": "Larry Strand",
   "L2W9X2": "Michelle Desrosiers",
-  "5GGPL3": "Michael Pilato",
+  "5GGPL3": "Mike Brkich",
   "T4M8Z8": "Neema Dadmand",
   "9CD72G": "Neil Banman",
   "T7Y4R8": "Neil Foster",
@@ -134,7 +134,6 @@ const PLAYER_CODES = {
   "H8M3N7": "Rob Kost",
   "WW3F44": "Ryan Moffatt",
   "E5G7G8": "Tony Creta",
-  
   // Add more players here...
   // Example: "Z8X5C3": "New Player",
 };
@@ -1308,31 +1307,14 @@ function App() {
     };
     setManualWeekTotals(updatedTotals);
     
-    // Mark as manually overridden ONLY if value is not empty
-    // If empty/null/undefined, return to auto-calculation
-    const isOverridden = value !== '' && value !== null && value !== undefined;
+    // Mark as manually overridden
     setManualOverrides(prev => ({
       ...prev,
-      [weekKey]: isOverridden
+      [weekKey]: value !== '' && value !== null
     }));
     
     // Save to Firebase
-    set(ref(database, `manualWeekTotals/${weekKey}`), value || null);
-  };
-  
-  /**
-   * Clear manual override and return to auto-calculation
-   */
-  const clearManualOverride = (weekKey) => {
-    setManualWeekTotals(prev => ({
-      ...prev,
-      [weekKey]: ''
-    }));
-    setManualOverrides(prev => ({
-      ...prev,
-      [weekKey]: false
-    }));
-    set(ref(database, `manualWeekTotals/${weekKey}`), null);
+    set(ref(database, `manualWeekTotals/${weekKey}`), value);
   };
   
   /**
@@ -2219,24 +2201,33 @@ function App() {
       totals[pick.playerName].current = currentTotal;
       
       // For Super Bowl, calculate all weeks (POINT DIFFERENCES for prizes)
-      // CRITICAL: Player rows should ALWAYS calculate independently - NEVER use header overrides!
       if (currentWeek === 'superbowl') {
-        totals[pick.playerName].week4 = calculateWeeklyTotal(pick.playerCode, 'superbowl');
-        totals[pick.playerName].week3 = calculateWeeklyTotal(pick.playerCode, 'conference');
-        totals[pick.playerName].week2 = calculateWeeklyTotal(pick.playerCode, 'divisional');
-        totals[pick.playerName].week1 = calculateWeeklyTotal(pick.playerCode, 'wildcard');
+        // Use auto-calculated values OR manual overrides
+        totals[pick.playerName].week4 = manualOverrides.superbowl_week4 && manualWeekTotals.superbowl_week4
+          ? parseInt(manualWeekTotals.superbowl_week4)
+          : calculateWeeklyTotal(pick.playerCode, 'superbowl');
         
-        // Grand Total (sum of all 4 weeks for this player)
-        totals[pick.playerName].grand = 
-          totals[pick.playerName].week1 + 
-          totals[pick.playerName].week2 + 
-          totals[pick.playerName].week3 + 
-          totals[pick.playerName].week4;
+        totals[pick.playerName].week3 = manualOverrides.superbowl_week3 && manualWeekTotals.superbowl_week3
+          ? parseInt(manualWeekTotals.superbowl_week3)
+          : calculateWeeklyTotal(pick.playerCode, 'conference');
+        
+        totals[pick.playerName].week2 = manualOverrides.superbowl_week2 && manualWeekTotals.superbowl_week2
+          ? parseInt(manualWeekTotals.superbowl_week2)
+          : calculateWeeklyTotal(pick.playerCode, 'divisional');
+        
+        totals[pick.playerName].week1 = manualOverrides.superbowl_week1 && manualWeekTotals.superbowl_week1
+          ? parseInt(manualWeekTotals.superbowl_week1)
+          : calculateWeeklyTotal(pick.playerCode, 'wildcard');
+        
+        // Grand Total (auto-calculated or manual override)
+        totals[pick.playerName].grand = manualOverrides.superbowl_grand && manualWeekTotals.superbowl_grand
+          ? parseInt(manualWeekTotals.superbowl_grand)
+          : calculateGrandTotal(pick.playerCode);
       }
     });
     
     return totals;
-  }, [allPicks, currentWeek, actualScores]);
+  }, [allPicks, currentWeek, actualScores, manualWeekTotals, manualOverrides]);
 
   return (
     <div className="App">
@@ -3687,25 +3678,8 @@ function App() {
                           {/* Official Total Input at top */}
                           {isPoolManager() ? (
                             <div style={{marginBottom: '8px'}}>
-                              <div style={{fontSize: '0.7rem', marginBottom: '4px', color: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px'}}>
+                              <div style={{fontSize: '0.7rem', marginBottom: '4px', color: '#000'}}>
                                 OFFICIAL {manualOverrides.superbowl_week4 ? '✏️' : '✓'}
-                                {manualOverrides.superbowl_week4 && (
-                                  <button
-                                    onClick={() => clearManualOverride('superbowl_week4')}
-                                    title="Return to auto-calculation"
-                                    style={{
-                                      padding: '2px 6px',
-                                      fontSize: '0.65rem',
-                                      background: '#e74c3c',
-                                      color: 'white',
-                                      border: 'none',
-                                      borderRadius: '3px',
-                                      cursor: 'pointer'
-                                    }}
-                                  >
-                                    Clear
-                                  </button>
-                                )}
                               </div>
                               <input
                                 type="number"
@@ -3713,7 +3687,7 @@ function App() {
                                 value={getHeaderDisplayValue('superbowl_week4', 'superbowl')}
                                 onChange={(e) => handleManualTotalChange('superbowl_week4', e.target.value)}
                                 placeholder="Auto"
-                                title={manualOverrides.superbowl_week4 ? 'Manually overridden - click Clear to return to auto' : 'Auto-calculated - click to override'}
+                                title={manualOverrides.superbowl_week4 ? 'Manually overridden - click to edit' : 'Auto-calculated - click to override'}
                                 style={{
                                   width: '60px',
                                   padding: '4px',
@@ -3743,25 +3717,8 @@ function App() {
                           {/* Official Total Input at top */}
                           {isPoolManager() ? (
                             <div style={{marginBottom: '8px'}}>
-                              <div style={{fontSize: '0.7rem', marginBottom: '4px', color: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px'}}>
+                              <div style={{fontSize: '0.7rem', marginBottom: '4px', color: '#000'}}>
                                 OFFICIAL {manualOverrides.superbowl_week3 ? '✏️' : '✓'}
-                                {manualOverrides.superbowl_week3 && (
-                                  <button
-                                    onClick={() => clearManualOverride('superbowl_week3')}
-                                    title="Return to auto-calculation"
-                                    style={{
-                                      padding: '2px 6px',
-                                      fontSize: '0.65rem',
-                                      background: '#e74c3c',
-                                      color: 'white',
-                                      border: 'none',
-                                      borderRadius: '3px',
-                                      cursor: 'pointer'
-                                    }}
-                                  >
-                                    Clear
-                                  </button>
-                                )}
                               </div>
                               <input
                                 type="number"
@@ -3769,7 +3726,7 @@ function App() {
                                 value={getHeaderDisplayValue('superbowl_week3', 'conference')}
                                 onChange={(e) => handleManualTotalChange('superbowl_week3', e.target.value)}
                                 placeholder="Auto"
-                                title={manualOverrides.superbowl_week3 ? 'Manually overridden - click Clear to return to auto' : 'Auto-calculated - click to override'}
+                                title={manualOverrides.superbowl_week3 ? 'Manually overridden - click to edit' : 'Auto-calculated - click to override'}
                                 style={{
                                   width: '60px',
                                   padding: '4px',
@@ -3799,25 +3756,8 @@ function App() {
                           {/* Official Total Input at top */}
                           {isPoolManager() ? (
                             <div style={{marginBottom: '8px'}}>
-                              <div style={{fontSize: '0.7rem', marginBottom: '4px', color: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px'}}>
+                              <div style={{fontSize: '0.7rem', marginBottom: '4px', color: '#000'}}>
                                 OFFICIAL {manualOverrides.superbowl_week2 ? '✏️' : '✓'}
-                                {manualOverrides.superbowl_week2 && (
-                                  <button
-                                    onClick={() => clearManualOverride('superbowl_week2')}
-                                    title="Return to auto-calculation"
-                                    style={{
-                                      padding: '2px 6px',
-                                      fontSize: '0.65rem',
-                                      background: '#e74c3c',
-                                      color: 'white',
-                                      border: 'none',
-                                      borderRadius: '3px',
-                                      cursor: 'pointer'
-                                    }}
-                                  >
-                                    Clear
-                                  </button>
-                                )}
                               </div>
                               <input
                                 type="number"
@@ -3825,7 +3765,7 @@ function App() {
                                 value={getHeaderDisplayValue('superbowl_week2', 'divisional')}
                                 onChange={(e) => handleManualTotalChange('superbowl_week2', e.target.value)}
                                 placeholder="Auto"
-                                title={manualOverrides.superbowl_week2 ? 'Manually overridden - click Clear to return to auto' : 'Auto-calculated - click to override'}
+                                title={manualOverrides.superbowl_week2 ? 'Manually overridden - click to edit' : 'Auto-calculated - click to override'}
                                 style={{
                                   width: '60px',
                                   padding: '4px',
@@ -3855,25 +3795,8 @@ function App() {
                           {/* Official Total Input at top */}
                           {isPoolManager() ? (
                             <div style={{marginBottom: '8px'}}>
-                              <div style={{fontSize: '0.7rem', marginBottom: '4px', color: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px'}}>
+                              <div style={{fontSize: '0.7rem', marginBottom: '4px', color: '#000'}}>
                                 OFFICIAL {manualOverrides.superbowl_week1 ? '✏️' : '✓'}
-                                {manualOverrides.superbowl_week1 && (
-                                  <button
-                                    onClick={() => clearManualOverride('superbowl_week1')}
-                                    title="Return to auto-calculation"
-                                    style={{
-                                      padding: '2px 6px',
-                                      fontSize: '0.65rem',
-                                      background: '#e74c3c',
-                                      color: 'white',
-                                      border: 'none',
-                                      borderRadius: '3px',
-                                      cursor: 'pointer'
-                                    }}
-                                  >
-                                    Clear
-                                  </button>
-                                )}
                               </div>
                               <input
                                 type="number"
@@ -3881,7 +3804,7 @@ function App() {
                                 value={getHeaderDisplayValue('superbowl_week1', 'wildcard')}
                                 onChange={(e) => handleManualTotalChange('superbowl_week1', e.target.value)}
                                 placeholder="Auto"
-                                title={manualOverrides.superbowl_week1 ? 'Manually overridden - click Clear to return to auto' : 'Auto-calculated - click to override'}
+                                title={manualOverrides.superbowl_week1 ? 'Manually overridden - click to edit' : 'Auto-calculated - click to override'}
                                 style={{
                                   width: '60px',
                                   padding: '4px',
@@ -3911,25 +3834,8 @@ function App() {
                           {/* Official Total Input */}
                           {isPoolManager() ? (
                             <div style={{marginBottom: '8px'}}>
-                              <div style={{fontSize: '0.7rem', marginBottom: '4px', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px'}}>
+                              <div style={{fontSize: '0.7rem', marginBottom: '4px', color: '#fff'}}>
                                 {manualOverrides.superbowl_grand ? '✏️' : '✓'} over
-                                {manualOverrides.superbowl_grand && (
-                                  <button
-                                    onClick={() => clearManualOverride('superbowl_grand')}
-                                    title="Return to auto-calculation"
-                                    style={{
-                                      padding: '2px 6px',
-                                      fontSize: '0.65rem',
-                                      background: '#e74c3c',
-                                      color: 'white',
-                                      border: 'none',
-                                      borderRadius: '3px',
-                                      cursor: 'pointer'
-                                    }}
-                                  >
-                                    Clear
-                                  </button>
-                                )}
                               </div>
                               <input
                                 type="number"
@@ -3937,7 +3843,7 @@ function App() {
                                 value={getGrandTotalHeaderValue()}
                                 onChange={(e) => handleManualTotalChange('superbowl_grand', e.target.value)}
                                 placeholder="Auto"
-                                title={manualOverrides.superbowl_grand ? 'Manually overridden - click Clear to return to auto' : 'Auto-calculated - click to override'}
+                                title={manualOverrides.superbowl_grand ? 'Manually overridden - click to edit' : 'Auto-calculated - click to override'}
                                 style={{
                                   width: '70px',
                                   padding: '4px',
