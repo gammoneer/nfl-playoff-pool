@@ -3571,27 +3571,7 @@ function App() {
                 Welcome, <span className="player-name-highlight">{playerName}</span>!
                 {isPoolManager() && <span style={{marginLeft: '10px', color: '#d63031'}}>👑 POOL MANAGER</span>}
               </h3>
-              {/* WEEK NUMBER BADGE */}
-              <div style={{
-                display: 'inline-block',
-                padding: '8px 20px',
-                marginBottom: '10px',
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                color: 'white',
-                borderRadius: '25px',
-                fontWeight: 'bold',
-                fontSize: '1.1rem',
-                boxShadow: '0 4px 15px rgba(102, 126, 234, 0.4)',
-                letterSpacing: '0.5px'
-              }}>
-                {currentWeek === 'wildcard' && '📅 WEEK 1 OF 4'}
-                {currentWeek === 'divisional' && '📅 WEEK 2 OF 4'}
-                {currentWeek === 'conference' && '📅 WEEK 3 OF 4'}
-                {currentWeek === 'superbowl' && '📅 WEEK 4 OF 4'}
-              </div>
-              <p style={{color: '#000', marginTop: '8px'}}>
-                Making picks for: <strong>{currentWeekData.name}</strong>
-              </p>
+              <p style={{color: '#000'}}>Making picks for: <strong>{currentWeekData.name}</strong></p>
               {/* 🔒 NEW: Show lock status */}
               {isWeekLocked(currentWeek) && !isPoolManager() && (
                 <div style={{
@@ -3638,24 +3618,7 @@ function App() {
                 </h2>
               ) : (
                 <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '15px', gap: '15px'}}>
-                  <h2 style={{margin: 0, flex: '1'}}>
-                    Enter Your Predictions 
-                    <span style={{
-                      marginLeft: '12px',
-                      fontSize: '0.85rem',
-                      color: '#667eea',
-                      fontWeight: '600',
-                      background: '#f0f0ff',
-                      padding: '4px 12px',
-                      borderRadius: '15px',
-                      border: '2px solid #667eea'
-                    }}>
-                      {currentWeek === 'wildcard' && 'Week 1'}
-                      {currentWeek === 'divisional' && 'Week 2'}
-                      {currentWeek === 'conference' && 'Week 3'}
-                      {currentWeek === 'superbowl' && 'Week 4'}
-                    </span>
-                  </h2>
+                  <h2 style={{margin: 0, flex: '1'}}>Enter Your Predictions</h2>
                   {!isWeekLocked(currentWeek) && (
                     <button
                       type="button"
