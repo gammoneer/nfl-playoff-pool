@@ -3639,16 +3639,10 @@ function App() {
               ) : (
                 <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '15px', gap: '15px'}}>
                   <h2 style={{margin: 0, flex: '1'}}>
-                    Enter Your Predictions 
-                    <span style={{
-                      marginLeft: '12px',
-                      fontSize: '0.85rem',
+                    Enter Your Predictions: <span style={{
+                      fontSize: '0.95rem',
                       color: '#667eea',
-                      fontWeight: '600',
-                      background: '#f0f0ff',
-                      padding: '4px 12px',
-                      borderRadius: '15px',
-                      border: '2px solid #667eea'
+                      fontWeight: '600'
                     }}>
                       {currentWeek === 'wildcard' && 'Wk 1'}
                       {currentWeek === 'divisional' && 'Wk 2'}
