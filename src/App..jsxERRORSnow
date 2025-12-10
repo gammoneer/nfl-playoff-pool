@@ -22,8 +22,6 @@ import {
   exportToCSV, 
   downloadCSV 
 } from './winnerService';
-import LoginLogsViewer from './LoginLogsViewer';
-import { logSuccessfulLogin, logFailedLogin } from './loginLogging';
 
 // Firebase configuration
 const firebaseConfig = {
@@ -2000,14 +1998,12 @@ function App() {
     const code = playerCode.trim().toUpperCase();
     
     if (!code) {
-      logFailedLogin(code, 'Empty code');
       alert('Please enter your 6-character player code');
       return;
     }
     
     // Accept 6-character alphanumeric codes
     if (code.length !== 6 || !/^[A-Z0-9]{6}$/.test(code)) {
-      logFailedLogin(code, 'Invalid format - must be 6 alphanumeric characters');
       alert('Invalid code format!\n\nPlayer codes must be exactly 6 characters (letters and numbers).\nExample: A7K9M2');
       return;
     }
@@ -2015,7 +2011,6 @@ function App() {
     const playerNameForCode = PLAYER_CODES[code];
     
     if (!playerNameForCode) {
-      logFailedLogin(code, 'Code not recognized');
       alert('Invalid player code!\n\nThis code is not recognized.\n\nMake sure you:\n1. Paid your $20 entry fee\n2. Received your code from the pool manager\n3. Entered the code correctly\n\nContact: gammoneer2b@gmail.com');
       return;
     }
@@ -2042,7 +2037,6 @@ function App() {
     }
     
     // Code is valid!
-    logSuccessfulLogin(code, playerNameForCode);
     setPlayerName(playerNameForCode);
     setPlayerCode(code); // Store uppercase version
     setCodeValidated(true);
@@ -2387,25 +2381,8 @@ function App() {
   const playerTotals = useMemo(() => {
     const totals = {};
     
-    // For Super Bowl, get ALL unique players from ANY week (so we show everyone's totals even if they haven't entered Week 4)
-    // For other weeks, only show players who entered picks for that specific week
-    const weekPicks = currentWeek === 'superbowl' 
-      ? (() => {
-          // Get all unique players from all weeks
-          const uniquePlayers = new Map();
-          allPicks.forEach(pick => {
-            if (!uniquePlayers.has(pick.playerName)) {
-              uniquePlayers.set(pick.playerName, {
-                playerName: pick.playerName,
-                playerCode: pick.playerCode,
-                week: currentWeek, // Set to superbowl
-                predictions: allPicks.find(p => p.playerCode === pick.playerCode && p.week === 'superbowl')?.predictions || {}
-              });
-            }
-          });
-          return Array.from(uniquePlayers.values());
-        })()
-      : allPicks.filter(pick => pick.week === currentWeek);
+    // Get all unique player names from current week
+    const weekPicks = allPicks.filter(pick => pick.week === currentWeek);
     
     weekPicks.forEach(pick => {
       if (!totals[pick.playerName]) {
@@ -2430,27 +2407,13 @@ function App() {
       });
       totals[pick.playerName].current = currentTotal;
       
-      // For Super Bowl, calculate all weeks (PREDICTED TOTALS - sum of predicted scores)
+      // For Super Bowl, calculate all weeks (POINT DIFFERENCES for prizes)
       // CRITICAL: Player rows should ALWAYS calculate independently - NEVER use header overrides!
       if (currentWeek === 'superbowl') {
-        // Helper function to calculate predicted total for any week
-        const calculatePredictedTotal = (playerCode, weekName) => {
-          const playerPick = allPicks.find(p => p.playerCode === playerCode && p.week === weekName);
-          if (!playerPick || !playerPick.predictions) return 0;
-          
-          let total = 0;
-          Object.values(playerPick.predictions).forEach(pred => {
-            if (pred && pred.team1 && pred.team2) {
-              total += (parseInt(pred.team1) || 0) + (parseInt(pred.team2) || 0);
-            }
-          });
-          return total;
-        };
-        
-        totals[pick.playerName].week4 = calculatePredictedTotal(pick.playerCode, 'superbowl');
-        totals[pick.playerName].week3 = calculatePredictedTotal(pick.playerCode, 'conference');
-        totals[pick.playerName].week2 = calculatePredictedTotal(pick.playerCode, 'divisional');
-        totals[pick.playerName].week1 = calculatePredictedTotal(pick.playerCode, 'wildcard');
+        totals[pick.playerName].week4 = calculateWeeklyTotal(pick.playerCode, 'superbowl');
+        totals[pick.playerName].week3 = calculateWeeklyTotal(pick.playerCode, 'conference');
+        totals[pick.playerName].week2 = calculateWeeklyTotal(pick.playerCode, 'divisional');
+        totals[pick.playerName].week1 = calculateWeeklyTotal(pick.playerCode, 'wildcard');
         
         // Grand Total (sum of all 4 weeks for this player)
         totals[pick.playerName].grand = 
@@ -3446,35 +3409,6 @@ function App() {
                 </span>
               )}
             </button>
-            {isPoolManager() && (
-              <button
-                className={`nav-btn ${currentView === 'loginLogs' ? 'active' : ''}`}
-                onClick={() => setCurrentView('loginLogs')}
-              >
-                🔐 Login Logs
-                <span style={{
-                  marginLeft: '8px',
-                  fontSize: '0.7rem',
-                  padding: '2px 6px',
-                  background: '#667eea',
-                  color: 'white',
-                  borderRadius: '10px',
-                  fontWeight: '500'
-                }}>
-                  Pool Manager
-                </span>
-                {currentView === 'loginLogs' && (
-                  <span style={{
-                    marginLeft: '8px',
-                    fontSize: '0.75rem',
-                    opacity: 0.9,
-                    fontStyle: 'italic'
-                  }}>
-                    (you are here)
-                  </span>
-                )}
-              </button>
-            )}
           </div>
         )}
 
@@ -3490,11 +3424,6 @@ function App() {
             prizePool={prizePool}
             officialWinners={officialWinners}
             onLogout={handleLogout}
-          />
-        ) : currentView === 'loginLogs' && codeValidated ? (
-          <LoginLogsViewer 
-            isPoolManager={isPoolManager()}
-            playerCodes={PLAYER_CODES}
           />
         ) : (
           <>
@@ -4400,35 +4329,10 @@ function App() {
                   {/* 🗑️ REMOVED: Manual Week Totals header row deleted per user request */}
                 </thead>
                 <tbody>
-                  {(() => {
-                    // For Super Bowl, show ALL players (even without Week 4 picks)
-                    // For other weeks, only show players with picks for that week
-                    const displayPicks = currentWeek === 'superbowl'
-                      ? (() => {
-                          // Get all unique players from all weeks
-                          const uniquePlayers = new Map();
-                          allPicks.forEach(pick => {
-                            if (!uniquePlayers.has(pick.playerCode)) {
-                              // Find if they have superbowl picks
-                              const superbowlPick = allPicks.find(p => p.playerCode === pick.playerCode && p.week === 'superbowl');
-                              
-                              uniquePlayers.set(pick.playerCode, superbowlPick || {
-                                playerName: pick.playerName,
-                                playerCode: pick.playerCode,
-                                week: 'superbowl',
-                                predictions: {},
-                                timestamp: pick.timestamp,
-                                lastUpdated: pick.lastUpdated || pick.timestamp
-                              });
-                            }
-                          });
-                          return Array.from(uniquePlayers.values());
-                        })()
-                      : allPicks.filter(pick => pick.week === currentWeek);
-                    
-                    return displayPicks
-                      .sort((a, b) => (b.lastUpdated || b.timestamp) - (a.lastUpdated || a.timestamp))
-                      .map((pick, idx) => {
+                  {allPicks
+                    .filter(pick => pick.week === currentWeek)
+                    .sort((a, b) => (b.lastUpdated || b.timestamp) - (a.lastUpdated || a.timestamp))
+                    .map((pick, idx) => {
                       // Check if any prediction matches actual score (winner)
                       const hasCorrectPrediction = (gameId) => {
                         const actual = actualScores[currentWeek]?.[gameId];
@@ -4588,8 +4492,7 @@ function App() {
                           </td>
                         </tr>
                       );
-                    });
-                  })()}
+                    })}
                 </tbody>
               </table>
             </div>
