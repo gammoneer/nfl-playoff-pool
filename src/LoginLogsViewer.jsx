@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getDatabase, ref, onValue, off } from 'firebase/database';
+import { getDatabase, ref, onValue } from 'firebase/database';
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
@@ -34,32 +34,55 @@ import { getDatabase, ref, onValue, off } from 'firebase/database';
 const LoginLogsViewer = ({ isPoolManager, playerCodes }) => {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [filter, setFilter] = useState('all'); // 'all', 'success', 'failed'
   const [searchTerm, setSearchTerm] = useState('');
   const [sortOrder, setSortOrder] = useState('newest'); // 'newest', 'oldest'
 
   // Fetch logs from Firebase
   useEffect(() => {
-    if (!isPoolManager) return;
-
-    const database = getDatabase();
-    const logsRef = ref(database, 'loginLogs');
-    
-    const unsubscribe = onValue(logsRef, (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        const logsArray = Object.keys(data).map(key => ({
-          id: key,
-          ...data[key]
-        }));
-        setLogs(logsArray);
-      } else {
-        setLogs([]);
-      }
+    if (!isPoolManager) {
       setLoading(false);
-    });
+      return;
+    }
 
-    return () => off(logsRef, 'value', unsubscribe);
+    try {
+      const database = getDatabase();
+      const logsRef = ref(database, 'loginLogs');
+      
+      const unsubscribe = onValue(logsRef, (snapshot) => {
+        const data = snapshot.val();
+        console.log('📊 Login logs data:', data); // Debug log
+        
+        if (data) {
+          const logsArray = Object.keys(data).map(key => ({
+            id: key,
+            ...data[key]
+          }));
+          console.log('📊 Parsed logs array:', logsArray); // Debug log
+          setLogs(logsArray);
+        } else {
+          console.log('📊 No login logs data found'); // Debug log
+          setLogs([]);
+        }
+        setLoading(false);
+        setError(null);
+      }, (error) => {
+        console.error('❌ Error fetching login logs:', error);
+        setError('Failed to load login logs. Check console for details.');
+        setLoading(false);
+      });
+
+      return () => {
+        if (unsubscribe) {
+          unsubscribe();
+        }
+      };
+    } catch (err) {
+      console.error('❌ Error setting up Firebase listener:', err);
+      setError('Failed to initialize Firebase. Check console for details.');
+      setLoading(false);
+    }
   }, [isPoolManager]);
 
   // Filter and sort logs
@@ -135,8 +158,69 @@ const LoginLogsViewer = ({ isPoolManager, playerCodes }) => {
 
   if (loading) {
     return (
-      <div style={{padding: '40px', textAlign: 'center'}}>
-        <p>Loading login logs...</p>
+      <div style={{padding: '60px', textAlign: 'center'}}>
+        <div style={{
+          display: 'inline-block',
+          padding: '20px 40px',
+          background: '#f0f4f8',
+          borderRadius: '10px',
+          boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
+        }}>
+          <p style={{fontSize: '1.2rem', margin: '0 0 10px 0'}}>📊 Loading login logs...</p>
+          <p style={{fontSize: '0.9rem', color: '#666', margin: 0}}>Connecting to Firebase...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div style={{padding: '60px', textAlign: 'center'}}>
+        <div style={{
+          display: 'inline-block',
+          padding: '30px',
+          background: '#fff3cd',
+          border: '2px solid #ffc107',
+          borderRadius: '10px',
+          boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+          maxWidth: '600px'
+        }}>
+          <h3 style={{margin: '0 0 15px 0', color: '#856404'}}>⚠️ Error Loading Logs</h3>
+          <p style={{color: '#856404', margin: '0 0 15px 0'}}>{error}</p>
+          <div style={{
+            background: '#fff',
+            padding: '15px',
+            borderRadius: '6px',
+            textAlign: 'left',
+            fontSize: '0.9rem',
+            color: '#666',
+            marginTop: '20px'
+          }}>
+            <p style={{margin: '0 0 10px 0'}}><strong>Possible fixes:</strong></p>
+            <ul style={{margin: 0, paddingLeft: '20px'}}>
+              <li>Check browser console (F12) for detailed errors</li>
+              <li>Refresh the page (Ctrl+Shift+R)</li>
+              <li>Make sure Firebase is initialized properly</li>
+              <li>Check Firebase Realtime Database rules</li>
+            </ul>
+          </div>
+          <button
+            onClick={() => window.location.reload()}
+            style={{
+              marginTop: '20px',
+              padding: '12px 24px',
+              background: '#667eea',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontSize: '1rem',
+              fontWeight: '600'
+            }}
+          >
+            🔄 Reload Page
+          </button>
+        </div>
       </div>
     );
   }
@@ -343,15 +427,50 @@ const LoginLogsViewer = ({ isPoolManager, playerCodes }) => {
       {filteredLogs.length === 0 ? (
         <div style={{
           background: 'white',
-          padding: '60px',
+          padding: '60px 40px',
           borderRadius: '10px',
           textAlign: 'center',
           color: '#999',
           boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
         }}>
-          <p style={{fontSize: '1.2rem', margin: 0}}>
-            {searchTerm ? '🔍 No logs match your search' : '📭 No login attempts yet'}
-          </p>
+          {searchTerm ? (
+            <p style={{fontSize: '1.2rem', margin: 0}}>
+              🔍 No logs match your search
+            </p>
+          ) : (
+            <>
+              <p style={{fontSize: '1.5rem', margin: '0 0 20px 0', color: '#333'}}>
+                📭 No login attempts logged yet
+              </p>
+              <div style={{
+                background: '#f8f9fa',
+                padding: '25px',
+                borderRadius: '8px',
+                maxWidth: '600px',
+                margin: '0 auto',
+                textAlign: 'left'
+              }}>
+                <p style={{margin: '0 0 15px 0', fontSize: '1rem', color: '#666'}}>
+                  <strong>To test login tracking:</strong>
+                </p>
+                <ol style={{margin: 0, paddingLeft: '20px', color: '#666', lineHeight: '2'}}>
+                  <li>Logout (click "🚪 Logout" button)</li>
+                  <li>Try logging in with a WRONG code (e.g., "ABC123")</li>
+                  <li>See the failed attempt appear here</li>
+                  <li>Login with your correct code</li>
+                  <li>See the successful login appear here</li>
+                </ol>
+                <p style={{
+                  margin: '20px 0 0 0',
+                  fontSize: '0.9rem',
+                  color: '#999',
+                  fontStyle: 'italic'
+                }}>
+                  💡 All future login attempts (successful and failed) will be logged automatically!
+                </p>
+              </div>
+            </>
+          )}
         </div>
       ) : (
         <div style={{
