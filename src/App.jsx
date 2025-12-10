@@ -3650,10 +3650,10 @@ function App() {
                       borderRadius: '15px',
                       border: '2px solid #667eea'
                     }}>
-                      {currentWeek === 'wildcard' && 'Week 1'}
-                      {currentWeek === 'divisional' && 'Week 2'}
-                      {currentWeek === 'conference' && 'Week 3'}
-                      {currentWeek === 'superbowl' && 'Week 4'}
+                      {currentWeek === 'wildcard' && 'Wk 1'}
+                      {currentWeek === 'divisional' && 'Wk 2'}
+                      {currentWeek === 'conference' && 'Wk 3'}
+                      {currentWeek === 'superbowl' && 'Wk 4'}
                     </span>
                   </h2>
                   {!isWeekLocked(currentWeek) && (
