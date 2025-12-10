@@ -3,32 +3,18 @@ import { getDatabase, ref, onValue } from 'firebase/database';
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * LOGIN LOGS VIEWER - POOL MANAGER ONLY
+ * LOGIN LOGS VIEWER - FULL FEATURED (CARD LAYOUT)
  * ═══════════════════════════════════════════════════════════════════════════
- * 
- * This component displays all login attempts for the NFL Playoff Pool.
  * 
  * Features:
- * - View all login attempts (successful and failed)
  * - Filter by status (all/success/failed)
  * - Search by player code or name
+ * - Sort by date (newest/oldest)
  * - Export to CSV
- * - Real-time updates from Firebase
- * - Security: Pool Manager only
+ * - Stats dashboard
+ * - Pool Manager only access
  * 
- * Firebase Structure:
- * /loginLogs
- *   /{logId}
- *     timestamp: 1704067200000
- *     playerCode: "B8L9M2"
- *     playerName: "Richard Biletski"  (if successful)
- *     success: true/false
- *     errorMessage: "Invalid code" (if failed)
- *     browser: "Chrome"
- *     device: "Desktop"
- *     ip: "192.168.1.1" (optional)
- * 
- * ═══════════════════════════════════════════════════════════════════════════
+ * Uses CARD LAYOUT instead of table for better visibility!
  */
 
 const LoginLogsViewer = ({ isPoolManager, playerCodes }) => {
@@ -52,17 +38,17 @@ const LoginLogsViewer = ({ isPoolManager, playerCodes }) => {
       
       const unsubscribe = onValue(logsRef, (snapshot) => {
         const data = snapshot.val();
-        console.log('📊 Login logs data:', data); // Debug log
+        console.log('📊 Login logs data:', data);
         
         if (data) {
           const logsArray = Object.keys(data).map(key => ({
             id: key,
             ...data[key]
           }));
-          console.log('📊 Parsed logs array:', logsArray); // Debug log
+          console.log('📊 Parsed logs array:', logsArray);
           setLogs(logsArray);
         } else {
-          console.log('📊 No login logs data found'); // Debug log
+          console.log('📊 No login logs data found');
           setLogs([]);
         }
         setLoading(false);
@@ -117,26 +103,32 @@ const LoginLogsViewer = ({ isPoolManager, playerCodes }) => {
       return;
     }
 
-    let csv = 'Timestamp,Player Code,Player Name,Status,Error Message,Browser,Device\n';
-    
-    filteredLogs.forEach(log => {
-      const timestamp = new Date(log.timestamp).toLocaleString();
-      const code = log.playerCode || '-';
-      const name = log.playerName || '-';
-      const status = log.success ? 'Success' : 'Failed';
-      const error = log.errorMessage || '-';
-      const browser = log.browser || '-';
-      const device = log.device || '-';
-      
-      csv += `"${timestamp}","${code}","${name}","${status}","${error}","${browser}","${device}"\n`;
-    });
+    const headers = ['Timestamp', 'Date/Time', 'Player Code', 'Player Name', 'Status', 'Error Message', 'Browser', 'Device'];
+    const rows = filteredLogs.map(log => [
+      log.timestamp,
+      new Date(log.timestamp).toLocaleString(),
+      log.playerCode || '',
+      log.playerName || '',
+      log.success ? 'Success' : 'Failed',
+      log.errorMessage || '',
+      log.browser || '',
+      log.device || ''
+    ]);
 
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `login_logs_${new Date().toISOString().slice(0,10)}.csv`;
-    a.click();
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `login-logs-${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
     window.URL.revokeObjectURL(url);
   };
 
@@ -166,7 +158,7 @@ const LoginLogsViewer = ({ isPoolManager, playerCodes }) => {
           borderRadius: '10px',
           boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
         }}>
-          <p style={{fontSize: '1.2rem', margin: '0 0 10px 0'}}>📊 Loading login logs...</p>
+          <p style={{fontSize: '1.2rem', margin: '0 0 10px 0', color: '#000'}}>📊 Loading login logs...</p>
           <p style={{fontSize: '0.9rem', color: '#666', margin: 0}}>Connecting to Firebase...</p>
         </div>
       </div>
@@ -187,23 +179,6 @@ const LoginLogsViewer = ({ isPoolManager, playerCodes }) => {
         }}>
           <h3 style={{margin: '0 0 15px 0', color: '#856404'}}>⚠️ Error Loading Logs</h3>
           <p style={{color: '#856404', margin: '0 0 15px 0'}}>{error}</p>
-          <div style={{
-            background: '#fff',
-            padding: '15px',
-            borderRadius: '6px',
-            textAlign: 'left',
-            fontSize: '0.9rem',
-            color: '#666',
-            marginTop: '20px'
-          }}>
-            <p style={{margin: '0 0 10px 0'}}><strong>Possible fixes:</strong></p>
-            <ul style={{margin: 0, paddingLeft: '20px'}}>
-              <li>Check browser console (F12) for detailed errors</li>
-              <li>Refresh the page (Ctrl+Shift+R)</li>
-              <li>Make sure Firebase is initialized properly</li>
-              <li>Check Firebase Realtime Database rules</li>
-            </ul>
-          </div>
           <button
             onClick={() => window.location.reload()}
             style={{
@@ -232,29 +207,28 @@ const LoginLogsViewer = ({ isPoolManager, playerCodes }) => {
       padding: '0 20px'
     }}>
       {/* Header */}
-      <div style={{
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        padding: '30px',
-        borderRadius: '12px',
-        color: 'white',
-        marginBottom: '30px',
-        boxShadow: '0 8px 20px rgba(0,0,0,0.15)'
-      }}>
-        <h2 style={{margin: '0 0 10px 0', display: 'flex', alignItems: 'center', gap: '10px'}}>
+      <div style={{marginBottom: '30px'}}>
+        <h1 style={{
+          fontSize: '2rem',
+          margin: '0 0 10px 0',
+          color: '#000',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px'
+        }}>
           🔐 Login Activity Log
           <span style={{
             fontSize: '0.7rem',
             padding: '4px 12px',
-            background: 'rgba(255,255,255,0.2)',
+            background: '#667eea',
+            color: 'white',
             borderRadius: '20px',
-            fontWeight: 'normal'
+            fontWeight: '500'
           }}>
             Pool Manager Only
           </span>
-        </h2>
-        <p style={{margin: '0', opacity: 0.9, fontSize: '0.95rem'}}>
-          Monitor all login attempts to the NFL Playoff Pool
-        </p>
+        </h1>
+        <p style={{color: '#666', margin: 0}}>Monitor all login attempts to the NFL Playoff Pool</p>
       </div>
 
       {/* Stats Cards */}
@@ -265,176 +239,186 @@ const LoginLogsViewer = ({ isPoolManager, playerCodes }) => {
         marginBottom: '30px'
       }}>
         <div style={{
-          background: '#4caf50',
-          color: 'white',
+          background: 'linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%)',
           padding: '25px',
-          borderRadius: '10px',
-          boxShadow: '0 4px 10px rgba(0,0,0,0.1)'
+          borderRadius: '12px',
+          boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
+          color: '#000'
         }}>
-          <div style={{fontSize: '2rem', fontWeight: 'bold'}}>{stats.successful}</div>
-          <div style={{fontSize: '0.9rem', opacity: 0.9}}>Successful Logins</div>
+          <div style={{fontSize: '2.5rem', fontWeight: 'bold', marginBottom: '5px'}}>
+            {stats.successful}
+          </div>
+          <div style={{fontSize: '1rem', fontWeight: '500'}}>Successful Logins</div>
         </div>
-        
+
         <div style={{
-          background: '#f44336',
-          color: 'white',
+          background: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
           padding: '25px',
-          borderRadius: '10px',
-          boxShadow: '0 4px 10px rgba(0,0,0,0.1)'
+          borderRadius: '12px',
+          boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
+          color: '#000'
         }}>
-          <div style={{fontSize: '2rem', fontWeight: 'bold'}}>{stats.failed}</div>
-          <div style={{fontSize: '0.9rem', opacity: 0.9}}>Failed Attempts</div>
+          <div style={{fontSize: '2.5rem', fontWeight: 'bold', marginBottom: '5px'}}>
+            {stats.failed}
+          </div>
+          <div style={{fontSize: '1rem', fontWeight: '500'}}>Failed Attempts</div>
         </div>
-        
+
         <div style={{
-          background: '#2196f3',
-          color: 'white',
+          background: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)',
           padding: '25px',
-          borderRadius: '10px',
-          boxShadow: '0 4px 10px rgba(0,0,0,0.1)'
+          borderRadius: '12px',
+          boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
+          color: '#000'
         }}>
-          <div style={{fontSize: '2rem', fontWeight: 'bold'}}>{stats.uniquePlayers}</div>
-          <div style={{fontSize: '0.9rem', opacity: 0.9}}>Unique Players</div>
+          <div style={{fontSize: '2.5rem', fontWeight: 'bold', marginBottom: '5px'}}>
+            {stats.uniquePlayers}
+          </div>
+          <div style={{fontSize: '1rem', fontWeight: '500'}}>Unique Players</div>
         </div>
-        
+
         <div style={{
-          background: '#ff9800',
-          color: 'white',
+          background: 'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)',
           padding: '25px',
-          borderRadius: '10px',
-          boxShadow: '0 4px 10px rgba(0,0,0,0.1)'
+          borderRadius: '12px',
+          boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
+          color: '#000'
         }}>
-          <div style={{fontSize: '2rem', fontWeight: 'bold'}}>{stats.total}</div>
-          <div style={{fontSize: '0.9rem', opacity: 0.9}}>Total Attempts</div>
+          <div style={{fontSize: '2.5rem', fontWeight: 'bold', marginBottom: '5px'}}>
+            {stats.total}
+          </div>
+          <div style={{fontSize: '1rem', fontWeight: '500'}}>Total Attempts</div>
         </div>
       </div>
 
       {/* Controls */}
       <div style={{
         background: 'white',
-        padding: '25px',
+        padding: '20px',
         borderRadius: '10px',
         marginBottom: '20px',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: '15px',
+        alignItems: 'center'
       }}>
-        <div style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: '15px',
-          alignItems: 'center',
-          justifyContent: 'space-between'
-        }}>
-          {/* Filter Buttons */}
-          <div style={{display: 'flex', gap: '10px'}}>
-            <button
-              onClick={() => setFilter('all')}
-              style={{
-                padding: '10px 20px',
-                background: filter === 'all' ? '#667eea' : '#f0f0f0',
-                color: filter === 'all' ? 'white' : '#333',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontWeight: '600'
-              }}
-            >
-              All ({stats.total})
-            </button>
-            <button
-              onClick={() => setFilter('success')}
-              style={{
-                padding: '10px 20px',
-                background: filter === 'success' ? '#4caf50' : '#f0f0f0',
-                color: filter === 'success' ? 'white' : '#333',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontWeight: '600'
-              }}
-            >
-              ✓ Success ({stats.successful})
-            </button>
-            <button
-              onClick={() => setFilter('failed')}
-              style={{
-                padding: '10px 20px',
-                background: filter === 'failed' ? '#f44336' : '#f0f0f0',
-                color: filter === 'failed' ? 'white' : '#333',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontWeight: '600'
-              }}
-            >
-              ✗ Failed ({stats.failed})
-            </button>
-          </div>
-
-          {/* Search */}
-          <input
-            type="text"
-            placeholder="Search by code or name..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+        {/* Filter Buttons */}
+        <div style={{display: 'flex', gap: '10px', flexWrap: 'wrap'}}>
+          <button
+            onClick={() => setFilter('all')}
             style={{
-              padding: '10px 15px',
-              border: '2px solid #ddd',
+              padding: '10px 20px',
+              background: filter === 'all' ? '#667eea' : '#f0f0f0',
+              color: filter === 'all' ? 'white' : '#333',
+              border: 'none',
               borderRadius: '6px',
-              fontSize: '0.95rem',
-              width: '250px'
+              cursor: 'pointer',
+              fontWeight: '600',
+              fontSize: '0.9rem'
             }}
-          />
-
-          {/* Sort & Export */}
-          <div style={{display: 'flex', gap: '10px'}}>
-            <select
-              value={sortOrder}
-              onChange={(e) => setSortOrder(e.target.value)}
-              style={{
-                padding: '10px 15px',
-                border: '2px solid #ddd',
-                borderRadius: '6px',
-                fontSize: '0.95rem',
-                cursor: 'pointer'
-              }}
-            >
-              <option value="newest">Newest First</option>
-              <option value="oldest">Oldest First</option>
-            </select>
-
-            <button
-              onClick={exportToCSV}
-              style={{
-                padding: '10px 20px',
-                background: '#4caf50',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontWeight: '600',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}
-            >
-              📥 Export CSV
-            </button>
-          </div>
+          >
+            All ({stats.total})
+          </button>
+          <button
+            onClick={() => setFilter('success')}
+            style={{
+              padding: '10px 20px',
+              background: filter === 'success' ? '#4caf50' : '#f0f0f0',
+              color: filter === 'success' ? 'white' : '#333',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontWeight: '600',
+              fontSize: '0.9rem'
+            }}
+          >
+            ✓ Success ({stats.successful})
+          </button>
+          <button
+            onClick={() => setFilter('failed')}
+            style={{
+              padding: '10px 20px',
+              background: filter === 'failed' ? '#f44336' : '#f0f0f0',
+              color: filter === 'failed' ? 'white' : '#333',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontWeight: '600',
+              fontSize: '0.9rem'
+            }}
+          >
+            ✗ Failed ({stats.failed})
+          </button>
         </div>
+
+        {/* Search */}
+        <input
+          type="text"
+          placeholder="Search by code or name..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          style={{
+            padding: '10px 15px',
+            border: '2px solid #e0e0e0',
+            borderRadius: '6px',
+            fontSize: '0.9rem',
+            flex: '1',
+            minWidth: '200px',
+            color: '#000'
+          }}
+        />
+
+        {/* Sort */}
+        <select
+          value={sortOrder}
+          onChange={(e) => setSortOrder(e.target.value)}
+          style={{
+            padding: '10px 15px',
+            border: '2px solid #e0e0e0',
+            borderRadius: '6px',
+            fontSize: '0.9rem',
+            cursor: 'pointer',
+            background: 'white',
+            color: '#000'
+          }}
+        >
+          <option value="newest">Newest First</option>
+          <option value="oldest">Oldest First</option>
+        </select>
+
+        {/* Export Button */}
+        <button
+          onClick={exportToCSV}
+          style={{
+            padding: '10px 20px',
+            background: '#4caf50',
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            fontWeight: '600',
+            fontSize: '0.9rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}
+        >
+          📥 Export CSV
+        </button>
       </div>
 
-      {/* Logs Table */}
+      {/* Logs Display */}
       {filteredLogs.length === 0 ? (
         <div style={{
           background: 'white',
           padding: '60px 40px',
           borderRadius: '10px',
           textAlign: 'center',
-          color: '#999',
           boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
         }}>
           {searchTerm ? (
-            <p style={{fontSize: '1.2rem', margin: 0}}>
+            <p style={{fontSize: '1.2rem', margin: 0, color: '#666'}}>
               🔍 No logs match your search
             </p>
           ) : (
@@ -460,120 +444,204 @@ const LoginLogsViewer = ({ isPoolManager, playerCodes }) => {
                   <li>Login with your correct code</li>
                   <li>See the successful login appear here</li>
                 </ol>
-                <p style={{
-                  margin: '20px 0 0 0',
-                  fontSize: '0.9rem',
-                  color: '#999',
-                  fontStyle: 'italic'
-                }}>
-                  💡 All future login attempts (successful and failed) will be logged automatically!
-                </p>
               </div>
             </>
           )}
         </div>
       ) : (
-        <div style={{
-          background: 'white',
-          borderRadius: '10px',
-          overflow: 'hidden',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-        }}>
-          <div style={{overflowX: 'auto'}}>
-            <table style={{
-              width: '100%',
-              borderCollapse: 'collapse'
-            }}>
-              <thead>
-                <tr style={{background: '#f8f9fa'}}>
-                  <th style={{padding: '15px', textAlign: 'left', fontWeight: '600', color: '#666'}}>
-                    Timestamp
-                  </th>
-                  <th style={{padding: '15px', textAlign: 'left', fontWeight: '600', color: '#666'}}>
-                    Player Code
-                  </th>
-                  <th style={{padding: '15px', textAlign: 'left', fontWeight: '600', color: '#666'}}>
-                    Player Name
-                  </th>
-                  <th style={{padding: '15px', textAlign: 'center', fontWeight: '600', color: '#666'}}>
-                    Status
-                  </th>
-                  <th style={{padding: '15px', textAlign: 'left', fontWeight: '600', color: '#666'}}>
-                    Error Message
-                  </th>
-                  <th style={{padding: '15px', textAlign: 'left', fontWeight: '600', color: '#666'}}>
-                    Browser
-                  </th>
-                  <th style={{padding: '15px', textAlign: 'left', fontWeight: '600', color: '#666'}}>
-                    Device
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredLogs.map((log, idx) => (
-                  <tr
-                    key={log.id}
-                    style={{
-                      borderTop: '1px solid #eee',
-                      background: idx % 2 === 0 ? 'white' : '#fafafa'
-                    }}
-                  >
-                    <td style={{padding: '15px', fontSize: '0.9rem'}}>
-                      {new Date(log.timestamp).toLocaleString('en-US', {
-                        month: '2-digit',
-                        day: '2-digit',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        second: '2-digit'
-                      })}
-                    </td>
-                    <td style={{padding: '15px', fontSize: '0.9rem', fontFamily: 'monospace', fontWeight: '600'}}>
-                      {log.playerCode || '-'}
-                    </td>
-                    <td style={{padding: '15px', fontSize: '0.9rem'}}>
-                      {log.playerName || '-'}
-                    </td>
-                    <td style={{padding: '15px', textAlign: 'center'}}>
-                      {log.success ? (
-                        <span style={{
-                          background: '#d4edda',
-                          color: '#155724',
-                          padding: '6px 12px',
-                          borderRadius: '20px',
-                          fontSize: '0.85rem',
-                          fontWeight: '600'
-                        }}>
-                          ✓ Success
-                        </span>
-                      ) : (
-                        <span style={{
-                          background: '#f8d7da',
-                          color: '#721c24',
-                          padding: '6px 12px',
-                          borderRadius: '20px',
-                          fontSize: '0.85rem',
-                          fontWeight: '600'
-                        }}>
-                          ✗ Failed
-                        </span>
-                      )}
-                    </td>
-                    <td style={{padding: '15px', fontSize: '0.9rem', color: '#d32f2f', fontStyle: 'italic'}}>
-                      {log.errorMessage || '-'}
-                    </td>
-                    <td style={{padding: '15px', fontSize: '0.9rem'}}>
-                      {log.browser || '-'}
-                    </td>
-                    <td style={{padding: '15px', fontSize: '0.9rem'}}>
-                      {log.device || '-'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        <>
+          {/* Results Count */}
+          <div style={{
+            padding: '15px 20px',
+            background: '#f8f9fa',
+            borderRadius: '8px',
+            marginBottom: '15px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px'
+          }}>
+            <span style={{fontSize: '1.2rem'}}>📊</span>
+            <span style={{fontWeight: '600', color: '#000'}}>
+              Showing: {filteredLogs.length} of {logs.length} total attempts
+            </span>
           </div>
-        </div>
+
+          {/* Log Cards */}
+          <div style={{display: 'flex', flexDirection: 'column', gap: '15px'}}>
+            {filteredLogs.map((log, idx) => (
+              <div
+                key={log.id}
+                style={{
+                  padding: '20px',
+                  background: log.success ? '#e8f5e9' : '#ffebee',
+                  border: `3px solid ${log.success ? '#4caf50' : '#f44336'}`,
+                  borderRadius: '12px',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                  transition: 'transform 0.2s',
+                  cursor: 'default'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.01)'}
+                onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+              >
+                {/* Header */}
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: '15px',
+                  flexWrap: 'wrap',
+                  gap: '10px'
+                }}>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px'
+                  }}>
+                    <span style={{
+                      fontSize: '1.5rem',
+                      fontWeight: 'bold',
+                      color: '#000'
+                    }}>
+                      #{filteredLogs.length - idx}
+                    </span>
+                    <span style={{
+                      padding: '8px 16px',
+                      background: log.success ? '#4caf50' : '#f44336',
+                      color: 'white',
+                      borderRadius: '20px',
+                      fontWeight: 'bold',
+                      fontSize: '0.9rem'
+                    }}>
+                      {log.success ? '✅ SUCCESS' : '❌ FAILED'}
+                    </span>
+                  </div>
+                  <div style={{
+                    fontSize: '0.95rem',
+                    color: '#666',
+                    fontWeight: '500'
+                  }}>
+                    {new Date(log.timestamp).toLocaleString('en-US', {
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      second: '2-digit'
+                    })}
+                  </div>
+                </div>
+
+                {/* Details Grid */}
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                  gap: '15px'
+                }}>
+                  <div>
+                    <div style={{
+                      fontSize: '0.85rem',
+                      color: '#666',
+                      marginBottom: '5px',
+                      fontWeight: '500'
+                    }}>
+                      Player Code
+                    </div>
+                    <div style={{
+                      fontSize: '1.1rem',
+                      fontWeight: 'bold',
+                      color: '#000',
+                      fontFamily: 'monospace'
+                    }}>
+                      {log.playerCode || 'N/A'}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div style={{
+                      fontSize: '0.85rem',
+                      color: '#666',
+                      marginBottom: '5px',
+                      fontWeight: '500'
+                    }}>
+                      Player Name
+                    </div>
+                    <div style={{
+                      fontSize: '1.1rem',
+                      fontWeight: 'bold',
+                      color: '#000'
+                    }}>
+                      {log.playerName || 'N/A'}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div style={{
+                      fontSize: '0.85rem',
+                      color: '#666',
+                      marginBottom: '5px',
+                      fontWeight: '500'
+                    }}>
+                      Browser
+                    </div>
+                    <div style={{
+                      fontSize: '1.1rem',
+                      fontWeight: 'bold',
+                      color: '#000'
+                    }}>
+                      {log.browser || 'N/A'}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div style={{
+                      fontSize: '0.85rem',
+                      color: '#666',
+                      marginBottom: '5px',
+                      fontWeight: '500'
+                    }}>
+                      Device
+                    </div>
+                    <div style={{
+                      fontSize: '1.1rem',
+                      fontWeight: 'bold',
+                      color: '#000'
+                    }}>
+                      {log.device || 'N/A'}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Error Message (if failed) */}
+                {!log.success && log.errorMessage && (
+                  <div style={{
+                    marginTop: '15px',
+                    padding: '12px',
+                    background: '#fff',
+                    borderLeft: '4px solid #f44336',
+                    borderRadius: '4px'
+                  }}>
+                    <div style={{
+                      fontSize: '0.85rem',
+                      color: '#666',
+                      marginBottom: '5px',
+                      fontWeight: '500'
+                    }}>
+                      Error Message
+                    </div>
+                    <div style={{
+                      fontSize: '1rem',
+                      color: '#d32f2f',
+                      fontWeight: '600',
+                      fontStyle: 'italic'
+                    }}>
+                      {log.errorMessage}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </>
       )}
 
       {/* Footer Info */}
@@ -582,13 +650,14 @@ const LoginLogsViewer = ({ isPoolManager, playerCodes }) => {
         padding: '20px',
         background: '#f8f9fa',
         borderRadius: '8px',
-        fontSize: '0.9rem',
-        color: '#666'
+        textAlign: 'center'
       }}>
-        <p style={{margin: '0 0 10px 0'}}>
-          <strong>📊 Showing:</strong> {filteredLogs.length} of {stats.total} total attempts
-        </p>
-        <p style={{margin: '0', fontSize: '0.85rem', fontStyle: 'italic'}}>
+        <p style={{
+          margin: 0,
+          color: '#666',
+          fontSize: '0.9rem',
+          fontStyle: 'italic'
+        }}>
           💡 Logs update in real-time. Failed attempts help identify players who need assistance with their codes.
         </p>
       </div>
