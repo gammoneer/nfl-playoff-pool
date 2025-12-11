@@ -238,7 +238,6 @@ function App() {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [showPopup, setShowPopup] = useState(null);
   const [pendingWeekChange, setPendingWeekChange] = useState(null);
-  const [isRefreshing, setIsRefreshing] = useState(false); // For refresh button feedback
   const [missingGames, setMissingGames] = useState([]);
   const [invalidScores, setInvalidScores] = useState([]);
   
@@ -1778,23 +1777,6 @@ function App() {
     setHasUnsavedChanges(false);
     console.log('🚪 Logout complete');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  };
-
-  // ============================================
-  // 🔄 REFRESH PICKS HANDLER
-  // ============================================
-  
-  const handleRefreshPicks = () => {
-    // Show "refreshing" feedback
-    setIsRefreshing(true);
-    
-    // The picks are already real-time synced via Firebase onValue listener
-    // So we just show feedback and then hide it after a brief moment
-    setTimeout(() => {
-      setIsRefreshing(false);
-    }, 800);
-    
-    // Optional: Could force a re-fetch if needed, but onValue already handles this
   };
 
   // ============================================
@@ -3908,22 +3890,20 @@ function App() {
               📱 Mobile: Open the DOWNLOADABLE CSV file with Google Sheets (free app) or MS Office EXCEL
             </div>
             <button 
-              onClick={handleRefreshPicks}
-              disabled={isRefreshing}
+              onClick={() => window.location.reload()}
               style={{
                 marginLeft: '10px',
                 padding: '8px 16px',
-                background: isRefreshing ? '#a0a0a0' : '#667eea',
+                background: '#667eea',
                 color: 'white',
                 border: 'none',
                 borderRadius: '6px',
-                cursor: isRefreshing ? 'not-allowed' : 'pointer',
+                cursor: 'pointer',
                 fontSize: '0.9rem',
-                fontWeight: '600',
-                opacity: isRefreshing ? 0.7 : 1
+                fontWeight: '600'
               }}
             >
-              {isRefreshing ? '✓ Refreshed!' : '🔄 Refresh Picks Table'}
+              🔄 Refresh Picks Table
             </button>
           </h2>
 
