@@ -22,14 +22,6 @@ import {
   exportToCSV, 
   downloadCSV 
 } from './winnerService';
-import LoginLogsViewer from './LoginLogsViewer';
-import { logSuccessfulLogin, logFailedLogin } from './loginLogging';
-import { calculateWeekPrize2 } from './winnerCalculations.js'; //temporarily 202512131650 delete later after testing
-
-
-// In useEffect after loading data:
-// const result = calculateWeekPrize2(allPicks, actualScores, 'wildcard');
-// console.log('Week 1 Prize #2:', result);
 
 // Firebase configuration
 const firebaseConfig = {
@@ -105,13 +97,13 @@ const POOL_MANAGER_CODES = ["76BB89", "Z9Y8X7"];  // Add more codes here as need
 // Codes are now 6-character alphanumeric (A-Z, 2-9)
 // Avoid confusing characters: 0, O, I, 1, l
 const PLAYER_CODES = {
-  "76BB89": "POOL MANAGER - Richard",  // Pool Manager #1  //Paid202512051130 sent code to him
+  "76BB89": "POOL MANAGER - Richard",  // Pool Manager #1
   "Z9Y8X7": "POOL MANAGER - Dennis",   // Pool Manager #2
   "J239W4": "Bob Casson",
   "B7Y4X3": "Bob Desrosiers",
   "D4F7G5": "Bonnie Biletski",
   "536EE2": "Brian Colburg",
-  "X8HH67": "Chris Neufeld", //Paid 20251214008  *************************************NEED TO SEND code to him and link
+  "X8HH67": "Chris Neufeld",
   "G7R3P5": "Curtis Braun",
   "A4LJC9": "Curtis Palidwor",
   "X3P8N1": "Dallas Pylypow",
@@ -120,7 +112,7 @@ const PLAYER_CODES = {
   "K2P9W5": "Dave Desrosiers",
   "A5K4T7": "Dennis Biletski",
   "6WRUJR": "Emily Chadwick",
-  "AB6C89": "Gareth Reeve", //Paid202512051130 sent code to him and link
+  "AB6C89": "Gareth Reeve",
   "D3F6G9": "Jarrod Reimer",
   "T42B67": "Jo Behr",
   "PUEFKF": "Joshua Biletski",
@@ -130,14 +122,14 @@ const PLAYER_CODES = {
   "B5R4T6": "Larry Strand",
   "L2W9X2": "Michelle Desrosiers",
   "5GGPL3": "Mike Brkich",
-  "T4M8Z8": "Neema Dadmand", //Paid202512051700 sent code to him and link
-  "9CD72G": "Neil Banman", //Paid202512051605 sent code to him and link
+  "T4M8Z8": "Neema Dadmand",
+  "9CD72G": "Neil Banman",
   "T7Y4R8": "Neil Foster",
   "KWBZ86": "Nick Melanidis",
   "2WQA9X": "Nima Ahmadi",
   "E4T6J7": "Orest Pich",
   "N4M8Q2": "Randy Moffatt",
-  "B8L9M2": "Richard Biletski", //Paid202512051130 sent code to him
+  "B8L9M2": "Richard Biletski",
   "62R92L": "Rob Crowe",
   "H8M3N7": "Rob Kost",
   "WW3F44": "Ryan Moffatt",
@@ -244,7 +236,6 @@ function App() {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [showPopup, setShowPopup] = useState(null);
   const [pendingWeekChange, setPendingWeekChange] = useState(null);
-  const [isRefreshing, setIsRefreshing] = useState(false); // For refresh button feedback
   const [missingGames, setMissingGames] = useState([]);
   const [invalidScores, setInvalidScores] = useState([]);
   
@@ -1012,67 +1003,6 @@ function App() {
       }
     });
   }, []);
-
-// TEST WINNER CALCULATION (runs when both data sources are ready)
-  useEffect(() => {
-    if (allPicks.length > 0 && actualScores && actualScores.wildcard) {
-      console.log('🧪 Testing winner calculation...');
-      
-      // Convert allPicks array to the format the function expects
-      const picksObject = {};
-      allPicks.forEach(pick => {
-        if (pick.firebaseKey && pick.playerCode && pick.predictions) {
-          // Initialize player if not exists
-          if (!picksObject[pick.playerCode]) {
-            picksObject[pick.playerCode] = {
-              name: pick.playerName,
-              picks: {}
-            };
-          }
-          
-          // Convert predictions array to object (skip index 0)
-          const predictionsObj = {};
-          
-          // Check if predictions is an array
-          if (Array.isArray(pick.predictions)) {
-            pick.predictions.forEach((pred, index) => {
-              if (index > 0 && pred) { // Skip index 0 (null)
-                predictionsObj[index.toString()] = pred;
-              }
-            });
-          } else {
-            // predictions is already an object
-            Object.assign(predictionsObj, pick.predictions);
-          }
-          
-          // Add this week's picks to the player
-          picksObject[pick.playerCode].picks[pick.week] = predictionsObj;
-        }
-      });
-      
-      // Convert actualScores arrays to objects
-      const actualScoresObj = {};
-      Object.keys(actualScores).forEach(week => {
-        if (Array.isArray(actualScores[week])) {
-          const weekObj = {};
-          actualScores[week].forEach((score, index) => {
-            if (index > 0 && score) { // Skip index 0
-              weekObj[index.toString()] = score;
-            }
-          });
-          actualScoresObj[week] = weekObj;
-        } else {
-          actualScoresObj[week] = actualScores[week];
-        }
-      });
-      
-      console.log('📊 Converted picksObject:', picksObject);
-      console.log('📊 Converted actualScoresObj:', actualScoresObj);
-      
-      const testResult = calculateWeekPrize2(picksObject, actualScoresObj, 'wildcard');
-      console.log('🏆 WEEK 1 PRIZE #2 RESULT:', testResult);
-    }
-  }, [allPicks, actualScores]);
 
   // 💰 Load prize pool setup from Firebase
   useEffect(() => {
@@ -1848,23 +1778,6 @@ function App() {
   };
 
   // ============================================
-  // 🔄 REFRESH PICKS HANDLER
-  // ============================================
-  
-  const handleRefreshPicks = () => {
-    // Show "refreshing" feedback
-    setIsRefreshing(true);
-    
-    // The picks are already real-time synced via Firebase onValue listener
-    // So we just show feedback and then hide it after a brief moment
-    setTimeout(() => {
-      setIsRefreshing(false);
-    }, 800);
-    
-    // Optional: Could force a re-fetch if needed, but onValue already handles this
-  };
-
-  // ============================================
   // ❌ CANCEL PICKS HANDLER
   // ============================================
   
@@ -2085,14 +1998,12 @@ function App() {
     const code = playerCode.trim().toUpperCase();
     
     if (!code) {
-      logFailedLogin(code, 'Empty code');
       alert('Please enter your 6-character player code');
       return;
     }
     
     // Accept 6-character alphanumeric codes
     if (code.length !== 6 || !/^[A-Z0-9]{6}$/.test(code)) {
-      logFailedLogin(code, 'Invalid format - must be 6 alphanumeric characters');
       alert('Invalid code format!\n\nPlayer codes must be exactly 6 characters (letters and numbers).\nExample: A7K9M2');
       return;
     }
@@ -2100,7 +2011,6 @@ function App() {
     const playerNameForCode = PLAYER_CODES[code];
     
     if (!playerNameForCode) {
-      logFailedLogin(code, 'Code not recognized');
       alert('Invalid player code!\n\nThis code is not recognized.\n\nMake sure you:\n1. Paid your $20 entry fee\n2. Received your code from the pool manager\n3. Entered the code correctly\n\nContact: gammoneer2b@gmail.com');
       return;
     }
@@ -2127,7 +2037,6 @@ function App() {
     }
     
     // Code is valid!
-    logSuccessfulLogin(code, playerNameForCode);
     setPlayerName(playerNameForCode);
     setPlayerCode(code); // Store uppercase version
     setCodeValidated(true);
@@ -3531,35 +3440,6 @@ function App() {
                 </span>
               )}
             </button>
-            {isPoolManager() && (
-              <button
-                className={`nav-btn ${currentView === 'loginLogs' ? 'active' : ''}`}
-                onClick={() => setCurrentView('loginLogs')}
-              >
-                🔐 Login Logs
-                <span style={{
-                  marginLeft: '8px',
-                  fontSize: '0.7rem',
-                  padding: '2px 6px',
-                  background: '#667eea',
-                  color: 'white',
-                  borderRadius: '10px',
-                  fontWeight: '500'
-                }}>
-                  Pool Manager
-                </span>
-                {currentView === 'loginLogs' && (
-                  <span style={{
-                    marginLeft: '8px',
-                    fontSize: '0.75rem',
-                    opacity: 0.9,
-                    fontStyle: 'italic'
-                  }}>
-                    (you are here)
-                  </span>
-                )}
-              </button>
-            )}
           </div>
         )}
 
@@ -3575,11 +3455,6 @@ function App() {
             prizePool={prizePool}
             officialWinners={officialWinners}
             onLogout={handleLogout}
-          />
-        ) : currentView === 'loginLogs' && codeValidated ? (
-          <LoginLogsViewer 
-            isPoolManager={isPoolManager()}
-            playerCodes={PLAYER_CODES}
           />
         ) : (
           <>
@@ -3656,27 +3531,7 @@ function App() {
                 Welcome, <span className="player-name-highlight">{playerName}</span>!
                 {isPoolManager() && <span style={{marginLeft: '10px', color: '#d63031'}}>👑 POOL MANAGER</span>}
               </h3>
-              {/* WEEK NUMBER BADGE */}
-              <div style={{
-                display: 'inline-block',
-                padding: '8px 20px',
-                marginBottom: '10px',
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                color: 'white',
-                borderRadius: '25px',
-                fontWeight: 'bold',
-                fontSize: '1.1rem',
-                boxShadow: '0 4px 15px rgba(102, 126, 234, 0.4)',
-                letterSpacing: '0.5px'
-              }}>
-                {currentWeek === 'wildcard' && '📅 WEEK 1 OF 4'}
-                {currentWeek === 'divisional' && '📅 WEEK 2 OF 4'}
-                {currentWeek === 'conference' && '📅 WEEK 3 OF 4'}
-                {currentWeek === 'superbowl' && '📅 WEEK 4 OF 4'}
-              </div>
-              <p style={{color: '#000', marginTop: '8px'}}>
-                Making picks for: <strong>{currentWeekData.name}</strong>
-              </p>
+              <p style={{color: '#000'}}>Making picks for: <strong>{currentWeekData.name}</strong></p>
               {/* 🔒 NEW: Show lock status */}
               {isWeekLocked(currentWeek) && !isPoolManager() && (
                 <div style={{
@@ -3723,18 +3578,7 @@ function App() {
                 </h2>
               ) : (
                 <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '15px', gap: '15px'}}>
-                  <h2 style={{margin: 0, flex: '1'}}>
-                    Enter Your Predictions: <span style={{
-                      fontSize: '0.95rem',
-                      color: '#667eea',
-                      fontWeight: '600'
-                    }}>
-                      {currentWeek === 'wildcard' && 'Wk 1'}
-                      {currentWeek === 'divisional' && 'Wk 2'}
-                      {currentWeek === 'conference' && 'Wk 3'}
-                      {currentWeek === 'superbowl' && 'Wk 4'}
-                    </span>
-                  </h2>
+                  <h2 style={{margin: 0, flex: '1'}}>Enter Your Predictions</h2>
                   {!isWeekLocked(currentWeek) && (
                     <button
                       type="button"
@@ -3975,22 +3819,20 @@ function App() {
               📱 Mobile: Open the DOWNLOADABLE CSV file with Google Sheets (free app) or MS Office EXCEL
             </div>
             <button 
-              onClick={handleRefreshPicks}
-              disabled={isRefreshing}
+              onClick={() => window.location.reload()}
               style={{
                 marginLeft: '10px',
                 padding: '8px 16px',
-                background: isRefreshing ? '#a0a0a0' : '#667eea',
+                background: '#667eea',
                 color: 'white',
                 border: 'none',
                 borderRadius: '6px',
-                cursor: isRefreshing ? 'not-allowed' : 'pointer',
+                cursor: 'pointer',
                 fontSize: '0.9rem',
-                fontWeight: '600',
-                opacity: isRefreshing ? 0.7 : 1
+                fontWeight: '600'
               }}
             >
-              {isRefreshing ? '✓ Refreshed!' : '🔄 Refresh Picks Table'}
+              🔄 Refresh Picks Table
             </button>
           </h2>
 

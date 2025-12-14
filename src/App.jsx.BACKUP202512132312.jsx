@@ -105,13 +105,13 @@ const POOL_MANAGER_CODES = ["76BB89", "Z9Y8X7"];  // Add more codes here as need
 // Codes are now 6-character alphanumeric (A-Z, 2-9)
 // Avoid confusing characters: 0, O, I, 1, l
 const PLAYER_CODES = {
-  "76BB89": "POOL MANAGER - Richard",  // Pool Manager #1  //Paid202512051130 sent code to him
+  "76BB89": "POOL MANAGER - Richard",  // Pool Manager #1
   "Z9Y8X7": "POOL MANAGER - Dennis",   // Pool Manager #2
   "J239W4": "Bob Casson",
   "B7Y4X3": "Bob Desrosiers",
   "D4F7G5": "Bonnie Biletski",
   "536EE2": "Brian Colburg",
-  "X8HH67": "Chris Neufeld", //Paid 20251214008  *************************************NEED TO SEND code to him and link
+  "X8HH67": "Chris Neufeld",
   "G7R3P5": "Curtis Braun",
   "A4LJC9": "Curtis Palidwor",
   "X3P8N1": "Dallas Pylypow",
@@ -120,7 +120,7 @@ const PLAYER_CODES = {
   "K2P9W5": "Dave Desrosiers",
   "A5K4T7": "Dennis Biletski",
   "6WRUJR": "Emily Chadwick",
-  "AB6C89": "Gareth Reeve", //Paid202512051130 sent code to him and link
+  "AB6C89": "Gareth Reeve",
   "D3F6G9": "Jarrod Reimer",
   "T42B67": "Jo Behr",
   "PUEFKF": "Joshua Biletski",
@@ -130,14 +130,14 @@ const PLAYER_CODES = {
   "B5R4T6": "Larry Strand",
   "L2W9X2": "Michelle Desrosiers",
   "5GGPL3": "Mike Brkich",
-  "T4M8Z8": "Neema Dadmand", //Paid202512051700 sent code to him and link
-  "9CD72G": "Neil Banman", //Paid202512051605 sent code to him and link
+  "T4M8Z8": "Neema Dadmand",
+  "9CD72G": "Neil Banman",
   "T7Y4R8": "Neil Foster",
   "KWBZ86": "Nick Melanidis",
   "2WQA9X": "Nima Ahmadi",
   "E4T6J7": "Orest Pich",
   "N4M8Q2": "Randy Moffatt",
-  "B8L9M2": "Richard Biletski", //Paid202512051130 sent code to him
+  "B8L9M2": "Richard Biletski",
   "62R92L": "Rob Crowe",
   "H8M3N7": "Rob Kost",
   "WW3F44": "Ryan Moffatt",
@@ -1012,67 +1012,6 @@ function App() {
       }
     });
   }, []);
-
-// TEST WINNER CALCULATION (runs when both data sources are ready)
-  useEffect(() => {
-    if (allPicks.length > 0 && actualScores && actualScores.wildcard) {
-      console.log('🧪 Testing winner calculation...');
-      
-      // Convert allPicks array to the format the function expects
-      const picksObject = {};
-      allPicks.forEach(pick => {
-        if (pick.firebaseKey && pick.playerCode && pick.predictions) {
-          // Initialize player if not exists
-          if (!picksObject[pick.playerCode]) {
-            picksObject[pick.playerCode] = {
-              name: pick.playerName,
-              picks: {}
-            };
-          }
-          
-          // Convert predictions array to object (skip index 0)
-          const predictionsObj = {};
-          
-          // Check if predictions is an array
-          if (Array.isArray(pick.predictions)) {
-            pick.predictions.forEach((pred, index) => {
-              if (index > 0 && pred) { // Skip index 0 (null)
-                predictionsObj[index.toString()] = pred;
-              }
-            });
-          } else {
-            // predictions is already an object
-            Object.assign(predictionsObj, pick.predictions);
-          }
-          
-          // Add this week's picks to the player
-          picksObject[pick.playerCode].picks[pick.week] = predictionsObj;
-        }
-      });
-      
-      // Convert actualScores arrays to objects
-      const actualScoresObj = {};
-      Object.keys(actualScores).forEach(week => {
-        if (Array.isArray(actualScores[week])) {
-          const weekObj = {};
-          actualScores[week].forEach((score, index) => {
-            if (index > 0 && score) { // Skip index 0
-              weekObj[index.toString()] = score;
-            }
-          });
-          actualScoresObj[week] = weekObj;
-        } else {
-          actualScoresObj[week] = actualScores[week];
-        }
-      });
-      
-      console.log('📊 Converted picksObject:', picksObject);
-      console.log('📊 Converted actualScoresObj:', actualScoresObj);
-      
-      const testResult = calculateWeekPrize2(picksObject, actualScoresObj, 'wildcard');
-      console.log('🏆 WEEK 1 PRIZE #2 RESULT:', testResult);
-    }
-  }, [allPicks, actualScores]);
 
   // 💰 Load prize pool setup from Firebase
   useEffect(() => {

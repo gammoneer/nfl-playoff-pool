@@ -22,14 +22,6 @@ import {
   exportToCSV, 
   downloadCSV 
 } from './winnerService';
-import LoginLogsViewer from './LoginLogsViewer';
-import { logSuccessfulLogin, logFailedLogin } from './loginLogging';
-import { calculateWeekPrize2 } from './winnerCalculations.js'; //temporarily 202512131650 delete later after testing
-
-
-// In useEffect after loading data:
-// const result = calculateWeekPrize2(allPicks, actualScores, 'wildcard');
-// console.log('Week 1 Prize #2:', result);
 
 // Firebase configuration
 const firebaseConfig = {
@@ -105,13 +97,13 @@ const POOL_MANAGER_CODES = ["76BB89", "Z9Y8X7"];  // Add more codes here as need
 // Codes are now 6-character alphanumeric (A-Z, 2-9)
 // Avoid confusing characters: 0, O, I, 1, l
 const PLAYER_CODES = {
-  "76BB89": "POOL MANAGER - Richard",  // Pool Manager #1  //Paid202512051130 sent code to him
+  "76BB89": "POOL MANAGER - Richard",  // Pool Manager #1
   "Z9Y8X7": "POOL MANAGER - Dennis",   // Pool Manager #2
   "J239W4": "Bob Casson",
   "B7Y4X3": "Bob Desrosiers",
   "D4F7G5": "Bonnie Biletski",
   "536EE2": "Brian Colburg",
-  "X8HH67": "Chris Neufeld", //Paid 20251214008  *************************************NEED TO SEND code to him and link
+  "X8HH67": "Chris Neufeld",
   "G7R3P5": "Curtis Braun",
   "A4LJC9": "Curtis Palidwor",
   "X3P8N1": "Dallas Pylypow",
@@ -120,7 +112,7 @@ const PLAYER_CODES = {
   "K2P9W5": "Dave Desrosiers",
   "A5K4T7": "Dennis Biletski",
   "6WRUJR": "Emily Chadwick",
-  "AB6C89": "Gareth Reeve", //Paid202512051130 sent code to him and link
+  "AB6C89": "Gareth Reeve",
   "D3F6G9": "Jarrod Reimer",
   "T42B67": "Jo Behr",
   "PUEFKF": "Joshua Biletski",
@@ -130,14 +122,14 @@ const PLAYER_CODES = {
   "B5R4T6": "Larry Strand",
   "L2W9X2": "Michelle Desrosiers",
   "5GGPL3": "Mike Brkich",
-  "T4M8Z8": "Neema Dadmand", //Paid202512051700 sent code to him and link
-  "9CD72G": "Neil Banman", //Paid202512051605 sent code to him and link
+  "T4M8Z8": "Neema Dadmand",
+  "9CD72G": "Neil Banman",
   "T7Y4R8": "Neil Foster",
   "KWBZ86": "Nick Melanidis",
   "2WQA9X": "Nima Ahmadi",
   "E4T6J7": "Orest Pich",
   "N4M8Q2": "Randy Moffatt",
-  "B8L9M2": "Richard Biletski", //Paid202512051130 sent code to him
+  "B8L9M2": "Richard Biletski",
   "62R92L": "Rob Crowe",
   "H8M3N7": "Rob Kost",
   "WW3F44": "Ryan Moffatt",
@@ -244,7 +236,6 @@ function App() {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [showPopup, setShowPopup] = useState(null);
   const [pendingWeekChange, setPendingWeekChange] = useState(null);
-  const [isRefreshing, setIsRefreshing] = useState(false); // For refresh button feedback
   const [missingGames, setMissingGames] = useState([]);
   const [invalidScores, setInvalidScores] = useState([]);
   
@@ -1013,67 +1004,6 @@ function App() {
     });
   }, []);
 
-// TEST WINNER CALCULATION (runs when both data sources are ready)
-  useEffect(() => {
-    if (allPicks.length > 0 && actualScores && actualScores.wildcard) {
-      console.log('🧪 Testing winner calculation...');
-      
-      // Convert allPicks array to the format the function expects
-      const picksObject = {};
-      allPicks.forEach(pick => {
-        if (pick.firebaseKey && pick.playerCode && pick.predictions) {
-          // Initialize player if not exists
-          if (!picksObject[pick.playerCode]) {
-            picksObject[pick.playerCode] = {
-              name: pick.playerName,
-              picks: {}
-            };
-          }
-          
-          // Convert predictions array to object (skip index 0)
-          const predictionsObj = {};
-          
-          // Check if predictions is an array
-          if (Array.isArray(pick.predictions)) {
-            pick.predictions.forEach((pred, index) => {
-              if (index > 0 && pred) { // Skip index 0 (null)
-                predictionsObj[index.toString()] = pred;
-              }
-            });
-          } else {
-            // predictions is already an object
-            Object.assign(predictionsObj, pick.predictions);
-          }
-          
-          // Add this week's picks to the player
-          picksObject[pick.playerCode].picks[pick.week] = predictionsObj;
-        }
-      });
-      
-      // Convert actualScores arrays to objects
-      const actualScoresObj = {};
-      Object.keys(actualScores).forEach(week => {
-        if (Array.isArray(actualScores[week])) {
-          const weekObj = {};
-          actualScores[week].forEach((score, index) => {
-            if (index > 0 && score) { // Skip index 0
-              weekObj[index.toString()] = score;
-            }
-          });
-          actualScoresObj[week] = weekObj;
-        } else {
-          actualScoresObj[week] = actualScores[week];
-        }
-      });
-      
-      console.log('📊 Converted picksObject:', picksObject);
-      console.log('📊 Converted actualScoresObj:', actualScoresObj);
-      
-      const testResult = calculateWeekPrize2(picksObject, actualScoresObj, 'wildcard');
-      console.log('🏆 WEEK 1 PRIZE #2 RESULT:', testResult);
-    }
-  }, [allPicks, actualScores]);
-
   // 💰 Load prize pool setup from Firebase
   useEffect(() => {
     const prizePoolRef = ref(database, 'prizePool');
@@ -1408,231 +1338,81 @@ function App() {
    * Calculate auto-calculated weekly total for a player
    * Sum of point differences for all games in a specific week
    */
-  // ============================================
-  // 🎯 SMART P NOTATION HELPER FUNCTIONS
-  // ============================================
-  
   /**
-   * Calculate predicted total for a week (sum of all predicted scores)
+   * Calculate the predicted total (sum of all predicted scores) for a week
+   * Returns the total points predicted, or null if no predictions
    */
   const calculatePredictedTotal = (playerCode, week) => {
     const playerPick = allPicks.find(p => p.playerCode === playerCode && p.week === week);
     if (!playerPick || !playerPick.predictions) return null;
     
-    let total = 0;
-    Object.keys(playerPick.predictions).forEach(gameId => {
-      const pred = playerPick.predictions[gameId];
+    let predictedTotal = 0;
+    Object.values(playerPick.predictions).forEach(pred => {
       if (pred && pred.team1 && pred.team2) {
-        total += (parseInt(pred.team1) || 0) + (parseInt(pred.team2) || 0);
-      }
-    });
-    
-    return total;
-  };
-
-  /**
-   * Get which weeks a player has picks for
-   * Returns array like [1, 2, 3, 4] or [1, 3] etc.
-   */
-  const getPlayerWeeks = (playerCode) => {
-    const weeks = [];
-    const weekMap = {
-      wildcard: 1,
-      divisional: 2,
-      conference: 3,
-      superbowl: 4
-    };
-    
-    ['wildcard', 'divisional', 'conference', 'superbowl'].forEach(weekName => {
-      const hasPick = allPicks.some(p => p.playerCode === playerCode && p.week === weekName);
-      if (hasPick) {
-        weeks.push(weekMap[weekName]);
-      }
-    });
-    
-    return weeks;
-  };
-
-  /**
-   * Check if pattern is abnormal (not sequential from 1)
-   * Normal: [1], [1,2], [1,2,3], [1,2,3,4]
-   * Abnormal: [1,3], [2], [1,2,4], etc.
-   */
-  const isAbnormalPattern = (weeks) => {
-    if (weeks.length === 0) return false;
-    if (weeks.length === 4) return false; // Complete is normal
-    
-    // Check if sequential from 1
-    const isSequential = weeks.every((week, index) => week === index + 1);
-    return !isSequential;
-  };
-
-  /**
-   * Format P notation (P13, P123, etc.)
-   */
-  const formatPNotation = (weeks) => {
-    return 'P' + weeks.join('');
-  };
-
-  /**
-   * Check if player's pick for a week was RNG'd by Pool Manager
-   */
-  const isRNGPick = (playerCode, week) => {
-    const playerPick = allPicks.find(p => p.playerCode === playerCode && p.week === week);
-    return playerPick?.enteredBy === 'POOL_MANAGER_RNG';
-  };
-
-  const calculateWeeklyTotal = (playerCode, week) => {
-    // Find player's picks for this week
-    const playerPick = allPicks.find(p => p.playerCode === playerCode && p.week === week);
-    if (!playerPick || !playerPick.predictions) return 0;
-    
-    // Get actual scores for this week
-    const weekActualScores = actualScores[week];
-    if (!weekActualScores) return 0;
-    
-    // Calculate sum of point differences
-    let total = 0;
-    Object.keys(playerPick.predictions).forEach(gameId => {
-      const pred = playerPick.predictions[gameId];
-      const actual = weekActualScores[gameId];
-      
-      if (pred && actual && pred.team1 && pred.team2 && actual.team1 && actual.team2) {
-        const predTotal = parseInt(pred.team1) + parseInt(pred.team2);
-        const actualTotal = parseInt(actual.team1) + parseInt(actual.team2);
-        const diff = Math.abs(predTotal - actualTotal);
-        total += diff;
-      }
-    });
-    
-    return total;
-  };
-  
-  /**
-   * Calculate grand total (sum of all 4 weeks) for a player
-   */
-  const calculateGrandTotal = (playerCode) => {
-    const week1 = calculateWeeklyTotal(playerCode, 'wildcard');
-    const week2 = calculateWeeklyTotal(playerCode, 'divisional');
-    const week3 = calculateWeeklyTotal(playerCode, 'conference');
-    const week4 = calculateWeeklyTotal(playerCode, 'superbowl');
-    return week1 + week2 + week3 + week4;
-  };
-  
-  /**
-   * ============================================
-   * 🎨 SMART DISPLAY FORMATTING FUNCTIONS
-   * ============================================
-   */
-  
-  /**
-   * Format weekly total for display with smart P notation
-   * Returns object: { display: string, tooltip: string, fontSize: string }
-   */
-  const formatWeeklyDisplay = (playerCode, weekName, weekNumber) => {
-    const predicted = calculatePredictedTotal(playerCode, weekName);
-    const difference = calculateWeeklyTotal(playerCode, weekName);
-    const isRNG = isRNGPick(playerCode, weekName);
-    const hasActual = Object.keys(actualScores[weekName] || {}).length > 0;
-    
-    if (!predicted) {
-      return { display: '-', tooltip: '', fontSize: '16px' };
-    }
-    
-    const asterisk = isRNG ? '*' : '';
-    
-    if (!hasActual || difference === 0) {
-      return {
-        display: `${predicted}${asterisk}`,
-        tooltip: isRNG ? `Predicted: ${predicted} (RNG filled by Pool Manager)` : `Predicted: ${predicted}`,
-        fontSize: '16px'
-      };
-    }
-    
-    return {
-      display: `${predicted}${asterisk}/${difference}`,
-      tooltip: isRNG 
-        ? `Predicted: ${predicted} (RNG) | Difference: ${difference}`
-        : `Predicted: ${predicted} | Difference: ${difference}`,
-      fontSize: '16px'
-    };
-  };
-  
-  /**
-   * Format grand total with smart P notation
-   * Returns object: { display: string, tooltip: string, fontSize: string }
-   */
-  const formatGrandDisplay = (playerCode) => {
-    const weeks = getPlayerWeeks(playerCode);
-    
-    if (weeks.length === 0) {
-      return { display: '-', tooltip: '', fontSize: '16px' };
-    }
-    
-    const abnormal = isAbnormalPattern(weeks);
-    const prefix = abnormal ? formatPNotation(weeks) + '/' : '';
-    
-    // Calculate full predicted (all weeks player entered)
-    let fullPredicted = 0;
-    let playedPredicted = 0;
-    let totalDifference = 0;
-    let hasAnyActual = false;
-    let allWeeksPlayed = true;
-    
-    const weekMap = { 1: 'wildcard', 2: 'divisional', 3: 'conference', 4: 'superbowl' };
-    
-    weeks.forEach(weekNum => {
-      const weekName = weekMap[weekNum];
-      const pred = calculatePredictedTotal(playerCode, weekName);
-      const diff = calculateWeeklyTotal(playerCode, weekName);
-      const hasActual = Object.keys(actualScores[weekName] || {}).length > 0;
-      
-      if (pred) {
-        fullPredicted += pred;
-        
-        if (hasActual && diff > 0) {
-          playedPredicted += pred;
-          totalDifference += diff;
-          hasAnyActual = true;
-        } else if (!hasActual) {
-          allWeeksPlayed = false;
+        const team1 = parseInt(pred.team1);
+        const team2 = parseInt(pred.team2);
+        if (!isNaN(team1) && !isNaN(team2)) {
+          predictedTotal += team1 + team2;
         }
       }
     });
     
-    // Tooltip text
-    let tooltip = '';
-    if (abnormal) {
-      tooltip = `Weeks Entered: ${weeks.join(', ')} | `;
+    return predictedTotal;
+  };
+
+  /**
+   * Calculate weekly data including predicted total and difference from actual
+   * Returns an object: { predicted: number, difference: number|null, hasActual: boolean }
+   */
+  const calculateWeeklyTotal = (playerCode, week) => {
+    // Find player's picks for this week
+    const playerPick = allPicks.find(p => p.playerCode === playerCode && p.week === week);
+    if (!playerPick || !playerPick.predictions) {
+      return { predicted: null, difference: null, hasActual: false };
     }
     
-    // No games played yet
-    if (!hasAnyActual) {
-      tooltip += `Full Prediction: ${fullPredicted}`;
-      return {
-        display: `${prefix}${fullPredicted}`,
-        tooltip,
-        fontSize: '16px'
-      };
+    // Calculate predicted total
+    let predictedTotal = 0;
+    Object.values(playerPick.predictions).forEach(pred => {
+      if (pred && pred.team1 && pred.team2) {
+        const team1 = parseInt(pred.team1);
+        const team2 = parseInt(pred.team2);
+        if (!isNaN(team1) && !isNaN(team2)) {
+          predictedTotal += team1 + team2;
+        }
+      }
+    });
+    
+    // Get actual scores for this week
+    const weekActualScores = actualScores[week];
+    if (!weekActualScores) {
+      return { predicted: predictedTotal, difference: null, hasActual: false };
     }
     
-    // All entered weeks are played
-    if (allWeeksPlayed) {
-      tooltip += `Full Prediction: ${fullPredicted} | Total Difference: ${totalDifference}`;
-      return {
-        display: `${prefix}${fullPredicted}/${totalDifference}`,
-        tooltip,
-        fontSize: '16px'
-      };
+    // Check if ANY actual scores exist for this week
+    let hasAnyActualScores = false;
+    let actualTotal = 0;
+    Object.keys(weekActualScores).forEach(gameId => {
+      const actual = weekActualScores[gameId];
+      if (actual && actual.team1 && actual.team2) {
+        const team1Score = parseInt(actual.team1);
+        const team2Score = parseInt(actual.team2);
+        if (!isNaN(team1Score) && !isNaN(team2Score)) {
+          hasAnyActualScores = true;
+          actualTotal += team1Score + team2Score;
+        }
+      }
+    });
+    
+    // If no actual scores exist, return predicted only
+    if (!hasAnyActualScores) {
+      return { predicted: predictedTotal, difference: null, hasActual: false };
     }
     
-    // Some weeks played, some not
-    tooltip += `Full Prediction: ${fullPredicted} | Played Weeks: ${playedPredicted} | Difference So Far: ${totalDifference}`;
-    return {
-      display: `${prefix}${fullPredicted}/${playedPredicted}/${totalDifference}`,
-      tooltip,
-      fontSize: '14px' // Smaller font for 3 numbers
-    };
+    // Calculate the difference
+    const difference = Math.abs(predictedTotal - actualTotal);
+    
+    return { predicted: predictedTotal, difference: difference, hasActual: true };
   };
   
   /**
@@ -1845,23 +1625,6 @@ function App() {
     setHasUnsavedChanges(false);
     console.log('🚪 Logout complete');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  };
-
-  // ============================================
-  // 🔄 REFRESH PICKS HANDLER
-  // ============================================
-  
-  const handleRefreshPicks = () => {
-    // Show "refreshing" feedback
-    setIsRefreshing(true);
-    
-    // The picks are already real-time synced via Firebase onValue listener
-    // So we just show feedback and then hide it after a brief moment
-    setTimeout(() => {
-      setIsRefreshing(false);
-    }, 800);
-    
-    // Optional: Could force a re-fetch if needed, but onValue already handles this
   };
 
   // ============================================
@@ -2085,14 +1848,12 @@ function App() {
     const code = playerCode.trim().toUpperCase();
     
     if (!code) {
-      logFailedLogin(code, 'Empty code');
       alert('Please enter your 6-character player code');
       return;
     }
     
     // Accept 6-character alphanumeric codes
     if (code.length !== 6 || !/^[A-Z0-9]{6}$/.test(code)) {
-      logFailedLogin(code, 'Invalid format - must be 6 alphanumeric characters');
       alert('Invalid code format!\n\nPlayer codes must be exactly 6 characters (letters and numbers).\nExample: A7K9M2');
       return;
     }
@@ -2100,7 +1861,6 @@ function App() {
     const playerNameForCode = PLAYER_CODES[code];
     
     if (!playerNameForCode) {
-      logFailedLogin(code, 'Code not recognized');
       alert('Invalid player code!\n\nThis code is not recognized.\n\nMake sure you:\n1. Paid your $20 entry fee\n2. Received your code from the pool manager\n3. Entered the code correctly\n\nContact: gammoneer2b@gmail.com');
       return;
     }
@@ -2127,7 +1887,6 @@ function App() {
     }
     
     // Code is valid!
-    logSuccessfulLogin(code, playerNameForCode);
     setPlayerName(playerNameForCode);
     setPlayerCode(code); // Store uppercase version
     setCodeValidated(true);
@@ -2468,38 +2227,71 @@ function App() {
 
   const currentWeekData = PLAYOFF_WEEKS[currentWeek];
 
+  /**
+   * Format weekly total for display: "predicted" or "predicted/difference"
+   */
+  const formatWeeklyTotal = (weekData) => {
+    if (!weekData || weekData.predicted === null) return '-';
+    
+    if (weekData.hasActual && weekData.difference !== null) {
+      // Show both: predicted/difference
+      return `${weekData.predicted}/${weekData.difference}`;
+    } else {
+      // Show only predicted
+      return `${weekData.predicted}`;
+    }
+  };
+
+  /**
+   * Format grand total for display
+   * Returns: "784" or "784/598/35" or "784/55"
+   */
+  const formatGrandTotal = (grandData) => {
+    if (!grandData || grandData.fullPredicted === null) return '-';
+    
+    if (grandData.allWeeksPlayed) {
+      // All weeks played: show "784/55"
+      return `${grandData.fullPredicted}/${grandData.totalDifference}`;
+    } else if (grandData.playedPredicted !== null && grandData.totalDifference !== null) {
+      // Some weeks played: show "784/598/35"
+      return `${grandData.fullPredicted}/${grandData.playedPredicted}/${grandData.totalDifference}`;
+    } else {
+      // No weeks played: show "784"
+      return `${grandData.fullPredicted}`;
+    }
+  };
+
+  /**
+   * Get dynamic font size based on display string
+   */
+  const getDynamicFontSize = (displayStr) => {
+    if (!displayStr || displayStr === '-') return '16px';
+    
+    const slashCount = (displayStr.match(/\//g) || []).length;
+    if (slashCount === 2) {
+      // Three numbers: 784/598/35
+      return '14px';
+    } else {
+      // One or two numbers: 784 or 784/55
+      return '16px';
+    }
+  };
+
   // Calculate all player totals BEFORE rendering (pre-calculation)
   const playerTotals = useMemo(() => {
     const totals = {};
     
-    // For Super Bowl, get ALL unique players from ANY week (so we show everyone's totals even if they haven't entered Week 4)
-    // For other weeks, only show players who entered picks for that specific week
-    const weekPicks = currentWeek === 'superbowl' 
-      ? (() => {
-          // Get all unique players from all weeks
-          const uniquePlayers = new Map();
-          allPicks.forEach(pick => {
-            if (!uniquePlayers.has(pick.playerName)) {
-              uniquePlayers.set(pick.playerName, {
-                playerName: pick.playerName,
-                playerCode: pick.playerCode,
-                week: currentWeek, // Set to superbowl
-                predictions: allPicks.find(p => p.playerCode === pick.playerCode && p.week === 'superbowl')?.predictions || {}
-              });
-            }
-          });
-          return Array.from(uniquePlayers.values());
-        })()
-      : allPicks.filter(pick => pick.week === currentWeek);
+    // Get all unique player names from current week
+    const weekPicks = allPicks.filter(pick => pick.week === currentWeek);
     
     weekPicks.forEach(pick => {
       if (!totals[pick.playerName]) {
         totals[pick.playerName] = {
-          week4: 0,
-          week3: 0,
-          week2: 0,
-          week1: 0,
-          grand: 0,
+          week4: { predicted: null, difference: null, hasActual: false },
+          week3: { predicted: null, difference: null, hasActual: false },
+          week2: { predicted: null, difference: null, hasActual: false },
+          week1: { predicted: null, difference: null, hasActual: false },
+          grand: { fullPredicted: null, playedPredicted: null, totalDifference: null, allWeeksPlayed: false },
           current: 0
         };
       }
@@ -2515,34 +2307,61 @@ function App() {
       });
       totals[pick.playerName].current = currentTotal;
       
-      // For Super Bowl, calculate all weeks (PREDICTED TOTALS - sum of predicted scores)
-      // CRITICAL: Player rows should ALWAYS calculate independently - NEVER use header overrides!
+      // For Super Bowl, calculate all weeks with predicted/difference format
       if (currentWeek === 'superbowl') {
-        // Helper function to calculate predicted total for any week
-        const calculatePredictedTotal = (playerCode, weekName) => {
-          const playerPick = allPicks.find(p => p.playerCode === playerCode && p.week === weekName);
-          if (!playerPick || !playerPick.predictions) return 0;
-          
-          let total = 0;
-          Object.values(playerPick.predictions).forEach(pred => {
-            if (pred && pred.team1 && pred.team2) {
-              total += (parseInt(pred.team1) || 0) + (parseInt(pred.team2) || 0);
-            }
-          });
-          return total;
+        totals[pick.playerName].week4 = calculateWeeklyTotal(pick.playerCode, 'superbowl');
+        totals[pick.playerName].week3 = calculateWeeklyTotal(pick.playerCode, 'conference');
+        totals[pick.playerName].week2 = calculateWeeklyTotal(pick.playerCode, 'divisional');
+        totals[pick.playerName].week1 = calculateWeeklyTotal(pick.playerCode, 'wildcard');
+        
+        // Calculate Grand Total
+        const w1 = totals[pick.playerName].week1;
+        const w2 = totals[pick.playerName].week2;
+        const w3 = totals[pick.playerName].week3;
+        const w4 = totals[pick.playerName].week4;
+        
+        // Calculate full predicted total (all 4 weeks)
+        const fullPredicted = 
+          (w1.predicted || 0) + 
+          (w2.predicted || 0) + 
+          (w3.predicted || 0) + 
+          (w4.predicted || 0);
+        
+        // Check which weeks have actual scores
+        const playedWeeks = [];
+        let playedPredicted = 0;
+        let totalDifference = 0;
+        
+        if (w1.hasActual) {
+          playedWeeks.push('w1');
+          playedPredicted += w1.predicted || 0;
+          totalDifference += w1.difference || 0;
+        }
+        if (w2.hasActual) {
+          playedWeeks.push('w2');
+          playedPredicted += w2.predicted || 0;
+          totalDifference += w2.difference || 0;
+        }
+        if (w3.hasActual) {
+          playedWeeks.push('w3');
+          playedPredicted += w3.predicted || 0;
+          totalDifference += w3.difference || 0;
+        }
+        if (w4.hasActual) {
+          playedWeeks.push('w4');
+          playedPredicted += w4.predicted || 0;
+          totalDifference += w4.difference || 0;
+        }
+        
+        const allWeeksPlayed = playedWeeks.length === 4;
+        const someWeeksPlayed = playedWeeks.length > 0;
+        
+        totals[pick.playerName].grand = {
+          fullPredicted: fullPredicted,
+          playedPredicted: someWeeksPlayed ? playedPredicted : null,
+          totalDifference: someWeeksPlayed ? totalDifference : null,
+          allWeeksPlayed: allWeeksPlayed
         };
-        
-        totals[pick.playerName].week4 = calculatePredictedTotal(pick.playerCode, 'superbowl');
-        totals[pick.playerName].week3 = calculatePredictedTotal(pick.playerCode, 'conference');
-        totals[pick.playerName].week2 = calculatePredictedTotal(pick.playerCode, 'divisional');
-        totals[pick.playerName].week1 = calculatePredictedTotal(pick.playerCode, 'wildcard');
-        
-        // Grand Total (sum of all 4 weeks for this player)
-        totals[pick.playerName].grand = 
-          totals[pick.playerName].week1 + 
-          totals[pick.playerName].week2 + 
-          totals[pick.playerName].week3 + 
-          totals[pick.playerName].week4;
       }
     });
     
@@ -3531,35 +3350,6 @@ function App() {
                 </span>
               )}
             </button>
-            {isPoolManager() && (
-              <button
-                className={`nav-btn ${currentView === 'loginLogs' ? 'active' : ''}`}
-                onClick={() => setCurrentView('loginLogs')}
-              >
-                🔐 Login Logs
-                <span style={{
-                  marginLeft: '8px',
-                  fontSize: '0.7rem',
-                  padding: '2px 6px',
-                  background: '#667eea',
-                  color: 'white',
-                  borderRadius: '10px',
-                  fontWeight: '500'
-                }}>
-                  Pool Manager
-                </span>
-                {currentView === 'loginLogs' && (
-                  <span style={{
-                    marginLeft: '8px',
-                    fontSize: '0.75rem',
-                    opacity: 0.9,
-                    fontStyle: 'italic'
-                  }}>
-                    (you are here)
-                  </span>
-                )}
-              </button>
-            )}
           </div>
         )}
 
@@ -3575,11 +3365,6 @@ function App() {
             prizePool={prizePool}
             officialWinners={officialWinners}
             onLogout={handleLogout}
-          />
-        ) : currentView === 'loginLogs' && codeValidated ? (
-          <LoginLogsViewer 
-            isPoolManager={isPoolManager()}
-            playerCodes={PLAYER_CODES}
           />
         ) : (
           <>
@@ -3656,27 +3441,7 @@ function App() {
                 Welcome, <span className="player-name-highlight">{playerName}</span>!
                 {isPoolManager() && <span style={{marginLeft: '10px', color: '#d63031'}}>👑 POOL MANAGER</span>}
               </h3>
-              {/* WEEK NUMBER BADGE */}
-              <div style={{
-                display: 'inline-block',
-                padding: '8px 20px',
-                marginBottom: '10px',
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                color: 'white',
-                borderRadius: '25px',
-                fontWeight: 'bold',
-                fontSize: '1.1rem',
-                boxShadow: '0 4px 15px rgba(102, 126, 234, 0.4)',
-                letterSpacing: '0.5px'
-              }}>
-                {currentWeek === 'wildcard' && '📅 WEEK 1 OF 4'}
-                {currentWeek === 'divisional' && '📅 WEEK 2 OF 4'}
-                {currentWeek === 'conference' && '📅 WEEK 3 OF 4'}
-                {currentWeek === 'superbowl' && '📅 WEEK 4 OF 4'}
-              </div>
-              <p style={{color: '#000', marginTop: '8px'}}>
-                Making picks for: <strong>{currentWeekData.name}</strong>
-              </p>
+              <p style={{color: '#000'}}>Making picks for: <strong>{currentWeekData.name}</strong></p>
               {/* 🔒 NEW: Show lock status */}
               {isWeekLocked(currentWeek) && !isPoolManager() && (
                 <div style={{
@@ -3723,18 +3488,7 @@ function App() {
                 </h2>
               ) : (
                 <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '15px', gap: '15px'}}>
-                  <h2 style={{margin: 0, flex: '1'}}>
-                    Enter Your Predictions: <span style={{
-                      fontSize: '0.95rem',
-                      color: '#667eea',
-                      fontWeight: '600'
-                    }}>
-                      {currentWeek === 'wildcard' && 'Wk 1'}
-                      {currentWeek === 'divisional' && 'Wk 2'}
-                      {currentWeek === 'conference' && 'Wk 3'}
-                      {currentWeek === 'superbowl' && 'Wk 4'}
-                    </span>
-                  </h2>
+                  <h2 style={{margin: 0, flex: '1'}}>Enter Your Predictions</h2>
                   {!isWeekLocked(currentWeek) && (
                     <button
                       type="button"
@@ -3975,22 +3729,20 @@ function App() {
               📱 Mobile: Open the DOWNLOADABLE CSV file with Google Sheets (free app) or MS Office EXCEL
             </div>
             <button 
-              onClick={handleRefreshPicks}
-              disabled={isRefreshing}
+              onClick={() => window.location.reload()}
               style={{
                 marginLeft: '10px',
                 padding: '8px 16px',
-                background: isRefreshing ? '#a0a0a0' : '#667eea',
+                background: '#667eea',
                 color: 'white',
                 border: 'none',
                 borderRadius: '6px',
-                cursor: isRefreshing ? 'not-allowed' : 'pointer',
+                cursor: 'pointer',
                 fontSize: '0.9rem',
-                fontWeight: '600',
-                opacity: isRefreshing ? 0.7 : 1
+                fontWeight: '600'
               }}
             >
-              {isRefreshing ? '✓ Refreshed!' : '🔄 Refresh Picks Table'}
+              🔄 Refresh Picks Table
             </button>
           </h2>
 
@@ -4341,6 +4093,9 @@ function App() {
                           )}
                           
                           GRAND<br/>TOTAL
+                          <div style={{fontSize: '0.65rem', color: '#fff', marginTop: '4px', fontWeight: '400', opacity: '0.9'}}>
+                            (Pred/Played/Diff)
+                          </div>
                         </th>
                       </>
                     ) : (
@@ -4518,35 +4273,10 @@ function App() {
                   {/* 🗑️ REMOVED: Manual Week Totals header row deleted per user request */}
                 </thead>
                 <tbody>
-                  {(() => {
-                    // For Super Bowl, show ALL players (even without Week 4 picks)
-                    // For other weeks, only show players with picks for that week
-                    const displayPicks = currentWeek === 'superbowl'
-                      ? (() => {
-                          // Get all unique players from all weeks
-                          const uniquePlayers = new Map();
-                          allPicks.forEach(pick => {
-                            if (!uniquePlayers.has(pick.playerCode)) {
-                              // Find if they have superbowl picks
-                              const superbowlPick = allPicks.find(p => p.playerCode === pick.playerCode && p.week === 'superbowl');
-                              
-                              uniquePlayers.set(pick.playerCode, superbowlPick || {
-                                playerName: pick.playerName,
-                                playerCode: pick.playerCode,
-                                week: 'superbowl',
-                                predictions: {},
-                                timestamp: pick.timestamp,
-                                lastUpdated: pick.lastUpdated || pick.timestamp
-                              });
-                            }
-                          });
-                          return Array.from(uniquePlayers.values());
-                        })()
-                      : allPicks.filter(pick => pick.week === currentWeek);
-                    
-                    return displayPicks
-                      .sort((a, b) => (b.lastUpdated || b.timestamp) - (a.lastUpdated || a.timestamp))
-                      .map((pick, idx) => {
+                  {allPicks
+                    .filter(pick => pick.week === currentWeek)
+                    .sort((a, b) => (b.lastUpdated || b.timestamp) - (a.lastUpdated || a.timestamp))
+                    .map((pick, idx) => {
                       // Check if any prediction matches actual score (winner)
                       const hasCorrectPrediction = (gameId) => {
                         const actual = actualScores[currentWeek]?.[gameId];
@@ -4645,49 +4375,81 @@ function App() {
                           {/* Total Points Columns */}
                           {currentWeek === 'superbowl' ? (
                             <>
-                              {(() => {
-                                const week4Display = formatWeeklyDisplay(pick.playerCode, 'superbowl', 4);
-                                const week3Display = formatWeeklyDisplay(pick.playerCode, 'conference', 3);
-                                const week2Display = formatWeeklyDisplay(pick.playerCode, 'divisional', 2);
-                                const week1Display = formatWeeklyDisplay(pick.playerCode, 'wildcard', 1);
-                                const grandDisplay = formatGrandDisplay(pick.playerCode);
-                                
-                                return (
-                                  <>
-                                    <td 
-                                      style={{backgroundColor: '#fff3cd', fontWeight: 'bold', fontSize: week4Display.fontSize}}
-                                      title={week4Display.tooltip}
-                                    >
-                                      <span style={{color: '#000'}}>{week4Display.display}</span>
-                                    </td>
-                                    <td 
-                                      style={{backgroundColor: '#d1ecf1', fontWeight: 'bold', fontSize: week3Display.fontSize}}
-                                      title={week3Display.tooltip}
-                                    >
-                                      <span style={{color: '#000'}}>{week3Display.display}</span>
-                                    </td>
-                                    <td 
-                                      style={{backgroundColor: '#d4edda', fontWeight: 'bold', fontSize: week2Display.fontSize}}
-                                      title={week2Display.tooltip}
-                                    >
-                                      <span style={{color: '#000'}}>{week2Display.display}</span>
-                                    </td>
-                                    <td 
-                                      style={{backgroundColor: '#f8d7da', fontWeight: 'bold', fontSize: week1Display.fontSize}}
-                                      title={week1Display.tooltip}
-                                    >
-                                      <span style={{color: '#000'}}>{week1Display.display}</span>
-                                    </td>
-                                    <td 
-                                      className="grand-total"
-                                      style={{fontSize: grandDisplay.fontSize}}
-                                      title={grandDisplay.tooltip}
-                                    >
-                                      {grandDisplay.display}
-                                    </td>
-                                  </>
-                                );
-                              })()}
+                              <td 
+                                style={{
+                                  backgroundColor: '#fff3cd', 
+                                  fontWeight: 'bold', 
+                                  fontSize: '16px'
+                                }}
+                                title={playerTotals[pick.playerName]?.week4?.hasActual 
+                                  ? `Predicted: ${playerTotals[pick.playerName].week4.predicted} | Difference: ${playerTotals[pick.playerName].week4.difference}`
+                                  : `Predicted Total: ${playerTotals[pick.playerName]?.week4?.predicted || '-'}`
+                                }
+                              >
+                                <span style={{color: '#000'}}>
+                                  {formatWeeklyTotal(playerTotals[pick.playerName]?.week4)}
+                                </span>
+                              </td>
+                              <td 
+                                style={{
+                                  backgroundColor: '#d1ecf1', 
+                                  fontWeight: 'bold', 
+                                  fontSize: '16px'
+                                }}
+                                title={playerTotals[pick.playerName]?.week3?.hasActual 
+                                  ? `Predicted: ${playerTotals[pick.playerName].week3.predicted} | Difference: ${playerTotals[pick.playerName].week3.difference}`
+                                  : `Predicted Total: ${playerTotals[pick.playerName]?.week3?.predicted || '-'}`
+                                }
+                              >
+                                <span style={{color: '#000'}}>
+                                  {formatWeeklyTotal(playerTotals[pick.playerName]?.week3)}
+                                </span>
+                              </td>
+                              <td 
+                                style={{
+                                  backgroundColor: '#d4edda', 
+                                  fontWeight: 'bold', 
+                                  fontSize: '16px'
+                                }}
+                                title={playerTotals[pick.playerName]?.week2?.hasActual 
+                                  ? `Predicted: ${playerTotals[pick.playerName].week2.predicted} | Difference: ${playerTotals[pick.playerName].week2.difference}`
+                                  : `Predicted Total: ${playerTotals[pick.playerName]?.week2?.predicted || '-'}`
+                                }
+                              >
+                                <span style={{color: '#000'}}>
+                                  {formatWeeklyTotal(playerTotals[pick.playerName]?.week2)}
+                                </span>
+                              </td>
+                              <td 
+                                style={{
+                                  backgroundColor: '#f8d7da', 
+                                  fontWeight: 'bold', 
+                                  fontSize: '16px'
+                                }}
+                                title={playerTotals[pick.playerName]?.week1?.hasActual 
+                                  ? `Predicted: ${playerTotals[pick.playerName].week1.predicted} | Difference: ${playerTotals[pick.playerName].week1.difference}`
+                                  : `Predicted Total: ${playerTotals[pick.playerName]?.week1?.predicted || '-'}`
+                                }
+                              >
+                                <span style={{color: '#000'}}>
+                                  {formatWeeklyTotal(playerTotals[pick.playerName]?.week1)}
+                                </span>
+                              </td>
+                              <td 
+                                className="grand-total"
+                                style={{
+                                  fontSize: getDynamicFontSize(formatGrandTotal(playerTotals[pick.playerName]?.grand))
+                                }}
+                                title={
+                                  playerTotals[pick.playerName]?.grand?.allWeeksPlayed
+                                    ? `Full Prediction: ${playerTotals[pick.playerName].grand.fullPredicted} | Total Difference: ${playerTotals[pick.playerName].grand.totalDifference}`
+                                    : playerTotals[pick.playerName]?.grand?.playedPredicted !== null
+                                    ? `Full Prediction: ${playerTotals[pick.playerName].grand.fullPredicted} | Played Weeks: ${playerTotals[pick.playerName].grand.playedPredicted} | Difference So Far: ${playerTotals[pick.playerName].grand.totalDifference}`
+                                    : `Full Season Prediction: ${playerTotals[pick.playerName]?.grand?.fullPredicted || '-'}`
+                                }
+                              >
+                                {formatGrandTotal(playerTotals[pick.playerName]?.grand)}
+                              </td>
                             </>
                           ) : (
                             <td style={{backgroundColor: '#f8f9fa', fontWeight: 'bold', fontSize: '16px'}}>
@@ -4706,194 +4468,56 @@ function App() {
                           </td>
                         </tr>
                       );
-                    });
-                  })()}
+                    })}
                 </tbody>
               </table>
+              
+              {/* Legend for Grand Total Format */}
+              {currentWeek === 'superbowl' && (
+                <div style={{
+                  marginTop: '20px',
+                  padding: '15px 20px',
+                  backgroundColor: '#f8f9fa',
+                  borderRadius: '8px',
+                  border: '1px solid #dee2e6'
+                }}>
+                  <div style={{
+                    fontSize: '0.95rem',
+                    color: '#495057',
+                    lineHeight: '1.6'
+                  }}>
+                    <strong style={{fontSize: '1rem', color: '#212529'}}>📊 Grand Total Format:</strong>
+                    <div style={{marginTop: '8px'}}>
+                      <strong>While weeks are being played:</strong> [Full Prediction] / [Played Weeks] / [Difference]
+                      <br/>
+                      <span style={{color: '#6c757d', fontSize: '0.9rem', marginLeft: '10px'}}>
+                        Example: <strong>784/598/35</strong> means predicted 784 total, 598 for played weeks, 35 points off so far
+                      </span>
+                    </div>
+                    <div style={{marginTop: '8px'}}>
+                      <strong>When all weeks complete:</strong> [Full Prediction] / [Total Difference]
+                      <br/>
+                      <span style={{color: '#6c757d', fontSize: '0.9rem', marginLeft: '10px'}}>
+                        Example: <strong>784/55</strong> means predicted 784 total, 55 points off overall (determines winner!)
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
           {/* 🆕 STEP 5: Prize Leaders Display */}
           {codeValidated && (
-            <>
-              {/* 📊 Smart P Notation Legend - Only on Super Bowl page */}
-              {currentWeek === 'superbowl' && (
-                <div style={{
-                  marginTop: '40px',
-                  marginBottom: '40px',
-                  padding: '30px',
-                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                  borderRadius: '12px',
-                  border: '3px solid #5a67d8',
-                  boxShadow: '0 8px 20px rgba(0,0,0,0.15)'
-                }}>
-                  <h3 style={{
-                    color: '#fff',
-                    marginBottom: '20px',
-                    fontSize: '1.4rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '10px'
-                  }}>
-                    📊 Format Guide - How to Read the Totals
-                  </h3>
-                  
-                  <div style={{
-                    background: 'rgba(255,255,255,0.95)',
-                    padding: '25px',
-                    borderRadius: '10px',
-                    color: '#333'
-                  }}>
-                    {/* Grand Total Format */}
-                    <div style={{marginBottom: '25px'}}>
-                      <p style={{
-                        fontWeight: 'bold',
-                        color: '#5a67d8',
-                        marginBottom: '12px',
-                        fontSize: '1.1rem'
-                      }}>
-                        Grand Total Format:
-                      </p>
-                      <ul style={{
-                        listStyle: 'none',
-                        padding: 0,
-                        margin: 0,
-                        lineHeight: '2.2'
-                      }}>
-                        <li>
-                          <strong>Complete Entry:</strong> <code style={{
-                            background: '#f0f4f8',
-                            padding: '4px 10px',
-                            borderRadius: '5px',
-                            fontWeight: 'bold',
-                            color: '#2d3748'
-                          }}>784</code> - All 4 weeks entered
-                        </li>
-                        <li>
-                          <strong>During Season:</strong> <code style={{
-                            background: '#f0f4f8',
-                            padding: '4px 10px',
-                            borderRadius: '5px',
-                            fontWeight: 'bold',
-                            color: '#2d3748'
-                          }}>784/598/35</code> - Full Pred / Played Weeks / Difference
-                        </li>
-                        <li>
-                          <strong>After Season:</strong> <code style={{
-                            background: '#f0f4f8',
-                            padding: '4px 10px',
-                            borderRadius: '5px',
-                            fontWeight: 'bold',
-                            color: '#2d3748'
-                          }}>784/55</code> - Full Pred / Total Difference
-                        </li>
-                        <li>
-                          <strong>Abnormal Pattern:</strong> <code style={{
-                            background: '#fff3cd',
-                            padding: '4px 10px',
-                            borderRadius: '5px',
-                            fontWeight: 'bold',
-                            color: '#856404',
-                            border: '2px solid #ffc107'
-                          }}>P13/415</code> - P = Partial (weeks 1 & 3 only - unusual!)
-                        </li>
-                      </ul>
-                    </div>
-                    
-                    {/* Special Indicators */}
-                    <div style={{marginBottom: '25px'}}>
-                      <p style={{
-                        fontWeight: 'bold',
-                        color: '#5a67d8',
-                        marginBottom: '12px',
-                        fontSize: '1.1rem'
-                      }}>
-                        Special Indicators:
-                      </p>
-                      <ul style={{
-                        listStyle: 'none',
-                        padding: 0,
-                        margin: 0,
-                        lineHeight: '2.2'
-                      }}>
-                        <li>
-                          <strong>Asterisk (*):</strong> <code style={{
-                            background: '#f0f4f8',
-                            padding: '4px 10px',
-                            borderRadius: '5px',
-                            fontWeight: 'bold',
-                            color: '#2d3748'
-                          }}>234*</code> - Pick filled by RNG/Pool Manager
-                        </li>
-                        <li>
-                          <strong>P Notation:</strong> Shows which weeks entered when pattern is unusual (e.g., P13 = weeks 1 & 3, skipped 2)
-                        </li>
-                        <li>
-                          <strong>Dash (-):</strong> Week not entered yet
-                        </li>
-                      </ul>
-                    </div>
-                    
-                    {/* Examples */}
-                    <div style={{marginBottom: '15px'}}>
-                      <p style={{
-                        fontWeight: 'bold',
-                        color: '#5a67d8',
-                        marginBottom: '12px',
-                        fontSize: '1.1rem'
-                      }}>
-                        Examples:
-                      </p>
-                      <ul style={{
-                        listStyle: 'none',
-                        padding: 0,
-                        margin: 0,
-                        lineHeight: '2.2'
-                      }}>
-                        <li>
-                          Richard: <code style={{background: '#f0f4f8', padding: '4px 10px', borderRadius: '5px', fontWeight: 'bold'}}>784</code> - Entered all 4 weeks normally
-                        </li>
-                        <li>
-                          Neema: <code style={{background: '#f0f4f8', padding: '4px 10px', borderRadius: '5px', fontWeight: 'bold'}}>533/287/22</code> - 2 weeks played so far, 22 points off
-                        </li>
-                        <li>
-                          Bob: <code style={{background: '#fff3cd', padding: '4px 10px', borderRadius: '5px', fontWeight: 'bold', border: '2px solid #ffc107'}}>P13/415</code> - Entered weeks 1 & 3 only (skipped 2) - unusual!
-                        </li>
-                        <li>
-                          After RNG fills Bob's week 2: <code style={{background: '#f0f4f8', padding: '4px 10px', borderRadius: '5px', fontWeight: 'bold'}}>649</code> - P notation drops (normalized)
-                        </li>
-                      </ul>
-                    </div>
-                    
-                    {/* Tip */}
-                    <div style={{
-                      paddingTop: '20px',
-                      borderTop: '2px solid #cbd5e0',
-                      marginTop: '15px'
-                    }}>
-                      <p style={{
-                        color: '#4a5568',
-                        fontStyle: 'italic',
-                        fontSize: '1rem',
-                        margin: 0
-                      }}>
-                        💡 <strong>Tip:</strong> Hover over any number for detailed breakdown! The P notation only appears for unusual entry patterns and disappears once normalized.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-              
-              <div style={{marginTop: '60px'}}>
-                <LeaderDisplay
-                  allPicks={allPicks}
-                  actualScores={actualScores}
-                  games={PLAYOFF_WEEKS}
-                  officialWinners={officialWinners}
-                  weekData={PLAYOFF_WEEKS}
-                />
-              </div>
-            </>
+            <div style={{marginTop: '60px'}}>
+              <LeaderDisplay
+                allPicks={allPicks}
+                actualScores={actualScores}
+                games={PLAYOFF_WEEKS}
+                officialWinners={officialWinners}
+                weekData={PLAYOFF_WEEKS}
+              />
+            </div>
           )}
 
           {/* 💰 PHASE 2: ENHANCED PRIZE POOL & WINNER DECLARATION - Pool Manager Only */}
