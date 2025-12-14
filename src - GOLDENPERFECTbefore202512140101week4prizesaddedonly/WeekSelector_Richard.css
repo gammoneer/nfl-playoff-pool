@@ -1,0 +1,146 @@
+/* ============================================
+   WEEK SELECTOR - STYLED FOR RICHARD'S DESIGN
+   Matches purple header theme
+   ============================================ */
+
+.week-selector-container {
+  margin: 20px 0;
+  padding: 0;
+}
+
+.week-selector-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  padding: 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+.week-btn {
+  flex: 1;
+  max-width: 200px;
+  padding: 15px 20px;
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-align: center;
+}
+
+.week-btn:hover:not(.locked) {
+  background: rgba(255, 255, 255, 0.3);
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+}
+
+.week-btn.active {
+  background: white;
+  color: #667eea;
+  border-color: white;
+  font-weight: 700;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+.week-btn.locked {
+  opacity: 0.4;
+  cursor: not-allowed;
+  background: rgba(108, 117, 125, 0.3);
+}
+
+.week-btn-emoji {
+  font-size: 1.2rem;
+  margin-right: 8px;
+}
+
+.week-btn-name {
+  display: block;
+  font-size: 0.95rem;
+}
+
+.week-btn-deadline {
+  display: block;
+  font-size: 0.75rem;
+  opacity: 0.9;
+  margin-top: 4px;
+}
+
+.week-btn.active .week-btn-name {
+  color: #667eea;
+}
+
+.week-btn.active .week-btn-deadline {
+  color: #764ba2;
+}
+
+/* Status badges on week buttons */
+.week-status-badge {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  margin-top: 6px;
+}
+
+.status-saved {
+  background: #28a745;
+  color: white;
+}
+
+.status-editing {
+  background: #ffc107;
+  color: #333;
+}
+
+.status-ready {
+  background: #17a2b8;
+  color: white;
+}
+
+.status-locked {
+  background: #6c757d;
+  color: white;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .week-selector-buttons {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  
+  .week-btn {
+    flex: 1 1 45%;
+    max-width: none;
+    padding: 12px 15px;
+    font-size: 0.9rem;
+  }
+  
+  .week-btn-emoji {
+    font-size: 1rem;
+  }
+  
+  .week-btn-name {
+    font-size: 0.85rem;
+  }
+  
+  .week-btn-deadline {
+    font-size: 0.7rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .week-selector-buttons {
+    flex-direction: column;
+  }
+  
+  .week-btn {
+    flex: 1 1 100%;
+  }
+}

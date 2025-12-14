@@ -24,20 +24,6 @@ import {
 } from './winnerService';
 import LoginLogsViewer from './LoginLogsViewer';
 import { logSuccessfulLogin, logFailedLogin } from './loginLogging';
-import { 
-  calculateWeekPrize1, 
-  calculateWeekPrize2,
-  calculateWeek4Prize1,
-  calculateWeek4Prize2,
-  calculateGrandPrize1,
-  calculateGrandPrize2
-} from './winnerCalculations';
-import HowWinnersAreDetermined from './HowWinnersAreDetermined';
-import './HowWinnersAreDetermined.css';
-
-// In useEffect after loading data:
-// const result = calculateWeekPrize2(allPicks, actualScores, 'wildcard');
-// console.log('Week 1 Prize #2:', result);
 
 // Firebase configuration
 const firebaseConfig = {
@@ -113,13 +99,13 @@ const POOL_MANAGER_CODES = ["76BB89", "Z9Y8X7"];  // Add more codes here as need
 // Codes are now 6-character alphanumeric (A-Z, 2-9)
 // Avoid confusing characters: 0, O, I, 1, l
 const PLAYER_CODES = {
-  "76BB89": "POOL MANAGER - Richard",  // Pool Manager #1  //Paid202512051130 sent code to him
+  "76BB89": "POOL MANAGER - Richard",  // Pool Manager #1
   "Z9Y8X7": "POOL MANAGER - Dennis",   // Pool Manager #2
   "J239W4": "Bob Casson",
   "B7Y4X3": "Bob Desrosiers",
   "D4F7G5": "Bonnie Biletski",
   "536EE2": "Brian Colburg",
-  "X8HH67": "Chris Neufeld", //Paid 20251214008  *************************************NEED TO SEND code to him and link
+  "X8HH67": "Chris Neufeld",
   "G7R3P5": "Curtis Braun",
   "A4LJC9": "Curtis Palidwor",
   "X3P8N1": "Dallas Pylypow",
@@ -128,7 +114,7 @@ const PLAYER_CODES = {
   "K2P9W5": "Dave Desrosiers",
   "A5K4T7": "Dennis Biletski",
   "6WRUJR": "Emily Chadwick",
-  "AB6C89": "Gareth Reeve", //Paid202512051130 sent code to him and link
+  "AB6C89": "Gareth Reeve",
   "D3F6G9": "Jarrod Reimer",
   "T42B67": "Jo Behr",
   "PUEFKF": "Joshua Biletski",
@@ -138,14 +124,14 @@ const PLAYER_CODES = {
   "B5R4T6": "Larry Strand",
   "L2W9X2": "Michelle Desrosiers",
   "5GGPL3": "Mike Brkich",
-  "T4M8Z8": "Neema Dadmand", //Paid202512051700 sent code to him and link
-  "9CD72G": "Neil Banman", //Paid202512051605 sent code to him and link
+  "T4M8Z8": "Neema Dadmand",
+  "9CD72G": "Neil Banman",
   "T7Y4R8": "Neil Foster",
   "KWBZ86": "Nick Melanidis",
   "2WQA9X": "Nima Ahmadi",
   "E4T6J7": "Orest Pich",
   "N4M8Q2": "Randy Moffatt",
-  "B8L9M2": "Richard Biletski", //Paid202512051130 sent code to him
+  "B8L9M2": "Richard Biletski",
   "62R92L": "Rob Crowe",
   "H8M3N7": "Rob Kost",
   "WW3F44": "Ryan Moffatt",
@@ -221,10 +207,7 @@ function App() {
     superbowl_week1: '',
     superbowl_grand: ''  // Grand total for all 4 weeks combined
   });
-  const [calculatedWinners, setCalculatedWinners] = useState({});
-  const [publishedWinners, setPublishedWinners] = useState({});
-  const [showWinnersPage, setShowWinnersPage] = useState(false);
-
+  
   // Track which totals are manually overridden (vs auto-calculated)
   const [manualOverrides, setManualOverrides] = useState({
     superbowl_week4: false,
@@ -255,7 +238,6 @@ function App() {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [showPopup, setShowPopup] = useState(null);
   const [pendingWeekChange, setPendingWeekChange] = useState(null);
-  const [isRefreshing, setIsRefreshing] = useState(false); // For refresh button feedback
   const [missingGames, setMissingGames] = useState([]);
   const [invalidScores, setInvalidScores] = useState([]);
   
@@ -1024,7 +1006,7 @@ function App() {
     });
   }, []);
 
-// 💰 Load prize pool setup from Firebase
+  // 💰 Load prize pool setup from Firebase
   useEffect(() => {
     const prizePoolRef = ref(database, 'prizePool');
     onValue(prizePoolRef, (snapshot) => {
@@ -1035,29 +1017,7 @@ function App() {
     });
   }, []);
 
-  // 🏆 Load calculated winners from Firebase
-  useEffect(() => {
-    const winnersRef = ref(database, 'calculatedWinners');
-    onValue(winnersRef, (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        setCalculatedWinners(data);
-      }
-    });
-  }, []);
-
-  // 📢 Load published winners status from Firebase
-  useEffect(() => {
-    const publishedRef = ref(database, 'publishedWinners');
-    onValue(publishedRef, (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        setPublishedWinners(data);
-      }
-    });
-  }, []);
-
-  // 📡 Load game locks from Firebase
+  // 📡 Load game locks from Firebase  ← ADD THIS NEW ONE HERE
   useEffect(() => {
     const gameLocksRef = ref(database, 'gameLocks');
     onValue(gameLocksRef, (snapshot) => {
@@ -1341,7 +1301,7 @@ function App() {
     set(ref(database, `gameStatus/${currentWeek}/${gameId}`), status);
   };
 
-// Pool Manager function to update manual week totals
+  // Pool Manager function to update manual week totals
   const handleManualTotalChange = (weekKey, value) => {
     const updatedTotals = {
       ...manualWeekTotals,
@@ -1359,46 +1319,6 @@ function App() {
     
     // Save to Firebase
     set(ref(database, `manualWeekTotals/${weekKey}`), value || null);
-  };
-
-  // Pool Manager: Publish a prize
-  const handlePublishPrize = (prizeKey, prize, result) => {
-    console.log('Publishing prize:', prizeKey);
-    
-    // Update state
-    setPublishedWinners(prev => ({
-      ...prev,
-      [prizeKey]: true
-    }));
-    
-    // Save to Firebase
-    set(ref(database, `publishedWinners/${prizeKey}`), true);
-    
-    alert(`✅ Published: ${prize.title}\n\nWinner: ${result.winner}\n\nPlayers can now see this result!`);
-  };
-
-  // Pool Manager: Unpublish a prize
-  const handleUnpublishPrize = (prizeKey) => {
-    const confirmed = window.confirm(
-      '⚠️ UNPUBLISH PRIZE?\n\n' +
-      'This will hide the winner from all players.\n\n' +
-      'Continue?'
-    );
-    
-    if (!confirmed) return;
-    
-    console.log('Unpublishing prize:', prizeKey);
-    
-    // Update state
-    setPublishedWinners(prev => ({
-      ...prev,
-      [prizeKey]: false
-    }));
-    
-    // Save to Firebase
-    set(ref(database, `publishedWinners/${prizeKey}`), false);
-    
-    alert('✅ Prize unpublished successfully!');
   };
   
   /**
@@ -1857,23 +1777,6 @@ function App() {
     setHasUnsavedChanges(false);
     console.log('🚪 Logout complete');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  };
-
-  // ============================================
-  // 🔄 REFRESH PICKS HANDLER
-  // ============================================
-  
-  const handleRefreshPicks = () => {
-    // Show "refreshing" feedback
-    setIsRefreshing(true);
-    
-    // The picks are already real-time synced via Firebase onValue listener
-    // So we just show feedback and then hide it after a brief moment
-    setTimeout(() => {
-      setIsRefreshing(false);
-    }, 800);
-    
-    // Optional: Could force a re-fetch if needed, but onValue already handles this
   };
 
   // ============================================
@@ -2561,100 +2464,6 @@ function App() {
     return totals;
   }, [allPicks, currentWeek, actualScores]);
 
-const calculateAllPrizeWinners = () => {
-  console.log('🏆 Starting winner calculations...');
-  
-  // STEP 1: Convert allPicks array to object format the functions expect
-  const picksObject = {};
-  
-  allPicks.forEach(pick => {
-    if (pick.firebaseKey && pick.playerCode && pick.predictions) {
-      // Initialize player if not exists
-      if (!picksObject[pick.playerCode]) {
-        picksObject[pick.playerCode] = {
-          name: pick.playerName,
-          picks: {}
-        };
-      }
-      
-      // Convert predictions array to object (skip index 0)
-      const predictionsObj = {};
-      
-      if (Array.isArray(pick.predictions)) {
-        pick.predictions.forEach((pred, index) => {
-          if (index > 0 && pred) {
-            predictionsObj[index.toString()] = pred;
-          }
-        });
-      } else {
-        Object.assign(predictionsObj, pick.predictions);
-      }
-      
-      // Add this week's picks to the player
-      picksObject[pick.playerCode].picks[pick.week] = predictionsObj;
-    }
-  });
-  
-  // STEP 2: Convert actualScores arrays to objects
-  const actualScoresObj = {};
-  
-  Object.keys(actualScores).forEach(week => {
-    if (Array.isArray(actualScores[week])) {
-      const weekObj = {};
-      actualScores[week].forEach((score, index) => {
-        if (index > 0 && score) {
-          weekObj[index.toString()] = score;
-        }
-      });
-      actualScoresObj[week] = weekObj;
-    } else {
-      actualScoresObj[week] = actualScores[week];
-    }
-  });
-  
-  console.log('📊 Converted picks:', Object.keys(picksObject).length, 'players');
-  console.log('📊 Converted scores:', Object.keys(actualScoresObj));
-  
-  // STEP 3: Run all calculations
-  const results = {
-    week1: {
-      prize1: calculateWeekPrize1(picksObject, actualScoresObj, 'wildcard'),
-      prize2: calculateWeekPrize2(picksObject, actualScoresObj, 'wildcard')
-    },
-    week2: {
-      prize1: calculateWeekPrize1(picksObject, actualScoresObj, 'divisional'),
-      prize2: calculateWeekPrize2(picksObject, actualScoresObj, 'divisional')
-    },
-    week3: {
-      prize1: calculateWeekPrize1(picksObject, actualScoresObj, 'conference'),
-      prize2: calculateWeekPrize2(picksObject, actualScoresObj, 'conference')
-    },
-    week4: {
-      prize1: calculateWeek4Prize1(picksObject, actualScoresObj),
-      prize2: calculateWeek4Prize2(picksObject, actualScoresObj)
-    },
-    grandPrize: {
-      prize1: calculateGrandPrize1(picksObject, actualScoresObj),
-      prize2: calculateGrandPrize2(picksObject, actualScoresObj)
-    }
-  };
-  
-  console.log('✅ All calculations complete!');
-  console.log('📊 Results:', results);
-  
-  return results;
-};
-
-// Calculate winners whenever picks or scores change
-  useEffect(() => {
-    if (allPicks.length > 0 && actualScores) {
-      const results = calculateAllPrizeWinners();
-      setCalculatedWinners(results);
-      
-      // Save to Firebase
-      set(ref(database, 'calculatedWinners'), results);
-    }
-  }, [allPicks, actualScores]);
   return (
     <div className="App">
       <header>
@@ -3602,7 +3411,7 @@ const calculateAllPrizeWinners = () => {
           />
         )}
         
-{/* 🆕 Navigation Buttons - Show after code validation */}
+        {/* 🆕 Navigation Buttons - Show after code validation */}
         {codeValidated && (
           <div className="view-navigation">
             <button
@@ -3627,22 +3436,6 @@ const calculateAllPrizeWinners = () => {
             >
               🏆 Standings & Prizes
               {currentView === 'standings' && (
-                <span style={{
-                  marginLeft: '8px',
-                  fontSize: '0.75rem',
-                  opacity: 0.9,
-                  fontStyle: 'italic'
-                }}>
-                  (you are here)
-                </span>
-              )}
-            </button>
-            <button
-              className={`nav-btn ${currentView === 'winners' ? 'active' : ''}`}
-              onClick={() => setCurrentView('winners')}
-            >
-              ⚖️ How Winners Are Determined
-              {currentView === 'winners' && (
                 <span style={{
                   marginLeft: '8px',
                   fontSize: '0.75rem',
@@ -3697,13 +3490,6 @@ const calculateAllPrizeWinners = () => {
             prizePool={prizePool}
             officialWinners={officialWinners}
             onLogout={handleLogout}
-          />) : currentView === 'winners' && codeValidated ? (
-          <HowWinnersAreDetermined 
-            calculatedWinners={calculatedWinners}
-            publishedWinners={publishedWinners}
-            isPoolManager={isPoolManager()}
-            onPublishPrize={handlePublishPrize}
-            onUnpublishPrize={handleUnpublishPrize}
           />
         ) : currentView === 'loginLogs' && codeValidated ? (
           <LoginLogsViewer 
@@ -4104,22 +3890,20 @@ const calculateAllPrizeWinners = () => {
               📱 Mobile: Open the DOWNLOADABLE CSV file with Google Sheets (free app) or MS Office EXCEL
             </div>
             <button 
-              onClick={handleRefreshPicks}
-              disabled={isRefreshing}
+              onClick={() => window.location.reload()}
               style={{
                 marginLeft: '10px',
                 padding: '8px 16px',
-                background: isRefreshing ? '#a0a0a0' : '#667eea',
+                background: '#667eea',
                 color: 'white',
                 border: 'none',
                 borderRadius: '6px',
-                cursor: isRefreshing ? 'not-allowed' : 'pointer',
+                cursor: 'pointer',
                 fontSize: '0.9rem',
-                fontWeight: '600',
-                opacity: isRefreshing ? 0.7 : 1
+                fontWeight: '600'
               }}
             >
-              {isRefreshing ? '✓ Refreshed!' : '🔄 Refresh Picks Table'}
+              🔄 Refresh Picks Table
             </button>
           </h2>
 

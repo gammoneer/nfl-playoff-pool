@@ -22,22 +22,6 @@ import {
   exportToCSV, 
   downloadCSV 
 } from './winnerService';
-import LoginLogsViewer from './LoginLogsViewer';
-import { logSuccessfulLogin, logFailedLogin } from './loginLogging';
-import { 
-  calculateWeekPrize1, 
-  calculateWeekPrize2,
-  calculateWeek4Prize1,
-  calculateWeek4Prize2,
-  calculateGrandPrize1,
-  calculateGrandPrize2
-} from './winnerCalculations';
-import HowWinnersAreDetermined from './HowWinnersAreDetermined';
-import './HowWinnersAreDetermined.css';
-
-// In useEffect after loading data:
-// const result = calculateWeekPrize2(allPicks, actualScores, 'wildcard');
-// console.log('Week 1 Prize #2:', result);
 
 // Firebase configuration
 const firebaseConfig = {
@@ -113,13 +97,13 @@ const POOL_MANAGER_CODES = ["76BB89", "Z9Y8X7"];  // Add more codes here as need
 // Codes are now 6-character alphanumeric (A-Z, 2-9)
 // Avoid confusing characters: 0, O, I, 1, l
 const PLAYER_CODES = {
-  "76BB89": "POOL MANAGER - Richard",  // Pool Manager #1  //Paid202512051130 sent code to him
+  "76BB89": "POOL MANAGER - Richard",  // Pool Manager #1
   "Z9Y8X7": "POOL MANAGER - Dennis",   // Pool Manager #2
   "J239W4": "Bob Casson",
   "B7Y4X3": "Bob Desrosiers",
   "D4F7G5": "Bonnie Biletski",
   "536EE2": "Brian Colburg",
-  "X8HH67": "Chris Neufeld", //Paid 20251214008  *************************************NEED TO SEND code to him and link
+  "X8HH67": "Chris Neufeld",
   "G7R3P5": "Curtis Braun",
   "A4LJC9": "Curtis Palidwor",
   "X3P8N1": "Dallas Pylypow",
@@ -128,7 +112,7 @@ const PLAYER_CODES = {
   "K2P9W5": "Dave Desrosiers",
   "A5K4T7": "Dennis Biletski",
   "6WRUJR": "Emily Chadwick",
-  "AB6C89": "Gareth Reeve", //Paid202512051130 sent code to him and link
+  "AB6C89": "Gareth Reeve",
   "D3F6G9": "Jarrod Reimer",
   "T42B67": "Jo Behr",
   "PUEFKF": "Joshua Biletski",
@@ -138,14 +122,14 @@ const PLAYER_CODES = {
   "B5R4T6": "Larry Strand",
   "L2W9X2": "Michelle Desrosiers",
   "5GGPL3": "Mike Brkich",
-  "T4M8Z8": "Neema Dadmand", //Paid202512051700 sent code to him and link
-  "9CD72G": "Neil Banman", //Paid202512051605 sent code to him and link
+  "T4M8Z8": "Neema Dadmand",
+  "9CD72G": "Neil Banman",
   "T7Y4R8": "Neil Foster",
   "KWBZ86": "Nick Melanidis",
   "2WQA9X": "Nima Ahmadi",
   "E4T6J7": "Orest Pich",
   "N4M8Q2": "Randy Moffatt",
-  "B8L9M2": "Richard Biletski", //Paid202512051130 sent code to him
+  "B8L9M2": "Richard Biletski",
   "62R92L": "Rob Crowe",
   "H8M3N7": "Rob Kost",
   "WW3F44": "Ryan Moffatt",
@@ -221,18 +205,6 @@ function App() {
     superbowl_week1: '',
     superbowl_grand: ''  // Grand total for all 4 weeks combined
   });
-  const [calculatedWinners, setCalculatedWinners] = useState({});
-  const [publishedWinners, setPublishedWinners] = useState({});
-  const [showWinnersPage, setShowWinnersPage] = useState(false);
-
-  // Track which totals are manually overridden (vs auto-calculated)
-  const [manualOverrides, setManualOverrides] = useState({
-    superbowl_week4: false,
-    superbowl_week3: false,
-    superbowl_week2: false,
-    superbowl_week1: false,
-    superbowl_grand: false
-  });
 
   // 🔒 NEW: Week lock status state
   const [weekLockStatus, setWeekLockStatus] = useState({
@@ -255,7 +227,6 @@ function App() {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [showPopup, setShowPopup] = useState(null);
   const [pendingWeekChange, setPendingWeekChange] = useState(null);
-  const [isRefreshing, setIsRefreshing] = useState(false); // For refresh button feedback
   const [missingGames, setMissingGames] = useState([]);
   const [invalidScores, setInvalidScores] = useState([]);
   
@@ -855,15 +826,15 @@ function App() {
    */
   const getPrizeName = (prizeNum) => {
     const prizes = {
-      1: 'Prize #1 - Week 1 Most Correct Predictions',
+      1: 'Prize #1 - Week 1 Most Correct Winners',
       2: 'Prize #2 - Week 1 Closest Total Points',
-      3: 'Prize #3 - Week 2 Most Correct Predictions',
+      3: 'Prize #3 - Week 2 Most Correct Winners',
       4: 'Prize #4 - Week 2 Closest Total Points',
-      5: 'Prize #5 - Week 3 Most Correct Predictions',
+      5: 'Prize #5 - Week 3 Most Correct Winners',
       6: 'Prize #6 - Week 3 Closest Total Points',
-      7: 'Prize #7 - Week 4 Most Correct Predictions',
+      7: 'Prize #7 - Week 4 Most Correct Winners',
       8: 'Prize #8 - Week 4 Closest Total Points',
-      9: 'Prize #9 - Overall 4-Week Grand Total Most Correct Predictions',
+      9: 'Prize #9 - Overall 4-Week Grand Total Most Correct Winners',
       10: 'Prize #10 - Overall 4-Week Grand Total Closest Points'
     };
     return prizes[prizeNum] || `Prize #${prizeNum}`;
@@ -1024,7 +995,7 @@ function App() {
     });
   }, []);
 
-// 💰 Load prize pool setup from Firebase
+  // 💰 Load prize pool setup from Firebase
   useEffect(() => {
     const prizePoolRef = ref(database, 'prizePool');
     onValue(prizePoolRef, (snapshot) => {
@@ -1035,29 +1006,7 @@ function App() {
     });
   }, []);
 
-  // 🏆 Load calculated winners from Firebase
-  useEffect(() => {
-    const winnersRef = ref(database, 'calculatedWinners');
-    onValue(winnersRef, (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        setCalculatedWinners(data);
-      }
-    });
-  }, []);
-
-  // 📢 Load published winners status from Firebase
-  useEffect(() => {
-    const publishedRef = ref(database, 'publishedWinners');
-    onValue(publishedRef, (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        setPublishedWinners(data);
-      }
-    });
-  }, []);
-
-  // 📡 Load game locks from Firebase
+  // 📡 Load game locks from Firebase  ← ADD THIS NEW ONE HERE
   useEffect(() => {
     const gameLocksRef = ref(database, 'gameLocks');
     onValue(gameLocksRef, (snapshot) => {
@@ -1237,9 +1186,6 @@ function App() {
         [team]: score
       }
     }));
-    // Manually set unsaved changes flag when user types
-    console.log('⌨️ User typed score - setting hasUnsavedChanges to TRUE');
-    setHasUnsavedChanges(true);
   };
 
   // RNG Pick - Auto-fill all games with random scores
@@ -1341,7 +1287,7 @@ function App() {
     set(ref(database, `gameStatus/${currentWeek}/${gameId}`), status);
   };
 
-// Pool Manager function to update manual week totals
+  // Pool Manager function to update manual week totals
   const handleManualTotalChange = (weekKey, value) => {
     const updatedTotals = {
       ...manualWeekTotals,
@@ -1349,354 +1295,8 @@ function App() {
     };
     setManualWeekTotals(updatedTotals);
     
-    // Mark as manually overridden ONLY if value is not empty
-    // If empty/null/undefined, return to auto-calculation
-    const isOverridden = value !== '' && value !== null && value !== undefined;
-    setManualOverrides(prev => ({
-      ...prev,
-      [weekKey]: isOverridden
-    }));
-    
     // Save to Firebase
-    set(ref(database, `manualWeekTotals/${weekKey}`), value || null);
-  };
-
-  // Pool Manager: Publish a prize
-  const handlePublishPrize = (prizeKey, prize, result) => {
-    console.log('Publishing prize:', prizeKey);
-    
-    // Update state
-    setPublishedWinners(prev => ({
-      ...prev,
-      [prizeKey]: true
-    }));
-    
-    // Save to Firebase
-    set(ref(database, `publishedWinners/${prizeKey}`), true);
-    
-    alert(`✅ Published: ${prize.title}\n\nWinner: ${result.winner}\n\nPlayers can now see this result!`);
-  };
-
-  // Pool Manager: Unpublish a prize
-  const handleUnpublishPrize = (prizeKey) => {
-    const confirmed = window.confirm(
-      '⚠️ UNPUBLISH PRIZE?\n\n' +
-      'This will hide the winner from all players.\n\n' +
-      'Continue?'
-    );
-    
-    if (!confirmed) return;
-    
-    console.log('Unpublishing prize:', prizeKey);
-    
-    // Update state
-    setPublishedWinners(prev => ({
-      ...prev,
-      [prizeKey]: false
-    }));
-    
-    // Save to Firebase
-    set(ref(database, `publishedWinners/${prizeKey}`), false);
-    
-    alert('✅ Prize unpublished successfully!');
-  };
-  
-  /**
-   * Clear manual override and return to auto-calculation
-   */
-  const clearManualOverride = (weekKey) => {
-    setManualWeekTotals(prev => ({
-      ...prev,
-      [weekKey]: ''
-    }));
-    setManualOverrides(prev => ({
-      ...prev,
-      [weekKey]: false
-    }));
-    set(ref(database, `manualWeekTotals/${weekKey}`), null);
-  };
-  
-  /**
-   * Calculate auto-calculated weekly total for a player
-   * Sum of point differences for all games in a specific week
-   */
-  // ============================================
-  // 🎯 SMART P NOTATION HELPER FUNCTIONS
-  // ============================================
-  
-  /**
-   * Calculate predicted total for a week (sum of all predicted scores)
-   */
-  const calculatePredictedTotal = (playerCode, week) => {
-    const playerPick = allPicks.find(p => p.playerCode === playerCode && p.week === week);
-    if (!playerPick || !playerPick.predictions) return null;
-    
-    let total = 0;
-    Object.keys(playerPick.predictions).forEach(gameId => {
-      const pred = playerPick.predictions[gameId];
-      if (pred && pred.team1 && pred.team2) {
-        total += (parseInt(pred.team1) || 0) + (parseInt(pred.team2) || 0);
-      }
-    });
-    
-    return total;
-  };
-
-  /**
-   * Get which weeks a player has picks for
-   * Returns array like [1, 2, 3, 4] or [1, 3] etc.
-   */
-  const getPlayerWeeks = (playerCode) => {
-    const weeks = [];
-    const weekMap = {
-      wildcard: 1,
-      divisional: 2,
-      conference: 3,
-      superbowl: 4
-    };
-    
-    ['wildcard', 'divisional', 'conference', 'superbowl'].forEach(weekName => {
-      const hasPick = allPicks.some(p => p.playerCode === playerCode && p.week === weekName);
-      if (hasPick) {
-        weeks.push(weekMap[weekName]);
-      }
-    });
-    
-    return weeks;
-  };
-
-  /**
-   * Check if pattern is abnormal (not sequential from 1)
-   * Normal: [1], [1,2], [1,2,3], [1,2,3,4]
-   * Abnormal: [1,3], [2], [1,2,4], etc.
-   */
-  const isAbnormalPattern = (weeks) => {
-    if (weeks.length === 0) return false;
-    if (weeks.length === 4) return false; // Complete is normal
-    
-    // Check if sequential from 1
-    const isSequential = weeks.every((week, index) => week === index + 1);
-    return !isSequential;
-  };
-
-  /**
-   * Format P notation (P13, P123, etc.)
-   */
-  const formatPNotation = (weeks) => {
-    return 'P' + weeks.join('');
-  };
-
-  /**
-   * Check if player's pick for a week was RNG'd by Pool Manager
-   */
-  const isRNGPick = (playerCode, week) => {
-    const playerPick = allPicks.find(p => p.playerCode === playerCode && p.week === week);
-    return playerPick?.enteredBy === 'POOL_MANAGER_RNG';
-  };
-
-  const calculateWeeklyTotal = (playerCode, week) => {
-    // Find player's picks for this week
-    const playerPick = allPicks.find(p => p.playerCode === playerCode && p.week === week);
-    if (!playerPick || !playerPick.predictions) return 0;
-    
-    // Get actual scores for this week
-    const weekActualScores = actualScores[week];
-    if (!weekActualScores) return 0;
-    
-    // Calculate sum of point differences
-    let total = 0;
-    Object.keys(playerPick.predictions).forEach(gameId => {
-      const pred = playerPick.predictions[gameId];
-      const actual = weekActualScores[gameId];
-      
-      if (pred && actual && pred.team1 && pred.team2 && actual.team1 && actual.team2) {
-        const predTotal = parseInt(pred.team1) + parseInt(pred.team2);
-        const actualTotal = parseInt(actual.team1) + parseInt(actual.team2);
-        const diff = Math.abs(predTotal - actualTotal);
-        total += diff;
-      }
-    });
-    
-    return total;
-  };
-  
-  /**
-   * Calculate grand total (sum of all 4 weeks) for a player
-   */
-  const calculateGrandTotal = (playerCode) => {
-    const week1 = calculateWeeklyTotal(playerCode, 'wildcard');
-    const week2 = calculateWeeklyTotal(playerCode, 'divisional');
-    const week3 = calculateWeeklyTotal(playerCode, 'conference');
-    const week4 = calculateWeeklyTotal(playerCode, 'superbowl');
-    return week1 + week2 + week3 + week4;
-  };
-  
-  /**
-   * ============================================
-   * 🎨 SMART DISPLAY FORMATTING FUNCTIONS
-   * ============================================
-   */
-  
-  /**
-   * Format weekly total for display with smart P notation
-   * Returns object: { display: string, tooltip: string, fontSize: string }
-   */
-  const formatWeeklyDisplay = (playerCode, weekName, weekNumber) => {
-    const predicted = calculatePredictedTotal(playerCode, weekName);
-    const difference = calculateWeeklyTotal(playerCode, weekName);
-    const isRNG = isRNGPick(playerCode, weekName);
-    const hasActual = Object.keys(actualScores[weekName] || {}).length > 0;
-    
-    if (!predicted) {
-      return { display: '-', tooltip: '', fontSize: '16px' };
-    }
-    
-    const asterisk = isRNG ? '*' : '';
-    
-    if (!hasActual || difference === 0) {
-      return {
-        display: `${predicted}${asterisk}`,
-        tooltip: isRNG ? `Predicted: ${predicted} (RNG filled by Pool Manager)` : `Predicted: ${predicted}`,
-        fontSize: '16px'
-      };
-    }
-    
-    return {
-      display: `${predicted}${asterisk}/${difference}`,
-      tooltip: isRNG 
-        ? `Predicted: ${predicted} (RNG) | Difference: ${difference}`
-        : `Predicted: ${predicted} | Difference: ${difference}`,
-      fontSize: '16px'
-    };
-  };
-  
-  /**
-   * Format grand total with smart P notation
-   * Returns object: { display: string, tooltip: string, fontSize: string }
-   */
-  const formatGrandDisplay = (playerCode) => {
-    const weeks = getPlayerWeeks(playerCode);
-    
-    if (weeks.length === 0) {
-      return { display: '-', tooltip: '', fontSize: '16px' };
-    }
-    
-    const abnormal = isAbnormalPattern(weeks);
-    const prefix = abnormal ? formatPNotation(weeks) + '/' : '';
-    
-    // Calculate full predicted (all weeks player entered)
-    let fullPredicted = 0;
-    let playedPredicted = 0;
-    let totalDifference = 0;
-    let hasAnyActual = false;
-    let allWeeksPlayed = true;
-    
-    const weekMap = { 1: 'wildcard', 2: 'divisional', 3: 'conference', 4: 'superbowl' };
-    
-    weeks.forEach(weekNum => {
-      const weekName = weekMap[weekNum];
-      const pred = calculatePredictedTotal(playerCode, weekName);
-      const diff = calculateWeeklyTotal(playerCode, weekName);
-      const hasActual = Object.keys(actualScores[weekName] || {}).length > 0;
-      
-      if (pred) {
-        fullPredicted += pred;
-        
-        if (hasActual && diff > 0) {
-          playedPredicted += pred;
-          totalDifference += diff;
-          hasAnyActual = true;
-        } else if (!hasActual) {
-          allWeeksPlayed = false;
-        }
-      }
-    });
-    
-    // Tooltip text
-    let tooltip = '';
-    if (abnormal) {
-      tooltip = `Weeks Entered: ${weeks.join(', ')} | `;
-    }
-    
-    // No games played yet
-    if (!hasAnyActual) {
-      tooltip += `Full Prediction: ${fullPredicted}`;
-      return {
-        display: `${prefix}${fullPredicted}`,
-        tooltip,
-        fontSize: '16px'
-      };
-    }
-    
-    // All entered weeks are played
-    if (allWeeksPlayed) {
-      tooltip += `Full Prediction: ${fullPredicted} | Total Difference: ${totalDifference}`;
-      return {
-        display: `${prefix}${fullPredicted}/${totalDifference}`,
-        tooltip,
-        fontSize: '16px'
-      };
-    }
-    
-    // Some weeks played, some not
-    tooltip += `Full Prediction: ${fullPredicted} | Played Weeks: ${playedPredicted} | Difference So Far: ${totalDifference}`;
-    return {
-      display: `${prefix}${fullPredicted}/${playedPredicted}/${totalDifference}`,
-      tooltip,
-      fontSize: '14px' // Smaller font for 3 numbers
-    };
-  };
-  
-  /**
-   * Calculate total actual points scored across all games in a week
-   * This is for the header display (not player-specific)
-   */
-  const calculateWeekTotalPoints = (weekName) => {
-    const weekScores = actualScores[weekName];
-    if (!weekScores) return 0;
-    
-    let total = 0;
-    Object.values(weekScores).forEach(game => {
-      if (game && game.team1 && game.team2) {
-        total += (parseInt(game.team1) || 0) + (parseInt(game.team2) || 0);
-      }
-    });
-    
-    return total;
-  };
-  
-  /**
-   * Get the display value for week total header
-   * Uses manual override if set, otherwise shows total actual points for that week
-   */
-  const getHeaderDisplayValue = (weekKey, weekName) => {
-    // If manually overridden, use that value
-    if (manualWeekTotals[weekKey]) {
-      return manualWeekTotals[weekKey];
-    }
-    
-    // Otherwise, calculate total actual points for this week
-    const total = calculateWeekTotalPoints(weekName);
-    return total > 0 ? total : '';
-  };
-  
-  /**
-   * Get grand total header value (sum of all 4 weeks)
-   */
-  const getGrandTotalHeaderValue = () => {
-    // If manually overridden, use that value
-    if (manualWeekTotals.superbowl_grand) {
-      return manualWeekTotals.superbowl_grand;
-    }
-    
-    // Otherwise, sum all 4 weeks
-    const week1Total = calculateWeekTotalPoints('wildcard');
-    const week2Total = calculateWeekTotalPoints('divisional');
-    const week3Total = calculateWeekTotalPoints('conference');
-    const week4Total = calculateWeekTotalPoints('superbowl');
-    
-    const grandTotal = week1Total + week2Total + week3Total + week4Total;
-    return grandTotal > 0 ? grandTotal : '';
+    set(ref(database, `manualWeekTotals/${weekKey}`), value);
   };
 
   // ============================================
@@ -1820,16 +1420,13 @@ function App() {
   // ============================================
   
   const handleLogout = () => {
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log('🚪 HANDLE LOGOUT CALLED');
-    console.log('📊 Current hasUnsavedChanges value:', hasUnsavedChanges);
-    console.log('📦 Current predictions:', JSON.stringify(predictions));
-    console.log('📦 Current originalPicks:', JSON.stringify(originalPicks));
-    console.log('🔍 Are they equal?', JSON.stringify(predictions) === JSON.stringify(originalPicks));
+    console.log('🚪 handleLogout called');
+    console.log('📊 hasUnsavedChanges:', hasUnsavedChanges);
+    console.log('📦 predictions:', predictions);
     
     // Check if there are unsaved changes
     if (hasUnsavedChanges) {
-      console.log('⚠️⚠️⚠️ HAS UNSAVED CHANGES - SHOWING WARNING ⚠️⚠️⚠️');
+      console.log('⚠️ Has unsaved changes - showing warning');
       const choice = window.confirm(
         '⚠️ UNSAVED CHANGES!\n\n' +
         'You have unsaved picks that will be lost.\n\n' +
@@ -1839,41 +1436,20 @@ function App() {
       
       if (!choice) {
         console.log('❌ User cancelled logout');
-        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
         return; // User wants to stay and save
       }
-      console.log('✅ User confirmed logout - discarding changes');
+      console.log('✅ User confirmed logout');
     } else {
-      console.log('✅✅✅ NO UNSAVED CHANGES - LOGGING OUT DIRECTLY ✅✅✅');
+      console.log('✅ No unsaved changes - logging out directly');
     }
     
     // Proceed with logout
-    console.log('🚪 Proceeding with logout...');
     setCodeValidated(false);
     setPlayerCode('');
     setPlayerName('');
     setPredictions({});
     setCurrentView('picks');
     setHasUnsavedChanges(false);
-    console.log('🚪 Logout complete');
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  };
-
-  // ============================================
-  // 🔄 REFRESH PICKS HANDLER
-  // ============================================
-  
-  const handleRefreshPicks = () => {
-    // Show "refreshing" feedback
-    setIsRefreshing(true);
-    
-    // The picks are already real-time synced via Firebase onValue listener
-    // So we just show feedback and then hide it after a brief moment
-    setTimeout(() => {
-      setIsRefreshing(false);
-    }, 800);
-    
-    // Optional: Could force a re-fetch if needed, but onValue already handles this
   };
 
   // ============================================
@@ -1960,61 +1536,33 @@ function App() {
 
   // Load picks for a specific week
   const loadWeekPicks = (weekKey) => {
-    console.log('📂📂📂 LOAD WEEK PICKS CALLED 📂📂📂');
-    console.log('📂 Loading picks for week:', weekKey);
-    
     const existingPick = allPicks.find(
       p => p.week === weekKey && p.playerCode === playerCode
     );
     
     if (existingPick && existingPick.predictions) {
-      console.log('📂 Found existing picks:', JSON.stringify(existingPick.predictions));
-      console.log('📂 Creating deep copies for predictions and originalPicks');
-      
-      const predCopy = JSON.parse(JSON.stringify(existingPick.predictions));
-      const origCopy = JSON.parse(JSON.stringify(existingPick.predictions));
-      
-      setPredictions(predCopy);
-      setOriginalPicks(origCopy);
+      setPredictions(existingPick.predictions);
+      setOriginalPicks(existingPick.predictions);
       setHasUnsavedChanges(false);
-      console.log('📂 Set hasUnsavedChanges to FALSE');
-      console.log('📂📂📂 LOAD WEEK PICKS COMPLETE 📂📂📂');
     } else {
-      console.log('📂 No existing picks found - clearing state');
       setPredictions({});
       setOriginalPicks({});
       setHasUnsavedChanges(false);
-      console.log('📂📂📂 LOAD WEEK PICKS COMPLETE (EMPTY) 📂📂📂');
     }
   };
 
-  // DISABLED: Automatic change detection was causing issues after submit
-  // We now manually control hasUnsavedChanges in RNG, score changes, and submit
-  /*
+  // Detect unsaved changes
   useEffect(() => {
-    const predStr = JSON.stringify(predictions);
-    const origStr = JSON.stringify(originalPicks);
-    const hasChanges = predStr !== origStr;
-    
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log('🔍 CHANGE DETECTION useEffect triggered');
-    console.log('📦 predictions:', predStr);
-    console.log('📦 originalPicks:', origStr);
-    console.log('🔄 hasChanges:', hasChanges);
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    
+    const hasChanges = JSON.stringify(predictions) !== JSON.stringify(originalPicks);
     setHasUnsavedChanges(hasChanges);
   }, [predictions, originalPicks]);
-  */
-
 
   // Load picks when week changes
   useEffect(() => {
     if (codeValidated && playerCode) {
       loadWeekPicks(currentWeek);
     }
-  }, [currentWeek, codeValidated, playerCode]);
-  // NOTE: allPicks removed from dependencies to prevent reload after submit!
+  }, [currentWeek, codeValidated, playerCode, allPicks]);
 
   // Update week picks status for WeekSelector
   useEffect(() => {
@@ -2097,14 +1645,12 @@ function App() {
     const code = playerCode.trim().toUpperCase();
     
     if (!code) {
-      logFailedLogin(code, 'Empty code');
       alert('Please enter your 6-character player code');
       return;
     }
     
     // Accept 6-character alphanumeric codes
     if (code.length !== 6 || !/^[A-Z0-9]{6}$/.test(code)) {
-      logFailedLogin(code, 'Invalid format - must be 6 alphanumeric characters');
       alert('Invalid code format!\n\nPlayer codes must be exactly 6 characters (letters and numbers).\nExample: A7K9M2');
       return;
     }
@@ -2112,7 +1658,6 @@ function App() {
     const playerNameForCode = PLAYER_CODES[code];
     
     if (!playerNameForCode) {
-      logFailedLogin(code, 'Code not recognized');
       alert('Invalid player code!\n\nThis code is not recognized.\n\nMake sure you:\n1. Paid your $20 entry fee\n2. Received your code from the pool manager\n3. Entered the code correctly\n\nContact: gammoneer2b@gmail.com');
       return;
     }
@@ -2139,7 +1684,6 @@ function App() {
     }
     
     // Code is valid!
-    logSuccessfulLogin(code, playerNameForCode);
     setPlayerName(playerNameForCode);
     setPlayerCode(code); // Store uppercase version
     setCodeValidated(true);
@@ -2454,17 +1998,10 @@ function App() {
         await push(ref(database, 'picks'), pickData);
       }
       
-      console.log('✅✅✅ SUBMIT SUCCESS ✅✅✅');
       setSubmitted(true);
-      
-      console.log('📦 Creating deep copy of predictions for originalPicks');
-      const deepCopy = JSON.parse(JSON.stringify(predictions));
-      setOriginalPicks(deepCopy);
-      
-      console.log('🔄 Setting hasUnsavedChanges to FALSE');
+      setOriginalPicks({...predictions});
       setHasUnsavedChanges(false);
       setShowPopup('success');
-      console.log('✅✅✅ SUBMIT COMPLETE - allPicks will update but NOT trigger reload! ✅✅✅');
       
       setTimeout(() => {
         const picksTable = document.querySelector('.all-picks');
@@ -2484,25 +2021,8 @@ function App() {
   const playerTotals = useMemo(() => {
     const totals = {};
     
-    // For Super Bowl, get ALL unique players from ANY week (so we show everyone's totals even if they haven't entered Week 4)
-    // For other weeks, only show players who entered picks for that specific week
-    const weekPicks = currentWeek === 'superbowl' 
-      ? (() => {
-          // Get all unique players from all weeks
-          const uniquePlayers = new Map();
-          allPicks.forEach(pick => {
-            if (!uniquePlayers.has(pick.playerName)) {
-              uniquePlayers.set(pick.playerName, {
-                playerName: pick.playerName,
-                playerCode: pick.playerCode,
-                week: currentWeek, // Set to superbowl
-                predictions: allPicks.find(p => p.playerCode === pick.playerCode && p.week === 'superbowl')?.predictions || {}
-              });
-            }
-          });
-          return Array.from(uniquePlayers.values());
-        })()
-      : allPicks.filter(pick => pick.week === currentWeek);
+    // Get all unique player names from current week
+    const weekPicks = allPicks.filter(pick => pick.week === currentWeek);
     
     weekPicks.forEach(pick => {
       if (!totals[pick.playerName]) {
@@ -2516,7 +2036,7 @@ function App() {
         };
       }
       
-      // Calculate current week total (sum of predicted scores)
+      // Calculate current week total
       let currentTotal = 0;
       const weekGames = PLAYOFF_WEEKS[currentWeek].games;
       weekGames.forEach(game => {
@@ -2527,29 +2047,53 @@ function App() {
       });
       totals[pick.playerName].current = currentTotal;
       
-      // For Super Bowl, calculate all weeks (PREDICTED TOTALS - sum of predicted scores)
-      // CRITICAL: Player rows should ALWAYS calculate independently - NEVER use header overrides!
+      // For Super Bowl, calculate all weeks
       if (currentWeek === 'superbowl') {
-        // Helper function to calculate predicted total for any week
-        const calculatePredictedTotal = (playerCode, weekName) => {
-          const playerPick = allPicks.find(p => p.playerCode === playerCode && p.week === weekName);
-          if (!playerPick || !playerPick.predictions) return 0;
-          
-          let total = 0;
-          Object.values(playerPick.predictions).forEach(pred => {
-            if (pred && pred.team1 && pred.team2) {
-              total += (parseInt(pred.team1) || 0) + (parseInt(pred.team2) || 0);
-            }
+        // Week 4 (Super Bowl)
+        const w4Pick = allPicks.find(p => p.playerName === pick.playerName && p.week === 'superbowl');
+        if (w4Pick && w4Pick.predictions) {
+          let w4Total = 0;
+          PLAYOFF_WEEKS.superbowl.games.forEach(game => {
+            const pred = w4Pick.predictions[game.id];
+            if (pred) w4Total += (Number(pred.team1) || 0) + (Number(pred.team2) || 0);
           });
-          return total;
-        };
+          totals[pick.playerName].week4 = w4Total;
+        }
         
-        totals[pick.playerName].week4 = calculatePredictedTotal(pick.playerCode, 'superbowl');
-        totals[pick.playerName].week3 = calculatePredictedTotal(pick.playerCode, 'conference');
-        totals[pick.playerName].week2 = calculatePredictedTotal(pick.playerCode, 'divisional');
-        totals[pick.playerName].week1 = calculatePredictedTotal(pick.playerCode, 'wildcard');
+        // Week 3 (Conference)
+        const w3Pick = allPicks.find(p => p.playerName === pick.playerName && p.week === 'conference');
+        if (w3Pick && w3Pick.predictions) {
+          let w3Total = 0;
+          PLAYOFF_WEEKS.conference.games.forEach(game => {
+            const pred = w3Pick.predictions[game.id];
+            if (pred) w3Total += (Number(pred.team1) || 0) + (Number(pred.team2) || 0);
+          });
+          totals[pick.playerName].week3 = w3Total;
+        }
         
-        // Grand Total (sum of all 4 weeks for this player)
+        // Week 2 (Divisional)
+        const w2Pick = allPicks.find(p => p.playerName === pick.playerName && p.week === 'divisional');
+        if (w2Pick && w2Pick.predictions) {
+          let w2Total = 0;
+          PLAYOFF_WEEKS.divisional.games.forEach(game => {
+            const pred = w2Pick.predictions[game.id];
+            if (pred) w2Total += (Number(pred.team1) || 0) + (Number(pred.team2) || 0);
+          });
+          totals[pick.playerName].week2 = w2Total;
+        }
+        
+        // Week 1 (Wild Card)
+        const w1Pick = allPicks.find(p => p.playerName === pick.playerName && p.week === 'wildcard');
+        if (w1Pick && w1Pick.predictions) {
+          let w1Total = 0;
+          PLAYOFF_WEEKS.wildcard.games.forEach(game => {
+            const pred = w1Pick.predictions[game.id];
+            if (pred) w1Total += (Number(pred.team1) || 0) + (Number(pred.team2) || 0);
+          });
+          totals[pick.playerName].week1 = w1Total;
+        }
+        
+        // Grand Total
         totals[pick.playerName].grand = 
           totals[pick.playerName].week1 + 
           totals[pick.playerName].week2 + 
@@ -2559,102 +2103,8 @@ function App() {
     });
     
     return totals;
-  }, [allPicks, currentWeek, actualScores]);
+  }, [allPicks, currentWeek]);
 
-const calculateAllPrizeWinners = () => {
-  console.log('🏆 Starting winner calculations...');
-  
-  // STEP 1: Convert allPicks array to object format the functions expect
-  const picksObject = {};
-  
-  allPicks.forEach(pick => {
-    if (pick.firebaseKey && pick.playerCode && pick.predictions) {
-      // Initialize player if not exists
-      if (!picksObject[pick.playerCode]) {
-        picksObject[pick.playerCode] = {
-          name: pick.playerName,
-          picks: {}
-        };
-      }
-      
-      // Convert predictions array to object (skip index 0)
-      const predictionsObj = {};
-      
-      if (Array.isArray(pick.predictions)) {
-        pick.predictions.forEach((pred, index) => {
-          if (index > 0 && pred) {
-            predictionsObj[index.toString()] = pred;
-          }
-        });
-      } else {
-        Object.assign(predictionsObj, pick.predictions);
-      }
-      
-      // Add this week's picks to the player
-      picksObject[pick.playerCode].picks[pick.week] = predictionsObj;
-    }
-  });
-  
-  // STEP 2: Convert actualScores arrays to objects
-  const actualScoresObj = {};
-  
-  Object.keys(actualScores).forEach(week => {
-    if (Array.isArray(actualScores[week])) {
-      const weekObj = {};
-      actualScores[week].forEach((score, index) => {
-        if (index > 0 && score) {
-          weekObj[index.toString()] = score;
-        }
-      });
-      actualScoresObj[week] = weekObj;
-    } else {
-      actualScoresObj[week] = actualScores[week];
-    }
-  });
-  
-  console.log('📊 Converted picks:', Object.keys(picksObject).length, 'players');
-  console.log('📊 Converted scores:', Object.keys(actualScoresObj));
-  
-  // STEP 3: Run all calculations
-  const results = {
-    week1: {
-      prize1: calculateWeekPrize1(picksObject, actualScoresObj, 'wildcard'),
-      prize2: calculateWeekPrize2(picksObject, actualScoresObj, 'wildcard')
-    },
-    week2: {
-      prize1: calculateWeekPrize1(picksObject, actualScoresObj, 'divisional'),
-      prize2: calculateWeekPrize2(picksObject, actualScoresObj, 'divisional')
-    },
-    week3: {
-      prize1: calculateWeekPrize1(picksObject, actualScoresObj, 'conference'),
-      prize2: calculateWeekPrize2(picksObject, actualScoresObj, 'conference')
-    },
-    week4: {
-      prize1: calculateWeek4Prize1(picksObject, actualScoresObj),
-      prize2: calculateWeek4Prize2(picksObject, actualScoresObj)
-    },
-    grandPrize: {
-      prize1: calculateGrandPrize1(picksObject, actualScoresObj),
-      prize2: calculateGrandPrize2(picksObject, actualScoresObj)
-    }
-  };
-  
-  console.log('✅ All calculations complete!');
-  console.log('📊 Results:', results);
-  
-  return results;
-};
-
-// Calculate winners whenever picks or scores change
-  useEffect(() => {
-    if (allPicks.length > 0 && actualScores) {
-      const results = calculateAllPrizeWinners();
-      setCalculatedWinners(results);
-      
-      // Save to Firebase
-      set(ref(database, 'calculatedWinners'), results);
-    }
-  }, [allPicks, actualScores]);
   return (
     <div className="App">
       <header>
@@ -3602,7 +3052,7 @@ const calculateAllPrizeWinners = () => {
           />
         )}
         
-{/* 🆕 Navigation Buttons - Show after code validation */}
+        {/* 🆕 Navigation Buttons - Show after code validation */}
         {codeValidated && (
           <div className="view-navigation">
             <button
@@ -3637,51 +3087,6 @@ const calculateAllPrizeWinners = () => {
                 </span>
               )}
             </button>
-            <button
-              className={`nav-btn ${currentView === 'winners' ? 'active' : ''}`}
-              onClick={() => setCurrentView('winners')}
-            >
-              ⚖️ How Winners Are Determined
-              {currentView === 'winners' && (
-                <span style={{
-                  marginLeft: '8px',
-                  fontSize: '0.75rem',
-                  opacity: 0.9,
-                  fontStyle: 'italic'
-                }}>
-                  (you are here)
-                </span>
-              )}
-            </button>
-            {isPoolManager() && (
-              <button
-                className={`nav-btn ${currentView === 'loginLogs' ? 'active' : ''}`}
-                onClick={() => setCurrentView('loginLogs')}
-              >
-                🔐 Login Logs
-                <span style={{
-                  marginLeft: '8px',
-                  fontSize: '0.7rem',
-                  padding: '2px 6px',
-                  background: '#667eea',
-                  color: 'white',
-                  borderRadius: '10px',
-                  fontWeight: '500'
-                }}>
-                  Pool Manager
-                </span>
-                {currentView === 'loginLogs' && (
-                  <span style={{
-                    marginLeft: '8px',
-                    fontSize: '0.75rem',
-                    opacity: 0.9,
-                    fontStyle: 'italic'
-                  }}>
-                    (you are here)
-                  </span>
-                )}
-              </button>
-            )}
           </div>
         )}
 
@@ -3697,18 +3102,6 @@ const calculateAllPrizeWinners = () => {
             prizePool={prizePool}
             officialWinners={officialWinners}
             onLogout={handleLogout}
-          />) : currentView === 'winners' && codeValidated ? (
-          <HowWinnersAreDetermined 
-            calculatedWinners={calculatedWinners}
-            publishedWinners={publishedWinners}
-            isPoolManager={isPoolManager()}
-            onPublishPrize={handlePublishPrize}
-            onUnpublishPrize={handleUnpublishPrize}
-          />
-        ) : currentView === 'loginLogs' && codeValidated ? (
-          <LoginLogsViewer 
-            isPoolManager={isPoolManager()}
-            playerCodes={PLAYER_CODES}
           />
         ) : (
           <>
@@ -3785,27 +3178,7 @@ const calculateAllPrizeWinners = () => {
                 Welcome, <span className="player-name-highlight">{playerName}</span>!
                 {isPoolManager() && <span style={{marginLeft: '10px', color: '#d63031'}}>👑 POOL MANAGER</span>}
               </h3>
-              {/* WEEK NUMBER BADGE */}
-              <div style={{
-                display: 'inline-block',
-                padding: '8px 20px',
-                marginBottom: '10px',
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                color: 'white',
-                borderRadius: '25px',
-                fontWeight: 'bold',
-                fontSize: '1.1rem',
-                boxShadow: '0 4px 15px rgba(102, 126, 234, 0.4)',
-                letterSpacing: '0.5px'
-              }}>
-                {currentWeek === 'wildcard' && '📅 WEEK 1 OF 4'}
-                {currentWeek === 'divisional' && '📅 WEEK 2 OF 4'}
-                {currentWeek === 'conference' && '📅 WEEK 3 OF 4'}
-                {currentWeek === 'superbowl' && '📅 WEEK 4 OF 4'}
-              </div>
-              <p style={{color: '#000', marginTop: '8px'}}>
-                Making picks for: <strong>{currentWeekData.name}</strong>
-              </p>
+              <p style={{color: '#000'}}>Making picks for: <strong>{currentWeekData.name}</strong></p>
               {/* 🔒 NEW: Show lock status */}
               {isWeekLocked(currentWeek) && !isPoolManager() && (
                 <div style={{
@@ -3823,7 +3196,12 @@ const calculateAllPrizeWinners = () => {
               <button 
                 className="validate-btn" 
                 style={{marginTop: '15px', padding: '10px 20px', fontSize: '0.9rem'}}
-                onClick={handleLogout}
+                onClick={() => {
+                  setCodeValidated(false);
+                  setPlayerCode('');
+                  setPlayerName('');
+                  setPredictions({});
+                }}
               >
                 🚪 Logout / Switch Entry
               </button>
@@ -3852,46 +3230,61 @@ const calculateAllPrizeWinners = () => {
                 </h2>
               ) : (
                 <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '15px', gap: '15px'}}>
-                  <h2 style={{margin: 0, flex: '1'}}>
-                    Enter Your Predictions: <span style={{
-                      fontSize: '0.95rem',
-                      color: '#667eea',
-                      fontWeight: '600'
-                    }}>
-                      {currentWeek === 'wildcard' && 'Wk 1'}
-                      {currentWeek === 'divisional' && 'Wk 2'}
-                      {currentWeek === 'conference' && 'Wk 3'}
-                      {currentWeek === 'superbowl' && 'Wk 4'}
-                    </span>
-                  </h2>
-                  {!isWeekLocked(currentWeek) && (
+                  <h2 style={{margin: 0, flex: '1'}}>Enter Your Predictions</h2>
+                  <div style={{display: 'flex', gap: '10px', alignItems: 'center'}}>
+                    {!isWeekLocked(currentWeek) && (
+                      <button
+                        type="button"
+                        onClick={handleRNGPick}
+                        style={{
+                          padding: '10px 20px',
+                          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '8px',
+                          cursor: 'pointer',
+                          fontSize: '0.95rem',
+                          fontWeight: '600',
+                          boxShadow: '0 4px 15px rgba(102, 126, 234, 0.4)',
+                          transition: 'all 0.3s ease'
+                        }}
+                        onMouseOver={(e) => {
+                          e.target.style.transform = 'translateY(-2px)';
+                          e.target.style.boxShadow = '0 6px 20px rgba(102, 126, 234, 0.6)';
+                        }}
+                        onMouseOut={(e) => {
+                          e.target.style.transform = 'translateY(0)';
+                          e.target.style.boxShadow = '0 4px 15px rgba(102, 126, 234, 0.4)';
+                        }}
+                      >
+                        🎲 Quick RNG Pick - Auto-fill all games
+                      </button>
+                    )}
                     <button
                       type="button"
-                      onClick={handleRNGPick}
+                      onClick={handleLogout}
                       style={{
                         padding: '10px 20px',
-                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                        background: '#dc3545',
                         color: 'white',
                         border: 'none',
                         borderRadius: '8px',
                         cursor: 'pointer',
                         fontSize: '0.95rem',
                         fontWeight: '600',
-                        boxShadow: '0 4px 15px rgba(102, 126, 234, 0.4)',
+                        boxShadow: '0 4px 6px rgba(0,0,0,0.2)',
                         transition: 'all 0.3s ease'
                       }}
                       onMouseOver={(e) => {
-                        e.target.style.transform = 'translateY(-2px)';
-                        e.target.style.boxShadow = '0 6px 20px rgba(102, 126, 234, 0.6)';
+                        e.target.style.background = '#c82333';
                       }}
                       onMouseOut={(e) => {
-                        e.target.style.transform = 'translateY(0)';
-                        e.target.style.boxShadow = '0 4px 15px rgba(102, 126, 234, 0.4)';
+                        e.target.style.background = '#dc3545';
                       }}
                     >
-                      🎲 Quick RNG Pick - Auto-fill all games
+                      🚪 Logout
                     </button>
-                  )}
+                  </div>
                 </div>
               )}
               
@@ -3900,7 +3293,7 @@ const calculateAllPrizeWinners = () => {
                 <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px'}}>
                   <strong>Progress:</strong>
                   <span>
-                    {Object.keys(predictions).filter(gameId => predictions[gameId] && predictions[gameId].team1 && predictions[gameId].team2).length} 
+                    {Object.keys(predictions).filter(gameId => predictions[gameId].team1 && predictions[gameId].team2).length} 
                     {' of '} 
                     {currentWeekData.games.length} games completed
                   </span>
@@ -3910,12 +3303,12 @@ const calculateAllPrizeWinners = () => {
                     className="progress-fill"
                     style={{
                       width: `${(Object.keys(predictions).filter(gameId => 
-                        predictions[gameId] && predictions[gameId].team1 && predictions[gameId].team2
+                        predictions[gameId].team1 && predictions[gameId].team2
                       ).length / currentWeekData.games.length) * 100}%`
                     }}
                   >
                     {Math.round((Object.keys(predictions).filter(gameId => 
-                      predictions[gameId] && predictions[gameId].team1 && predictions[gameId].team2
+                      predictions[gameId].team1 && predictions[gameId].team2
                     ).length / currentWeekData.games.length) * 100)}%
                   </div>
                 </div>
@@ -4104,22 +3497,20 @@ const calculateAllPrizeWinners = () => {
               📱 Mobile: Open the DOWNLOADABLE CSV file with Google Sheets (free app) or MS Office EXCEL
             </div>
             <button 
-              onClick={handleRefreshPicks}
-              disabled={isRefreshing}
+              onClick={() => window.location.reload()}
               style={{
                 marginLeft: '10px',
                 padding: '8px 16px',
-                background: isRefreshing ? '#a0a0a0' : '#667eea',
+                background: '#667eea',
                 color: 'white',
                 border: 'none',
                 borderRadius: '6px',
-                cursor: isRefreshing ? 'not-allowed' : 'pointer',
+                cursor: 'pointer',
                 fontSize: '0.9rem',
-                fontWeight: '600',
-                opacity: isRefreshing ? 0.7 : 1
+                fontWeight: '600'
               }}
             >
-              {isRefreshing ? '✓ Refreshed!' : '🔄 Refresh Picks Table'}
+              🔄 Refresh Picks Table
             </button>
           </h2>
 
@@ -4194,53 +3585,30 @@ const calculateAllPrizeWinners = () => {
                           {/* Official Total Input at top */}
                           {isPoolManager() ? (
                             <div style={{marginBottom: '8px'}}>
-                              <div style={{fontSize: '0.7rem', marginBottom: '4px', color: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px'}}>
-                                OFFICIAL {manualOverrides.superbowl_week4 ? '✏️' : '✓'}
-                                {manualOverrides.superbowl_week4 && (
-                                  <button
-                                    onClick={() => clearManualOverride('superbowl_week4')}
-                                    title="Return to auto-calculation"
-                                    style={{
-                                      padding: '2px 6px',
-                                      fontSize: '0.65rem',
-                                      background: '#e74c3c',
-                                      color: 'white',
-                                      border: 'none',
-                                      borderRadius: '3px',
-                                      cursor: 'pointer'
-                                    }}
-                                  >
-                                    Clear
-                                  </button>
-                                )}
-                              </div>
+                              <div style={{fontSize: '0.7rem', marginBottom: '4px', color: '#000'}}>OFFICIAL</div>
                               <input
                                 type="number"
                                 min="0"
-                                value={getHeaderDisplayValue('superbowl_week4', 'superbowl')}
+                                value={manualWeekTotals.superbowl_week4 || ''}
                                 onChange={(e) => handleManualTotalChange('superbowl_week4', e.target.value)}
-                                placeholder="Auto"
-                                title={manualOverrides.superbowl_week4 ? 'Manually overridden - click Clear to return to auto' : 'Auto-calculated - click to override'}
+                                placeholder="-"
                                 style={{
                                   width: '60px',
                                   padding: '4px',
                                   textAlign: 'center',
                                   fontSize: '1rem',
                                   fontWeight: 'bold',
-                                  border: manualOverrides.superbowl_week4 ? '2px solid #e74c3c' : '2px solid #27ae60',
+                                  border: '2px solid #f39c12',
                                   borderRadius: '4px',
-                                  color: '#000',
-                                  backgroundColor: manualOverrides.superbowl_week4 ? '#ffe5e5' : '#e8f8f5'
+                                  color: '#000'
                                 }}
                               />
                             </div>
                           ) : (
                             <div style={{marginBottom: '8px'}}>
-                              <div style={{fontSize: '0.7rem', color: '#000', marginBottom: '2px'}}>
-                                Official {manualOverrides.superbowl_week4 ? '✏️' : '✓'}
-                              </div>
+                              <div style={{fontSize: '0.7rem', color: '#000', marginBottom: '2px'}}>Official</div>
                               <div style={{fontSize: '1rem', fontWeight: 'bold', color: '#d63031'}}>
-                                {getHeaderDisplayValue('superbowl_week4', 'superbowl') || '-'}
+                                {manualWeekTotals.superbowl_week4 || '-'}
                               </div>
                             </div>
                           )}
@@ -4250,53 +3618,30 @@ const calculateAllPrizeWinners = () => {
                           {/* Official Total Input at top */}
                           {isPoolManager() ? (
                             <div style={{marginBottom: '8px'}}>
-                              <div style={{fontSize: '0.7rem', marginBottom: '4px', color: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px'}}>
-                                OFFICIAL {manualOverrides.superbowl_week3 ? '✏️' : '✓'}
-                                {manualOverrides.superbowl_week3 && (
-                                  <button
-                                    onClick={() => clearManualOverride('superbowl_week3')}
-                                    title="Return to auto-calculation"
-                                    style={{
-                                      padding: '2px 6px',
-                                      fontSize: '0.65rem',
-                                      background: '#e74c3c',
-                                      color: 'white',
-                                      border: 'none',
-                                      borderRadius: '3px',
-                                      cursor: 'pointer'
-                                    }}
-                                  >
-                                    Clear
-                                  </button>
-                                )}
-                              </div>
+                              <div style={{fontSize: '0.7rem', marginBottom: '4px', color: '#000'}}>OFFICIAL</div>
                               <input
                                 type="number"
                                 min="0"
-                                value={getHeaderDisplayValue('superbowl_week3', 'conference')}
+                                value={manualWeekTotals.superbowl_week3 || ''}
                                 onChange={(e) => handleManualTotalChange('superbowl_week3', e.target.value)}
-                                placeholder="Auto"
-                                title={manualOverrides.superbowl_week3 ? 'Manually overridden - click Clear to return to auto' : 'Auto-calculated - click to override'}
+                                placeholder="-"
                                 style={{
                                   width: '60px',
                                   padding: '4px',
                                   textAlign: 'center',
                                   fontSize: '1rem',
                                   fontWeight: 'bold',
-                                  border: manualOverrides.superbowl_week3 ? '2px solid #e74c3c' : '2px solid #27ae60',
+                                  border: '2px solid #f39c12',
                                   borderRadius: '4px',
-                                  color: '#000',
-                                  backgroundColor: manualOverrides.superbowl_week3 ? '#ffe5e5' : '#e8f8f5'
+                                  color: '#000'
                                 }}
                               />
                             </div>
                           ) : (
                             <div style={{marginBottom: '8px'}}>
-                              <div style={{fontSize: '0.7rem', color: '#000', marginBottom: '2px'}}>
-                                Official {manualOverrides.superbowl_week3 ? '✏️' : '✓'}
-                              </div>
+                              <div style={{fontSize: '0.7rem', color: '#000', marginBottom: '2px'}}>Official</div>
                               <div style={{fontSize: '1rem', fontWeight: 'bold', color: '#d63031'}}>
-                                {getHeaderDisplayValue('superbowl_week3', 'conference') || '-'}
+                                {manualWeekTotals.superbowl_week3 || '-'}
                               </div>
                             </div>
                           )}
@@ -4306,53 +3651,30 @@ const calculateAllPrizeWinners = () => {
                           {/* Official Total Input at top */}
                           {isPoolManager() ? (
                             <div style={{marginBottom: '8px'}}>
-                              <div style={{fontSize: '0.7rem', marginBottom: '4px', color: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px'}}>
-                                OFFICIAL {manualOverrides.superbowl_week2 ? '✏️' : '✓'}
-                                {manualOverrides.superbowl_week2 && (
-                                  <button
-                                    onClick={() => clearManualOverride('superbowl_week2')}
-                                    title="Return to auto-calculation"
-                                    style={{
-                                      padding: '2px 6px',
-                                      fontSize: '0.65rem',
-                                      background: '#e74c3c',
-                                      color: 'white',
-                                      border: 'none',
-                                      borderRadius: '3px',
-                                      cursor: 'pointer'
-                                    }}
-                                  >
-                                    Clear
-                                  </button>
-                                )}
-                              </div>
+                              <div style={{fontSize: '0.7rem', marginBottom: '4px', color: '#000'}}>OFFICIAL</div>
                               <input
                                 type="number"
                                 min="0"
-                                value={getHeaderDisplayValue('superbowl_week2', 'divisional')}
+                                value={manualWeekTotals.superbowl_week2 || ''}
                                 onChange={(e) => handleManualTotalChange('superbowl_week2', e.target.value)}
-                                placeholder="Auto"
-                                title={manualOverrides.superbowl_week2 ? 'Manually overridden - click Clear to return to auto' : 'Auto-calculated - click to override'}
+                                placeholder="-"
                                 style={{
                                   width: '60px',
                                   padding: '4px',
                                   textAlign: 'center',
                                   fontSize: '1rem',
                                   fontWeight: 'bold',
-                                  border: manualOverrides.superbowl_week2 ? '2px solid #e74c3c' : '2px solid #27ae60',
+                                  border: '2px solid #f39c12',
                                   borderRadius: '4px',
-                                  color: '#000',
-                                  backgroundColor: manualOverrides.superbowl_week2 ? '#ffe5e5' : '#e8f8f5'
+                                  color: '#000'
                                 }}
                               />
                             </div>
                           ) : (
                             <div style={{marginBottom: '8px'}}>
-                              <div style={{fontSize: '0.7rem', color: '#000', marginBottom: '2px'}}>
-                                Official {manualOverrides.superbowl_week2 ? '✏️' : '✓'}
-                              </div>
+                              <div style={{fontSize: '0.7rem', color: '#000', marginBottom: '2px'}}>Official</div>
                               <div style={{fontSize: '1rem', fontWeight: 'bold', color: '#d63031'}}>
-                                {getHeaderDisplayValue('superbowl_week2', 'divisional') || '-'}
+                                {manualWeekTotals.superbowl_week2 || '-'}
                               </div>
                             </div>
                           )}
@@ -4362,109 +3684,81 @@ const calculateAllPrizeWinners = () => {
                           {/* Official Total Input at top */}
                           {isPoolManager() ? (
                             <div style={{marginBottom: '8px'}}>
-                              <div style={{fontSize: '0.7rem', marginBottom: '4px', color: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px'}}>
-                                OFFICIAL {manualOverrides.superbowl_week1 ? '✏️' : '✓'}
-                                {manualOverrides.superbowl_week1 && (
-                                  <button
-                                    onClick={() => clearManualOverride('superbowl_week1')}
-                                    title="Return to auto-calculation"
-                                    style={{
-                                      padding: '2px 6px',
-                                      fontSize: '0.65rem',
-                                      background: '#e74c3c',
-                                      color: 'white',
-                                      border: 'none',
-                                      borderRadius: '3px',
-                                      cursor: 'pointer'
-                                    }}
-                                  >
-                                    Clear
-                                  </button>
-                                )}
-                              </div>
+                              <div style={{fontSize: '0.7rem', marginBottom: '4px', color: '#000'}}>OFFICIAL</div>
                               <input
                                 type="number"
                                 min="0"
-                                value={getHeaderDisplayValue('superbowl_week1', 'wildcard')}
+                                value={manualWeekTotals.superbowl_week1 || ''}
                                 onChange={(e) => handleManualTotalChange('superbowl_week1', e.target.value)}
-                                placeholder="Auto"
-                                title={manualOverrides.superbowl_week1 ? 'Manually overridden - click Clear to return to auto' : 'Auto-calculated - click to override'}
+                                placeholder="-"
                                 style={{
                                   width: '60px',
                                   padding: '4px',
                                   textAlign: 'center',
                                   fontSize: '1rem',
                                   fontWeight: 'bold',
-                                  border: manualOverrides.superbowl_week1 ? '2px solid #e74c3c' : '2px solid #27ae60',
+                                  border: '2px solid #f39c12',
                                   borderRadius: '4px',
-                                  color: '#000',
-                                  backgroundColor: manualOverrides.superbowl_week1 ? '#ffe5e5' : '#e8f8f5'
-                                }}
-                              />
-                            </div>
-                          ) : (
-                            <div style={{marginBottom: '8px'}}>
-                              <div style={{fontSize: '0.7rem', color: '#000', marginBottom: '2px'}}>
-                                Official {manualOverrides.superbowl_week1 ? '✏️' : '✓'}
-                              </div>
-                              <div style={{fontSize: '1rem', fontWeight: 'bold', color: '#d63031'}}>
-                                {getHeaderDisplayValue('superbowl_week1', 'wildcard') || '-'}
-                              </div>
-                            </div>
-                          )}
-                          Week 1<br/>Total
-                        </th>
-                        <th rowSpan="2" className="grand-total">
-                          {/* Official Total Input */}
-                          {isPoolManager() ? (
-                            <div style={{marginBottom: '8px'}}>
-                              <div style={{fontSize: '0.7rem', marginBottom: '4px', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px'}}>
-                                {manualOverrides.superbowl_grand ? '✏️' : '✓'} over
-                                {manualOverrides.superbowl_grand && (
-                                  <button
-                                    onClick={() => clearManualOverride('superbowl_grand')}
-                                    title="Return to auto-calculation"
-                                    style={{
-                                      padding: '2px 6px',
-                                      fontSize: '0.65rem',
-                                      background: '#e74c3c',
-                                      color: 'white',
-                                      border: 'none',
-                                      borderRadius: '3px',
-                                      cursor: 'pointer'
-                                    }}
-                                  >
-                                    Clear
-                                  </button>
-                                )}
-                              </div>
-                              <input
-                                type="number"
-                                min="0"
-                                value={getGrandTotalHeaderValue()}
-                                onChange={(e) => handleManualTotalChange('superbowl_grand', e.target.value)}
-                                placeholder="Auto"
-                                title={manualOverrides.superbowl_grand ? 'Manually overridden - click Clear to return to auto' : 'Auto-calculated - click to override'}
-                                style={{
-                                  width: '70px',
-                                  padding: '4px',
-                                  textAlign: 'center',
-                                  fontSize: '1rem',
-                                  fontWeight: 'bold',
-                                  border: manualOverrides.superbowl_grand ? '3px solid #e74c3c' : '3px solid #27ae60',
-                                  borderRadius: '4px',
-                                  backgroundColor: manualOverrides.superbowl_grand ? '#ffe5e5' : '#e8f8f5',
                                   color: '#000'
                                 }}
                               />
                             </div>
                           ) : (
                             <div style={{marginBottom: '8px'}}>
-                              <div style={{fontSize: '0.7rem', color: '#fff', marginBottom: '2px'}}>
-                                {manualOverrides.superbowl_grand ? '✏️ ' : '✓ '}Official
+                              <div style={{fontSize: '0.7rem', color: '#000', marginBottom: '2px'}}>Official</div>
+                              <div style={{fontSize: '1rem', fontWeight: 'bold', color: '#d63031'}}>
+                                {manualWeekTotals.superbowl_week1 || '-'}
                               </div>
+                            </div>
+                          )}
+                          Week 1<br/>Total
+                        </th>
+                        <th rowSpan="2" className="grand-total">
+                          {/* Show auto-calculated ONLY if no override */}
+                          {!manualWeekTotals.superbowl_grand && (() => {
+                            const actualTotal = currentWeekData.games.reduce((sum, game) => {
+                              const score1 = parseInt(actualScores[currentWeek]?.[game.id]?.team1) || 0;
+                              const score2 = parseInt(actualScores[currentWeek]?.[game.id]?.team2) || 0;
+                              return sum + score1 + score2;
+                            }, 0);
+                            
+                            return (
+                              <div style={{fontSize: '0.95rem', color: '#ffd700', marginBottom: '8px', fontWeight: '700'}}>
+                                Total: {actualTotal > 0 ? actualTotal : '-'}
+                              </div>
+                            );
+                          })()}
+                          
+                          {/* Official Total Input */}
+                          {isPoolManager() ? (
+                            <div style={{marginBottom: '8px'}}>
+                              <input
+                                type="number"
+                                min="0"
+                                value={manualWeekTotals.superbowl_grand || ''}
+                                onChange={(e) => handleManualTotalChange('superbowl_grand', e.target.value)}
+                                placeholder="override"
+                                style={{
+                                  width: '70px',
+                                  padding: '4px',
+                                  textAlign: 'center',
+                                  fontSize: '1rem',
+                                  fontWeight: 'bold',
+                                  border: '3px solid #f39c12',
+                                  borderRadius: '4px',
+                                  backgroundColor: '#fff',
+                                  color: '#000'
+                                }}
+                              />
+                            </div>
+                          ) : null}
+                          
+                          {/* Show official override if set */}
+                          {manualWeekTotals.superbowl_grand && (
+                            <div style={{marginBottom: '8px'}}>
+                              <div style={{fontSize: '0.7rem', color: '#fff', marginBottom: '2px'}}>Official</div>
                               <div style={{fontSize: '1.2rem', fontWeight: 'bold', color: '#fff'}}>
-                                {getGrandTotalHeaderValue() || '-'}
+                                {manualWeekTotals.superbowl_grand}
                               </div>
                             </div>
                           )}
@@ -4647,35 +3941,10 @@ const calculateAllPrizeWinners = () => {
                   {/* 🗑️ REMOVED: Manual Week Totals header row deleted per user request */}
                 </thead>
                 <tbody>
-                  {(() => {
-                    // For Super Bowl, show ALL players (even without Week 4 picks)
-                    // For other weeks, only show players with picks for that week
-                    const displayPicks = currentWeek === 'superbowl'
-                      ? (() => {
-                          // Get all unique players from all weeks
-                          const uniquePlayers = new Map();
-                          allPicks.forEach(pick => {
-                            if (!uniquePlayers.has(pick.playerCode)) {
-                              // Find if they have superbowl picks
-                              const superbowlPick = allPicks.find(p => p.playerCode === pick.playerCode && p.week === 'superbowl');
-                              
-                              uniquePlayers.set(pick.playerCode, superbowlPick || {
-                                playerName: pick.playerName,
-                                playerCode: pick.playerCode,
-                                week: 'superbowl',
-                                predictions: {},
-                                timestamp: pick.timestamp,
-                                lastUpdated: pick.lastUpdated || pick.timestamp
-                              });
-                            }
-                          });
-                          return Array.from(uniquePlayers.values());
-                        })()
-                      : allPicks.filter(pick => pick.week === currentWeek);
-                    
-                    return displayPicks
-                      .sort((a, b) => (b.lastUpdated || b.timestamp) - (a.lastUpdated || a.timestamp))
-                      .map((pick, idx) => {
+                  {allPicks
+                    .filter(pick => pick.week === currentWeek)
+                    .sort((a, b) => (b.lastUpdated || b.timestamp) - (a.lastUpdated || a.timestamp))
+                    .map((pick, idx) => {
                       // Check if any prediction matches actual score (winner)
                       const hasCorrectPrediction = (gameId) => {
                         const actual = actualScores[currentWeek]?.[gameId];
@@ -4774,49 +4043,21 @@ const calculateAllPrizeWinners = () => {
                           {/* Total Points Columns */}
                           {currentWeek === 'superbowl' ? (
                             <>
-                              {(() => {
-                                const week4Display = formatWeeklyDisplay(pick.playerCode, 'superbowl', 4);
-                                const week3Display = formatWeeklyDisplay(pick.playerCode, 'conference', 3);
-                                const week2Display = formatWeeklyDisplay(pick.playerCode, 'divisional', 2);
-                                const week1Display = formatWeeklyDisplay(pick.playerCode, 'wildcard', 1);
-                                const grandDisplay = formatGrandDisplay(pick.playerCode);
-                                
-                                return (
-                                  <>
-                                    <td 
-                                      style={{backgroundColor: '#fff3cd', fontWeight: 'bold', fontSize: week4Display.fontSize}}
-                                      title={week4Display.tooltip}
-                                    >
-                                      <span style={{color: '#000'}}>{week4Display.display}</span>
-                                    </td>
-                                    <td 
-                                      style={{backgroundColor: '#d1ecf1', fontWeight: 'bold', fontSize: week3Display.fontSize}}
-                                      title={week3Display.tooltip}
-                                    >
-                                      <span style={{color: '#000'}}>{week3Display.display}</span>
-                                    </td>
-                                    <td 
-                                      style={{backgroundColor: '#d4edda', fontWeight: 'bold', fontSize: week2Display.fontSize}}
-                                      title={week2Display.tooltip}
-                                    >
-                                      <span style={{color: '#000'}}>{week2Display.display}</span>
-                                    </td>
-                                    <td 
-                                      style={{backgroundColor: '#f8d7da', fontWeight: 'bold', fontSize: week1Display.fontSize}}
-                                      title={week1Display.tooltip}
-                                    >
-                                      <span style={{color: '#000'}}>{week1Display.display}</span>
-                                    </td>
-                                    <td 
-                                      className="grand-total"
-                                      style={{fontSize: grandDisplay.fontSize}}
-                                      title={grandDisplay.tooltip}
-                                    >
-                                      {grandDisplay.display}
-                                    </td>
-                                  </>
-                                );
-                              })()}
+                              <td style={{backgroundColor: '#fff3cd', fontWeight: 'bold', fontSize: '16px'}}>
+                                <span style={{color: '#000'}}>{playerTotals[pick.playerName]?.week4 || 0}</span>
+                              </td>
+                              <td style={{backgroundColor: '#d1ecf1', fontWeight: 'bold', fontSize: '16px'}}>
+                                <span style={{color: '#000'}}>{playerTotals[pick.playerName]?.week3 || 0}</span>
+                              </td>
+                              <td style={{backgroundColor: '#d4edda', fontWeight: 'bold', fontSize: '16px'}}>
+                                <span style={{color: '#000'}}>{playerTotals[pick.playerName]?.week2 || 0}</span>
+                              </td>
+                              <td style={{backgroundColor: '#f8d7da', fontWeight: 'bold', fontSize: '16px'}}>
+                                <span style={{color: '#000'}}>{playerTotals[pick.playerName]?.week1 || 0}</span>
+                              </td>
+                              <td className="grand-total">
+                                {playerTotals[pick.playerName]?.grand || 0}
+                              </td>
                             </>
                           ) : (
                             <td style={{backgroundColor: '#f8f9fa', fontWeight: 'bold', fontSize: '16px'}}>
@@ -4835,8 +4076,7 @@ const calculateAllPrizeWinners = () => {
                           </td>
                         </tr>
                       );
-                    });
-                  })()}
+                    })}
                 </tbody>
               </table>
             </div>
@@ -4844,185 +4084,15 @@ const calculateAllPrizeWinners = () => {
 
           {/* 🆕 STEP 5: Prize Leaders Display */}
           {codeValidated && (
-            <>
-              {/* 📊 Smart P Notation Legend - Only on Super Bowl page */}
-              {currentWeek === 'superbowl' && (
-                <div style={{
-                  marginTop: '40px',
-                  marginBottom: '40px',
-                  padding: '30px',
-                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                  borderRadius: '12px',
-                  border: '3px solid #5a67d8',
-                  boxShadow: '0 8px 20px rgba(0,0,0,0.15)'
-                }}>
-                  <h3 style={{
-                    color: '#fff',
-                    marginBottom: '20px',
-                    fontSize: '1.4rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '10px'
-                  }}>
-                    📊 Format Guide - How to Read the Totals
-                  </h3>
-                  
-                  <div style={{
-                    background: 'rgba(255,255,255,0.95)',
-                    padding: '25px',
-                    borderRadius: '10px',
-                    color: '#333'
-                  }}>
-                    {/* Grand Total Format */}
-                    <div style={{marginBottom: '25px'}}>
-                      <p style={{
-                        fontWeight: 'bold',
-                        color: '#5a67d8',
-                        marginBottom: '12px',
-                        fontSize: '1.1rem'
-                      }}>
-                        Grand Total Format:
-                      </p>
-                      <ul style={{
-                        listStyle: 'none',
-                        padding: 0,
-                        margin: 0,
-                        lineHeight: '2.2'
-                      }}>
-                        <li>
-                          <strong>Complete Entry:</strong> <code style={{
-                            background: '#f0f4f8',
-                            padding: '4px 10px',
-                            borderRadius: '5px',
-                            fontWeight: 'bold',
-                            color: '#2d3748'
-                          }}>784</code> - All 4 weeks entered
-                        </li>
-                        <li>
-                          <strong>During Season:</strong> <code style={{
-                            background: '#f0f4f8',
-                            padding: '4px 10px',
-                            borderRadius: '5px',
-                            fontWeight: 'bold',
-                            color: '#2d3748'
-                          }}>784/598/35</code> - Full Pred / Played Weeks / Difference
-                        </li>
-                        <li>
-                          <strong>After Season:</strong> <code style={{
-                            background: '#f0f4f8',
-                            padding: '4px 10px',
-                            borderRadius: '5px',
-                            fontWeight: 'bold',
-                            color: '#2d3748'
-                          }}>784/55</code> - Full Pred / Total Difference
-                        </li>
-                        <li>
-                          <strong>Abnormal Pattern:</strong> <code style={{
-                            background: '#fff3cd',
-                            padding: '4px 10px',
-                            borderRadius: '5px',
-                            fontWeight: 'bold',
-                            color: '#856404',
-                            border: '2px solid #ffc107'
-                          }}>P13/415</code> - P = Partial (weeks 1 & 3 only - unusual!)
-                        </li>
-                      </ul>
-                    </div>
-                    
-                    {/* Special Indicators */}
-                    <div style={{marginBottom: '25px'}}>
-                      <p style={{
-                        fontWeight: 'bold',
-                        color: '#5a67d8',
-                        marginBottom: '12px',
-                        fontSize: '1.1rem'
-                      }}>
-                        Special Indicators:
-                      </p>
-                      <ul style={{
-                        listStyle: 'none',
-                        padding: 0,
-                        margin: 0,
-                        lineHeight: '2.2'
-                      }}>
-                        <li>
-                          <strong>Asterisk (*):</strong> <code style={{
-                            background: '#f0f4f8',
-                            padding: '4px 10px',
-                            borderRadius: '5px',
-                            fontWeight: 'bold',
-                            color: '#2d3748'
-                          }}>234*</code> - Pick filled by RNG/Pool Manager
-                        </li>
-                        <li>
-                          <strong>P Notation:</strong> Shows which weeks entered when pattern is unusual (e.g., P13 = weeks 1 & 3, skipped 2)
-                        </li>
-                        <li>
-                          <strong>Dash (-):</strong> Week not entered yet
-                        </li>
-                      </ul>
-                    </div>
-                    
-                    {/* Examples */}
-                    <div style={{marginBottom: '15px'}}>
-                      <p style={{
-                        fontWeight: 'bold',
-                        color: '#5a67d8',
-                        marginBottom: '12px',
-                        fontSize: '1.1rem'
-                      }}>
-                        Examples:
-                      </p>
-                      <ul style={{
-                        listStyle: 'none',
-                        padding: 0,
-                        margin: 0,
-                        lineHeight: '2.2'
-                      }}>
-                        <li>
-                          Richard: <code style={{background: '#f0f4f8', padding: '4px 10px', borderRadius: '5px', fontWeight: 'bold'}}>784</code> - Entered all 4 weeks normally
-                        </li>
-                        <li>
-                          Neema: <code style={{background: '#f0f4f8', padding: '4px 10px', borderRadius: '5px', fontWeight: 'bold'}}>533/287/22</code> - 2 weeks played so far, 22 points off
-                        </li>
-                        <li>
-                          Bob: <code style={{background: '#fff3cd', padding: '4px 10px', borderRadius: '5px', fontWeight: 'bold', border: '2px solid #ffc107'}}>P13/415</code> - Entered weeks 1 & 3 only (skipped 2) - unusual!
-                        </li>
-                        <li>
-                          After RNG fills Bob's week 2: <code style={{background: '#f0f4f8', padding: '4px 10px', borderRadius: '5px', fontWeight: 'bold'}}>649</code> - P notation drops (normalized)
-                        </li>
-                      </ul>
-                    </div>
-                    
-                    {/* Tip */}
-                    <div style={{
-                      paddingTop: '20px',
-                      borderTop: '2px solid #cbd5e0',
-                      marginTop: '15px'
-                    }}>
-                      <p style={{
-                        color: '#4a5568',
-                        fontStyle: 'italic',
-                        fontSize: '1rem',
-                        margin: 0
-                      }}>
-                        💡 <strong>Tip:</strong> Hover over any number for detailed breakdown! The P notation only appears for unusual entry patterns and disappears once normalized.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-              
-              <div style={{marginTop: '60px'}}>
-                <LeaderDisplay
-                  allPicks={allPicks}
-                  actualScores={actualScores}
-                  games={PLAYOFF_WEEKS}
-                  officialWinners={officialWinners}
-                  weekData={PLAYOFF_WEEKS}
-                />
-              </div>
-            </>
+            <div style={{marginTop: '60px'}}>
+              <LeaderDisplay
+                allPicks={allPicks}
+                actualScores={actualScores}
+                games={PLAYOFF_WEEKS}
+                officialWinners={officialWinners}
+                weekData={PLAYOFF_WEEKS}
+              />
+            </div>
           )}
 
           {/* 💰 PHASE 2: ENHANCED PRIZE POOL & WINNER DECLARATION - Pool Manager Only */}

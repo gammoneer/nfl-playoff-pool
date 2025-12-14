@@ -309,15 +309,6 @@ export function calculateWeekPrize2(allPicks, actualScores, week) {
   
   // Find all players with that smallest difference (handles ties)
   const closestPlayers = playerResults.filter(p => p.difference === minDifference);
-
-  // Check if we actually found any players with valid picks
-  if (closestPlayers.length === 0) {
-    return {
-      status: 'no_picks',
-      winner: null,
-      message: 'No valid picks submitted for this week'
-    };
-  }
   
   // Determine if it's a true tie or single winner
   const isTrueTie = closestPlayers.length > 1;
@@ -679,14 +670,6 @@ export function calculateWeek4Prize2(allPicks, actualScores) {
       break;
     }
   }
-  // Check if we have any remaining players
-  if (remainingPlayers.length === 0) {
-    return {
-      status: 'no_picks',
-      winner: null,
-      message: 'No valid picks for tiebreaker weeks'
-    };
-  }
   
   // Check final result
   const isTrueTie = remainingPlayers.length > 1;
@@ -899,16 +882,6 @@ export function calculateGrandPrize1(allPicks, actualScores) {
     
     if (remainingPlayers.length === 1) break;
   }
-
-  
-  // Check if we have any remaining players
-  if (remainingPlayers.length === 0) {
-    return {
-      status: 'no_picks',
-      winner: null,
-      message: 'No valid picks for tiebreaker weeks'
-    };
-  }
   
   // Final result
   const isTrueTie = remainingPlayers.length > 1;
@@ -922,199 +895,6 @@ export function calculateGrandPrize1(allPicks, actualScores) {
     isTrueTie,
     steps: tiebreakerSteps,
     allPlayerResults: allPlayers.sort((a, b) => b.totalCorrect - a.totalCorrect)
-  };
-}
-
-// ============================================================================
-// GRAND PRIZE #2: CLOSEST TOTAL POINTS (OVERALL) - CASCADING TIEBREAKERS
-// ============================================================================
-
-/**
- * Calculate Grand Prize #2: Closest Total Points (All 4 Weeks Combined)
- * 
- * Cascading tiebreakers: Week 4 → 3 → 2 → 1 total points
- * 
- * @param {Object} allPicks - All player picks from Firebase
- * @param {Object} actualScores - Actual scores from Firebase (all weeks)
- * @returns {Object} - Winner object with detailed tiebreaker steps
- */
-export function calculateGrandPrize2(allPicks, actualScores) {
-  const weeks = [
-    { key: 'wildcard', name: 'Week 1' },
-    { key: 'divisional', name: 'Week 2' },
-    { key: 'conference', name: 'Week 3' },
-    { key: 'superbowl', name: 'Week 4' }
-  ];
-  
-  // Calculate actual totals for all weeks
-  const weeklyActualTotals = {};
-  let overallActualTotal = 0;
-  
-  weeks.forEach(week => {
-    const weekTotal = calculateActualWeekTotal(actualScores, week.key);
-    weeklyActualTotals[week.key] = weekTotal;
-    overallActualTotal += weekTotal;
-  });
-  
-  // Check if all weeks have scores
-  if (overallActualTotal === 0) {
-    return {
-      status: 'not_scored',
-      winner: null,
-      message: 'Waiting for all playoff rounds to complete'
-    };
-  }
-  
-  // Calculate overall predicted total and difference for each player
-  const allPlayers = [];
-  
-  Object.keys(allPicks).forEach(playerCode => {
-    const playerData = allPicks[playerCode];
-    const playerName = playerData.name;
-    const playerPicks = playerData.picks;
-    
-    let overallPredictedTotal = 0;
-    const weeklyPredictedTotals = {};
-    
-    weeks.forEach(week => {
-      const weekTotal = calculateWeekTotal(playerPicks, week.key);
-      weeklyPredictedTotals[week.key] = weekTotal;
-      overallPredictedTotal += weekTotal;
-    });
-    
-    const overallDifference = calculateDifference(overallPredictedTotal, overallActualTotal);
-    
-    allPlayers.push({
-      name: playerName,
-      code: playerCode,
-      picks: playerPicks,
-      overallPredictedTotal,
-      overallDifference,
-      weeklyPredictedTotals
-    });
-  });
-  
-  if (allPlayers.length === 0) {
-    return {
-      status: 'no_picks',
-      winner: null,
-      message: 'No picks submitted'
-    };
-  }
-  
-  // Find the smallest overall difference
-  const minOverallDiff = Math.min(...allPlayers.map(p => p.overallDifference));
-  
-  // Filter to players with smallest overall difference
-  let remainingPlayers = allPlayers.filter(p => p.overallDifference === minOverallDiff);
-  
-  // If only one player is closest, they win!
-  if (remainingPlayers.length === 1) {
-    return {
-      status: 'calculated',
-      winner: remainingPlayers[0].name,
-      winnerCode: remainingPlayers[0].code,
-      overallActualTotal,
-      overallPredictedTotal: remainingPlayers[0].overallPredictedTotal,
-      difference: minOverallDiff,
-      tiebreakerUsed: false,
-      isTrueTie: false,
-      steps: [
-        {
-          level: 'Overall Total Points',
-          actualTotal: overallActualTotal,
-          remaining: 1,
-          winner: remainingPlayers[0].name,
-          minDifference: minOverallDiff
-        }
-      ],
-      allPlayerResults: allPlayers.sort((a, b) => a.overallDifference - b.overallDifference)
-    };
-  }
-  
-  // CASCADING TIEBREAKERS: Week 4 → 3 → 2 → 1 total points
-  const tiebreakerSteps = [
-    {
-      level: 'Overall Total Points',
-      actualTotal: overallActualTotal,
-      remaining: remainingPlayers.length,
-      tied: remainingPlayers.map(p => p.name),
-      minDifference: minOverallDiff,
-      details: remainingPlayers.map(p => ({
-        name: p.name,
-        predictedTotal: p.overallPredictedTotal,
-        difference: p.overallDifference
-      }))
-    }
-  ];
-  
-  const tiebreakerWeeks = [...weeks].reverse(); // Week 4 → 3 → 2 → 1
-  
-  for (const weekInfo of tiebreakerWeeks) {
-    if (remainingPlayers.length === 1) break;
-    
-    const weekActualTotal = weeklyActualTotals[weekInfo.key];
-    
-    // Calculate differences for this week among remaining players
-    const playersWithDiff = remainingPlayers.map(player => {
-      const weekPredictedTotal = player.weeklyPredictedTotals[weekInfo.key];
-      const weekDifference = calculateDifference(weekPredictedTotal, weekActualTotal);
-      
-      return {
-        ...player,
-        weekPredictedTotal,
-        weekDifference
-      };
-    });
-    
-    // Find smallest difference for this week
-    const minWeekDiff = Math.min(...playersWithDiff.map(p => p.weekDifference));
-    
-    // Filter to players with smallest difference
-    const beforeCount = remainingPlayers.length;
-    remainingPlayers = playersWithDiff.filter(p => p.weekDifference === minWeekDiff);
-    
-    tiebreakerSteps.push({
-      level: `${weekInfo.name} Total Points`,
-      actualTotal: weekActualTotal,
-      remaining: remainingPlayers.length,
-      tied: remainingPlayers.map(p => p.name),
-      minDifference: minWeekDiff,
-      eliminated: beforeCount - remainingPlayers.length,
-      details: playersWithDiff.map(p => ({
-        name: p.name,
-        predictedTotal: p.weekPredictedTotal,
-        difference: p.weekDifference
-      }))
-    });
-    
-    if (remainingPlayers.length === 1) break;
-  }
-  
-  
-  // Check if we have any remaining players
-  if (remainingPlayers.length === 0) {
-    return {
-      status: 'no_picks',
-      winner: null,
-      message: 'No valid picks for tiebreaker weeks'
-    };
-  }
-  
-  // Final result
-  const isTrueTie = remainingPlayers.length > 1;
-  
-  return {
-    status: 'calculated',
-    winner: isTrueTie ? remainingPlayers.map(p => p.name) : remainingPlayers[0].name,
-    winnerCode: isTrueTie ? remainingPlayers.map(p => p.code) : remainingPlayers[0].code,
-    overallActualTotal,
-    overallPredictedTotal: remainingPlayers[0].overallPredictedTotal,
-    difference: remainingPlayers[0].overallDifference,
-    tiebreakerUsed: tiebreakerSteps.length > 1,
-    isTrueTie,
-    steps: tiebreakerSteps,
-    allPlayerResults: allPlayers.sort((a, b) => a.overallDifference - b.overallDifference)
   };
 }
 
@@ -1135,6 +915,5 @@ export default {
   calculateWeekPrize2,
   calculateWeek4Prize1,
   calculateWeek4Prize2,
-  calculateGrandPrize1,
-  calculateGrandPrize2
+  calculateGrandPrize1
 };
