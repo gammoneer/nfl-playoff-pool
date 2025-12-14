@@ -119,7 +119,7 @@ const PLAYER_CODES = {
   "B7Y4X3": "Bob Desrosiers",
   "D4F7G5": "Bonnie Biletski",
   "536EE2": "Brian Colburg",
-  "X8HH67": "Chris Neufeld", //Paid 20251214008  *************************************NEED TO SEND code to him and link
+  "X8HH67": "Chris Neufeld", //Paid 20251214008  Did SEND code to him and link 202512141140
   "G7R3P5": "Curtis Braun",
   "A4LJC9": "Curtis Palidwor",
   "X3P8N1": "Dallas Pylypow",
