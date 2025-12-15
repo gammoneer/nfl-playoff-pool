@@ -2595,20 +2595,17 @@ const calculateAllPrizeWinners = () => {
     }
   });
   
-  // STEP 2: Convert actualScores arrays to objects
+// STEP 2: Convert actualScores to ensure string keys
   const actualScoresObj = {};
   
   Object.keys(actualScores).forEach(week => {
-    if (Array.isArray(actualScores[week])) {
+    if (actualScores[week]) {
       const weekObj = {};
-      actualScores[week].forEach((score, index) => {
-        if (index > 0 && score) {
-          weekObj[index.toString()] = score;
-        }
+      Object.keys(actualScores[week]).forEach(gameId => {
+        // Ensure game ID is a string
+        weekObj[gameId.toString()] = actualScores[week][gameId];
       });
       actualScoresObj[week] = weekObj;
-    } else {
-      actualScoresObj[week] = actualScores[week];
     }
   });
   
