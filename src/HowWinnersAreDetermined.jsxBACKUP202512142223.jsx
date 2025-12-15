@@ -196,13 +196,9 @@ const HowWinnersAreDetermined = ({
     );
   };
   
-// Render expanded view (full breakdown)
+  // Render expanded view (full breakdown)
   const renderExpandedView = (prize, result) => {
-    // Handle different result formats
-    const hasSteps = result.steps && result.steps.length > 0;
-    const hasTiebreaker = result.tiebreakerUsed && result.tiedPlayersDetails && result.tiedPlayersDetails.length > 0;
-    
-    if (!hasSteps && !hasTiebreaker) {
+    if (!result.steps || result.steps.length === 0) {
       return (
         <div className="expanded-view">
           <div className="breakdown-header">═══ FULL BREAKDOWN ═══</div>
@@ -211,99 +207,62 @@ const HowWinnersAreDetermined = ({
       );
     }
     
-    // If we have steps (Week 4 and Grand Prizes), use existing logic
-    if (hasSteps) {
-      return (
-        <div className="expanded-view">
-          <div className="breakdown-header">═══ FULL TIEBREAKER BREAKDOWN ═══</div>
-          
-          {result.steps.map((step, index) => (
-            <div key={index} className="breakdown-step">
-              <div className="step-header">
-                {step.layer !== undefined && <span className="layer-badge">Layer {step.layer}</span>}
-                STEP {index + 1}: {step.level}
-              </div>
-              
-              {step.actualTotal !== undefined && (
-                <div className="step-detail">Actual total: {step.actualTotal} points</div>
-              )}
-              
-              {step.remaining !== undefined && (
-                <div className="step-detail">
-                  {step.remaining} player{step.remaining !== 1 ? 's' : ''} remain{step.remaining === 1 ? 's' : ''}
-                </div>
-              )}
-              
-              {step.tied && step.tied.length > 1 && (
-                <div className="step-detail tied-players">
-                  ✅ Tied: {step.tied.join(', ')}
-                </div>
-              )}
-              
-              {step.winner && (
-                <div className="step-detail winner">
-                  🏆 Winner: <strong>{step.winner}</strong>
-                </div>
-              )}
-              
-              {step.eliminated > 0 && (
-                <div className="step-detail eliminated">
-                  ❌ {step.eliminated} player{step.eliminated !== 1 ? 's' : ''} eliminated
-                </div>
-              )}
-              
-              {step.details && step.details.length > 0 && (
-                <div className="player-details">
-                  {step.details.map((player, pIndex) => (
-                    <div key={pIndex} className="player-row">
-                      <span className="player-name">{player.name}:</span>
-                      <span className="player-prediction">{player.predictedTotal} predicted</span>
-                      <span className="player-diff">(off by {player.difference})</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      );
-    }
-    
-    // Week 1-3 Prize #1 format (tiedPlayersDetails)
-    if (hasTiebreaker) {
-      return (
-        <div className="expanded-view">
-          <div className="breakdown-header">═══ FULL TIEBREAKER BREAKDOWN ═══</div>
-          
-          <div className="breakdown-step">
+    return (
+      <div className="expanded-view">
+        <div className="breakdown-header">═══ FULL TIEBREAKER BREAKDOWN ═══</div>
+        
+        {result.steps.map((step, index) => (
+          <div key={index} className="breakdown-step">
             <div className="step-header">
-              INITIAL TIE: {result.correctWinners} correct winner{result.correctWinners !== 1 ? 's' : ''}
+              {step.layer !== undefined && <span className="layer-badge">Layer {step.layer}</span>}
+              STEP {index + 1}: {step.level}
             </div>
-            <div className="step-detail tied-players">
-              ✅ Tied: {result.tiedPlayers.join(', ')}
-            </div>
-          </div>
-          
-          <div className="breakdown-step">
-            <div className="step-header">
-              TIEBREAKER: {result.tiebreakerLevel}
-            </div>
-            <div className="step-detail">Actual total: {result.actualTotal} points</div>
             
-            <div className="player-details">
-              {result.tiedPlayersDetails.map((player, pIndex) => (
-                <div key={pIndex} className="player-row">
-                  <span className="player-name">{player.name}:</span>
-                  <span className="player-prediction">{player.predictedTotal} predicted</span>
-                  <span className="player-diff">(off by {player.difference})</span>
-                  {player.name === result.winner && <span className="winner-badge">🏆 WINNER</span>}
-                </div>
-              ))}
-            </div>
+            {/* Step details */}
+            {step.actualTotal !== undefined && (
+              <div className="step-detail">Actual total: {step.actualTotal} points</div>
+            )}
+            
+            {step.remaining !== undefined && (
+              <div className="step-detail">
+                {step.remaining} player{step.remaining !== 1 ? 's' : ''} remain{step.remaining === 1 ? 's' : ''}
+              </div>
+            )}
+            
+            {step.tied && step.tied.length > 1 && (
+              <div className="step-detail tied-players">
+                ✅ Tied: {step.tied.join(', ')}
+              </div>
+            )}
+            
+            {step.winner && (
+              <div className="step-detail winner">
+                🏆 Winner: <strong>{step.winner}</strong>
+              </div>
+            )}
+            
+            {step.eliminated > 0 && (
+              <div className="step-detail eliminated">
+                ❌ {step.eliminated} player{step.eliminated !== 1 ? 's' : ''} eliminated
+              </div>
+            )}
+            
+            {/* Detailed player breakdown */}
+            {step.details && step.details.length > 0 && (
+              <div className="player-details">
+                {step.details.map((player, pIndex) => (
+                  <div key={pIndex} className="player-row">
+                    <span className="player-name">{player.name}:</span>
+                    <span className="player-prediction">{player.predictedTotal} predicted</span>
+                    <span className="player-diff">(off by {player.difference})</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
-        </div>
-      );
-    }
+        ))}
+      </div>
+    );
   };
   
   // Handle review and publish (opens modal/preview)
