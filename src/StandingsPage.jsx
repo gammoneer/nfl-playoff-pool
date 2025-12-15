@@ -1,10 +1,49 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import './StandingsPage.css';
 
 // Import scoring functions (we'll integrate these)
 // For now, we'll include the logic directly
 
 function StandingsPage({ allPicks, actualScores, currentWeek, playerName, playerCode, isPoolManager, prizePool, officialWinners, onLogout }) {
+  
+  // Track which prize week sections are expanded
+  const [expandedPrizeWeeks, setExpandedPrizeWeeks] = useState({
+    'Week 1': true,  // Default: Week 1 open
+    'Week 2': false,
+    'Week 3': false,
+    'Week 4': false,
+    'Grand Prizes': false
+  });
+
+  // Toggle a specific prize week section
+  const togglePrizeWeek = (weekKey) => {
+    setExpandedPrizeWeeks(prev => ({
+      ...prev,
+      [weekKey]: !prev[weekKey]
+    }));
+  };
+
+  // Expand all prize weeks
+  const expandAllPrizeWeeks = () => {
+    setExpandedPrizeWeeks({
+      'Week 1': true,
+      'Week 2': true,
+      'Week 3': true,
+      'Week 4': true,
+      'Grand Prizes': true
+    });
+  };
+
+  // Collapse all prize weeks
+  const collapseAllPrizeWeeks = () => {
+    setExpandedPrizeWeeks({
+      'Week 1': false,
+      'Week 2': false,
+      'Week 3': false,
+      'Week 4': false,
+      'Grand Prizes': false
+    });
+  };
   
   // ============================================
   // SCORING CALCULATION FUNCTIONS
@@ -500,104 +539,711 @@ function StandingsPage({ allPicks, actualScores, currentWeek, playerName, player
           </div>
         </div>
         
-        <div className="prizes-grid">
-          {prizeLeaders.map(prize => {
-            // Tooltip text based on prize type
-            const tooltipText = prize.type === 'correctWinners' 
-              ? 'Players who correctly predicted the most game outcomes (which team won)'
-              : 'Players whose predicted total scores were closest to the actual combined scores';
-            
-            return (
-              <div key={prize.prizeNumber} className="prize-card">
-                <div className="prize-header">
-                  <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '5px'}}>
-                    <div className="prize-number">PRIZE #{prize.prizeNumber}</div>
-                    <div 
-                      title={tooltipText}
-                      style={{
-                        cursor: 'help',
-                        fontSize: '1.1rem',
-                        opacity: 0.7,
-                        transition: 'opacity 0.2s'
-                      }}
-                      onMouseOver={(e) => e.target.style.opacity = '1'}
-                      onMouseOut={(e) => e.target.style.opacity = '0.7'}
-                    >
-                      ℹ️
+        {/* Prize Week Controls */}
+        <div style={{
+          display: 'flex',
+          gap: '15px',
+          justifyContent: 'center',
+          margin: '20px 0'
+        }}>
+          <button 
+            onClick={expandAllPrizeWeeks}
+            style={{
+              padding: '10px 20px',
+              background: '#667eea',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontSize: '0.95rem',
+              fontWeight: '600',
+              transition: 'all 0.2s'
+            }}
+            onMouseOver={(e) => e.target.style.background = '#5568d3'}
+            onMouseOut={(e) => e.target.style.background = '#667eea'}
+          >
+            ▼ Expand All Weeks
+          </button>
+          <button 
+            onClick={collapseAllPrizeWeeks}
+            style={{
+              padding: '10px 20px',
+              background: '#667eea',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontSize: '0.95rem',
+              fontWeight: '600',
+              transition: 'all 0.2s'
+            }}
+            onMouseOver={(e) => e.target.style.background = '#5568d3'}
+            onMouseOut={(e) => e.target.style.background = '#667eea'}
+          >
+            ▲ Collapse All Weeks
+          </button>
+        </div>
+
+        {/* Week 1 Prizes */}
+        <div style={{marginBottom: '20px'}}>
+          <h3 
+            onClick={() => togglePrizeWeek('Week 1')}
+            style={{
+              cursor: 'pointer',
+              userSelect: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              padding: '15px 20px',
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              color: 'white',
+              borderRadius: '8px',
+              transition: 'all 0.3s',
+              marginBottom: expandedPrizeWeeks['Week 1'] ? '20px' : '0',
+              borderBottomLeftRadius: expandedPrizeWeeks['Week 1'] ? '0' : '8px',
+              borderBottomRightRadius: expandedPrizeWeeks['Week 1'] ? '0' : '8px'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateX(5px)';
+              e.currentTarget.style.boxShadow = '0 4px 15px rgba(102, 126, 234, 0.4)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateX(0)';
+              e.currentTarget.style.boxShadow = 'none';
+            }}
+          >
+            <span style={{fontSize: '1.2rem', transition: 'transform 0.3s'}}>
+              {expandedPrizeWeeks['Week 1'] ? '▼' : '►'}
+            </span>
+            Week 1 Prizes (Wild Card Round)
+          </h3>
+          
+          {expandedPrizeWeeks['Week 1'] && (
+            <div className="prizes-grid">
+              {prizeLeaders.filter(p => p.prizeNumber >= 1 && p.prizeNumber <= 2).map(prize => {
+                const tooltipText = prize.type === 'correctWinners' 
+                  ? 'Players who correctly predicted the most game outcomes (which team won)'
+                  : 'Players whose predicted total scores were closest to the actual combined scores';
+                
+                return (
+                  <div key={prize.prizeNumber} className="prize-card">
+                    <div className="prize-header">
+                      <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '5px'}}>
+                        <div className="prize-number">PRIZE #{prize.prizeNumber}</div>
+                        <div 
+                          title={tooltipText}
+                          style={{
+                            cursor: 'help',
+                            fontSize: '1.1rem',
+                            opacity: 0.7,
+                            transition: 'opacity 0.2s'
+                          }}
+                          onMouseOver={(e) => e.target.style.opacity = '1'}
+                          onMouseOut={(e) => e.target.style.opacity = '0.7'}
+                        >
+                          ℹ️
+                        </div>
+                      </div>
+                      <div className="prize-name">{prize.name}</div>
+                      <div style={{
+                        fontSize: '0.85rem',
+                        color: '#666',
+                        fontWeight: '600',
+                        marginTop: '5px',
+                        fontStyle: 'italic'
+                      }}>
+                        Current Leaders
+                      </div>
+                    </div>
+                    
+                    <div className="prize-leaders">
+                      {prize.leaders.length === 0 ? (
+                        <div className="no-data">No data available yet</div>
+                      ) : (
+                        <table className="leaders-table">
+                          <thead>
+                            <tr>
+                              <th>Rank</th>
+                              <th>Player</th>
+                              <th>{prize.type === 'correctWinners' ? 'Correct' : 'Difference'}</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {prize.leaders.map((leader, idx) => {
+                              const isTied = idx > 0 && leader.score === prize.leaders[idx - 1].score;
+                              const displayRank = isTied ? '=' : idx + 1;
+                              const isLeading = idx === 0 && !isTied;
+                              
+                              return (
+                                <tr key={idx} className={isLeading ? 'leader-first' : ''}>
+                                  <td className="rank">
+                                    {displayRank}
+                                    {isLeading && <span style={{marginLeft: '5px', fontSize: '0.8em'}}>👑</span>}
+                                  </td>
+                                  <td className="player-name">
+                                    {leader.playerName}
+                                    {isLeading && (
+                                      <span style={{
+                                        marginLeft: '8px',
+                                        fontSize: '0.7rem',
+                                        background: '#4facfe',
+                                        color: 'white',
+                                        padding: '2px 6px',
+                                        borderRadius: '4px',
+                                        fontWeight: '600'
+                                      }}>
+                                        LEADING
+                                      </span>
+                                    )}
+                                  </td>
+                                  <td className="score">
+                                    {prize.type === 'correctWinners' 
+                                      ? `${leader.score} correct` 
+                                      : `${leader.score} pts`
+                                    }
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      )}
                     </div>
                   </div>
-                  <div className="prize-name">{prize.name}</div>
-                  <div style={{
-                    fontSize: '0.85rem',
-                    color: '#666',
-                    fontWeight: '600',
-                    marginTop: '5px',
-                    fontStyle: 'italic'
-                  }}>
-                    Current Leaders
-                  </div>
-                </div>
-                
-                <div className="prize-leaders">
-                  {prize.leaders.length === 0 ? (
-                    <div className="no-data">No data available yet</div>
-                  ) : (
-                    <table className="leaders-table">
-                      <thead>
-                        <tr>
-                          <th>Rank</th>
-                          <th>Player</th>
-                          <th>{prize.type === 'correctWinners' ? 'Correct' : 'Difference'}</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {prize.leaders.map((leader, idx) => {
-                          // Determine if tied with previous
-                          const isTied = idx > 0 && leader.score === prize.leaders[idx - 1].score;
-                          const displayRank = isTied ? '=' : idx + 1;
-                          
-                          // Add leading indicator for #1
-                          const isLeading = idx === 0 && !isTied;
-                          
-                          return (
-                            <tr key={idx} className={isLeading ? 'leader-first' : ''}>
-                              <td className="rank">
-                                {displayRank}
-                                {isLeading && <span style={{marginLeft: '5px', fontSize: '0.8em'}}>👑</span>}
-                              </td>
-                              <td className="player-name">
-                                {leader.playerName}
-                                {isLeading && (
-                                  <span style={{
-                                    marginLeft: '8px',
-                                    fontSize: '0.7rem',
-                                    background: '#4facfe',
-                                    color: 'white',
-                                    padding: '2px 6px',
-                                    borderRadius: '4px',
-                                    fontWeight: '600'
-                                  }}>
-                                    LEADING
-                                  </span>
-                                )}
-                              </td>
-                              <td className="score">
-                                {prize.type === 'correctWinners' 
-                                  ? `${leader.score} correct` 
-                                  : `${leader.score} pts`
-                                }
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  )}
-                </div>
-              </div>
-            );
-          })}
+                );
+              })}
+            </div>
+          )}
         </div>
+
+        {/* Week 2 Prizes */}
+        <div style={{marginBottom: '20px'}}>
+          <h3 
+            onClick={() => togglePrizeWeek('Week 2')}
+            style={{
+              cursor: 'pointer',
+              userSelect: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              padding: '15px 20px',
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              color: 'white',
+              borderRadius: '8px',
+              transition: 'all 0.3s',
+              marginBottom: expandedPrizeWeeks['Week 2'] ? '20px' : '0',
+              borderBottomLeftRadius: expandedPrizeWeeks['Week 2'] ? '0' : '8px',
+              borderBottomRightRadius: expandedPrizeWeeks['Week 2'] ? '0' : '8px'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateX(5px)';
+              e.currentTarget.style.boxShadow = '0 4px 15px rgba(102, 126, 234, 0.4)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateX(0)';
+              e.currentTarget.style.boxShadow = 'none';
+            }}
+          >
+            <span style={{fontSize: '1.2rem', transition: 'transform 0.3s'}}>
+              {expandedPrizeWeeks['Week 2'] ? '▼' : '►'}
+            </span>
+            Week 2 Prizes (Divisional Round)
+          </h3>
+          
+          {expandedPrizeWeeks['Week 2'] && (
+            <div className="prizes-grid">
+              {prizeLeaders.filter(p => p.prizeNumber >= 3 && p.prizeNumber <= 4).map(prize => {
+                const tooltipText = prize.type === 'correctWinners' 
+                  ? 'Players who correctly predicted the most game outcomes (which team won)'
+                  : 'Players whose predicted total scores were closest to the actual combined scores';
+                
+                return (
+                  <div key={prize.prizeNumber} className="prize-card">
+                    <div className="prize-header">
+                      <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '5px'}}>
+                        <div className="prize-number">PRIZE #{prize.prizeNumber}</div>
+                        <div 
+                          title={tooltipText}
+                          style={{
+                            cursor: 'help',
+                            fontSize: '1.1rem',
+                            opacity: 0.7,
+                            transition: 'opacity 0.2s'
+                          }}
+                          onMouseOver={(e) => e.target.style.opacity = '1'}
+                          onMouseOut={(e) => e.target.style.opacity = '0.7'}
+                        >
+                          ℹ️
+                        </div>
+                      </div>
+                      <div className="prize-name">{prize.name}</div>
+                      <div style={{
+                        fontSize: '0.85rem',
+                        color: '#666',
+                        fontWeight: '600',
+                        marginTop: '5px',
+                        fontStyle: 'italic'
+                      }}>
+                        Current Leaders
+                      </div>
+                    </div>
+                    
+                    <div className="prize-leaders">
+                      {prize.leaders.length === 0 ? (
+                        <div className="no-data">No data available yet</div>
+                      ) : (
+                        <table className="leaders-table">
+                          <thead>
+                            <tr>
+                              <th>Rank</th>
+                              <th>Player</th>
+                              <th>{prize.type === 'correctWinners' ? 'Correct' : 'Difference'}</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {prize.leaders.map((leader, idx) => {
+                              const isTied = idx > 0 && leader.score === prize.leaders[idx - 1].score;
+                              const displayRank = isTied ? '=' : idx + 1;
+                              const isLeading = idx === 0 && !isTied;
+                              
+                              return (
+                                <tr key={idx} className={isLeading ? 'leader-first' : ''}>
+                                  <td className="rank">
+                                    {displayRank}
+                                    {isLeading && <span style={{marginLeft: '5px', fontSize: '0.8em'}}>👑</span>}
+                                  </td>
+                                  <td className="player-name">
+                                    {leader.playerName}
+                                    {isLeading && (
+                                      <span style={{
+                                        marginLeft: '8px',
+                                        fontSize: '0.7rem',
+                                        background: '#4facfe',
+                                        color: 'white',
+                                        padding: '2px 6px',
+                                        borderRadius: '4px',
+                                        fontWeight: '600'
+                                      }}>
+                                        LEADING
+                                      </span>
+                                    )}
+                                  </td>
+                                  <td className="score">
+                                    {prize.type === 'correctWinners' 
+                                      ? `${leader.score} correct` 
+                                      : `${leader.score} pts`
+                                    }
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Week 3 Prizes */}
+        <div style={{marginBottom: '20px'}}>
+          <h3 
+            onClick={() => togglePrizeWeek('Week 3')}
+            style={{
+              cursor: 'pointer',
+              userSelect: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              padding: '15px 20px',
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              color: 'white',
+              borderRadius: '8px',
+              transition: 'all 0.3s',
+              marginBottom: expandedPrizeWeeks['Week 3'] ? '20px' : '0',
+              borderBottomLeftRadius: expandedPrizeWeeks['Week 3'] ? '0' : '8px',
+              borderBottomRightRadius: expandedPrizeWeeks['Week 3'] ? '0' : '8px'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateX(5px)';
+              e.currentTarget.style.boxShadow = '0 4px 15px rgba(102, 126, 234, 0.4)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateX(0)';
+              e.currentTarget.style.boxShadow = 'none';
+            }}
+          >
+            <span style={{fontSize: '1.2rem', transition: 'transform 0.3s'}}>
+              {expandedPrizeWeeks['Week 3'] ? '▼' : '►'}
+            </span>
+            Week 3 Prizes (Conference Championships)
+          </h3>
+          
+          {expandedPrizeWeeks['Week 3'] && (
+            <div className="prizes-grid">
+              {prizeLeaders.filter(p => p.prizeNumber >= 5 && p.prizeNumber <= 6).map(prize => {
+                const tooltipText = prize.type === 'correctWinners' 
+                  ? 'Players who correctly predicted the most game outcomes (which team won)'
+                  : 'Players whose predicted total scores were closest to the actual combined scores';
+                
+                return (
+                  <div key={prize.prizeNumber} className="prize-card">
+                    <div className="prize-header">
+                      <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '5px'}}>
+                        <div className="prize-number">PRIZE #{prize.prizeNumber}</div>
+                        <div 
+                          title={tooltipText}
+                          style={{
+                            cursor: 'help',
+                            fontSize: '1.1rem',
+                            opacity: 0.7,
+                            transition: 'opacity 0.2s'
+                          }}
+                          onMouseOver={(e) => e.target.style.opacity = '1'}
+                          onMouseOut={(e) => e.target.style.opacity = '0.7'}
+                        >
+                          ℹ️
+                        </div>
+                      </div>
+                      <div className="prize-name">{prize.name}</div>
+                      <div style={{
+                        fontSize: '0.85rem',
+                        color: '#666',
+                        fontWeight: '600',
+                        marginTop: '5px',
+                        fontStyle: 'italic'
+                      }}>
+                        Current Leaders
+                      </div>
+                    </div>
+                    
+                    <div className="prize-leaders">
+                      {prize.leaders.length === 0 ? (
+                        <div className="no-data">No data available yet</div>
+                      ) : (
+                        <table className="leaders-table">
+                          <thead>
+                            <tr>
+                              <th>Rank</th>
+                              <th>Player</th>
+                              <th>{prize.type === 'correctWinners' ? 'Correct' : 'Difference'}</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {prize.leaders.map((leader, idx) => {
+                              const isTied = idx > 0 && leader.score === prize.leaders[idx - 1].score;
+                              const displayRank = isTied ? '=' : idx + 1;
+                              const isLeading = idx === 0 && !isTied;
+                              
+                              return (
+                                <tr key={idx} className={isLeading ? 'leader-first' : ''}>
+                                  <td className="rank">
+                                    {displayRank}
+                                    {isLeading && <span style={{marginLeft: '5px', fontSize: '0.8em'}}>👑</span>}
+                                  </td>
+                                  <td className="player-name">
+                                    {leader.playerName}
+                                    {isLeading && (
+                                      <span style={{
+                                        marginLeft: '8px',
+                                        fontSize: '0.7rem',
+                                        background: '#4facfe',
+                                        color: 'white',
+                                        padding: '2px 6px',
+                                        borderRadius: '4px',
+                                        fontWeight: '600'
+                                      }}>
+                                        LEADING
+                                      </span>
+                                    )}
+                                  </td>
+                                  <td className="score">
+                                    {prize.type === 'correctWinners' 
+                                      ? `${leader.score} correct` 
+                                      : `${leader.score} pts`
+                                    }
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Week 4 Prizes */}
+        <div style={{marginBottom: '20px'}}>
+          <h3 
+            onClick={() => togglePrizeWeek('Week 4')}
+            style={{
+              cursor: 'pointer',
+              userSelect: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              padding: '15px 20px',
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              color: 'white',
+              borderRadius: '8px',
+              transition: 'all 0.3s',
+              marginBottom: expandedPrizeWeeks['Week 4'] ? '20px' : '0',
+              borderBottomLeftRadius: expandedPrizeWeeks['Week 4'] ? '0' : '8px',
+              borderBottomRightRadius: expandedPrizeWeeks['Week 4'] ? '0' : '8px'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateX(5px)';
+              e.currentTarget.style.boxShadow = '0 4px 15px rgba(102, 126, 234, 0.4)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateX(0)';
+              e.currentTarget.style.boxShadow = 'none';
+            }}
+          >
+            <span style={{fontSize: '1.2rem', transition: 'transform 0.3s'}}>
+              {expandedPrizeWeeks['Week 4'] ? '▼' : '►'}
+            </span>
+            Week 4 Prizes (Super Bowl)
+          </h3>
+          
+          {expandedPrizeWeeks['Week 4'] && (
+            <div className="prizes-grid">
+              {prizeLeaders.filter(p => p.prizeNumber >= 7 && p.prizeNumber <= 8).map(prize => {
+                const tooltipText = prize.type === 'correctWinners' 
+                  ? 'Players who correctly predicted the most game outcomes (which team won)'
+                  : 'Players whose predicted total scores were closest to the actual combined scores';
+                
+                return (
+                  <div key={prize.prizeNumber} className="prize-card">
+                    <div className="prize-header">
+                      <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '5px'}}>
+                        <div className="prize-number">PRIZE #{prize.prizeNumber}</div>
+                        <div 
+                          title={tooltipText}
+                          style={{
+                            cursor: 'help',
+                            fontSize: '1.1rem',
+                            opacity: 0.7,
+                            transition: 'opacity 0.2s'
+                          }}
+                          onMouseOver={(e) => e.target.style.opacity = '1'}
+                          onMouseOut={(e) => e.target.style.opacity = '0.7'}
+                        >
+                          ℹ️
+                        </div>
+                      </div>
+                      <div className="prize-name">{prize.name}</div>
+                      <div style={{
+                        fontSize: '0.85rem',
+                        color: '#666',
+                        fontWeight: '600',
+                        marginTop: '5px',
+                        fontStyle: 'italic'
+                      }}>
+                        Current Leaders
+                      </div>
+                    </div>
+                    
+                    <div className="prize-leaders">
+                      {prize.leaders.length === 0 ? (
+                        <div className="no-data">No data available yet</div>
+                      ) : (
+                        <table className="leaders-table">
+                          <thead>
+                            <tr>
+                              <th>Rank</th>
+                              <th>Player</th>
+                              <th>{prize.type === 'correctWinners' ? 'Correct' : 'Difference'}</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {prize.leaders.map((leader, idx) => {
+                              const isTied = idx > 0 && leader.score === prize.leaders[idx - 1].score;
+                              const displayRank = isTied ? '=' : idx + 1;
+                              const isLeading = idx === 0 && !isTied;
+                              
+                              return (
+                                <tr key={idx} className={isLeading ? 'leader-first' : ''}>
+                                  <td className="rank">
+                                    {displayRank}
+                                    {isLeading && <span style={{marginLeft: '5px', fontSize: '0.8em'}}>👑</span>}
+                                  </td>
+                                  <td className="player-name">
+                                    {leader.playerName}
+                                    {isLeading && (
+                                      <span style={{
+                                        marginLeft: '8px',
+                                        fontSize: '0.7rem',
+                                        background: '#4facfe',
+                                        color: 'white',
+                                        padding: '2px 6px',
+                                        borderRadius: '4px',
+                                        fontWeight: '600'
+                                      }}>
+                                        LEADING
+                                      </span>
+                                    )}
+                                  </td>
+                                  <td className="score">
+                                    {prize.type === 'correctWinners' 
+                                      ? `${leader.score} correct` 
+                                      : `${leader.score} pts`
+                                    }
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Grand Prizes */}
+        <div style={{marginBottom: '20px'}}>
+          <h3 
+            onClick={() => togglePrizeWeek('Grand Prizes')}
+            style={{
+              cursor: 'pointer',
+              userSelect: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              padding: '15px 20px',
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              color: 'white',
+              borderRadius: '8px',
+              transition: 'all 0.3s',
+              marginBottom: expandedPrizeWeeks['Grand Prizes'] ? '20px' : '0',
+              borderBottomLeftRadius: expandedPrizeWeeks['Grand Prizes'] ? '0' : '8px',
+              borderBottomRightRadius: expandedPrizeWeeks['Grand Prizes'] ? '0' : '8px'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateX(5px)';
+              e.currentTarget.style.boxShadow = '0 4px 15px rgba(102, 126, 234, 0.4)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateX(0)';
+              e.currentTarget.style.boxShadow = 'none';
+            }}
+          >
+            <span style={{fontSize: '1.2rem', transition: 'transform 0.3s'}}>
+              {expandedPrizeWeeks['Grand Prizes'] ? '▼' : '►'}
+            </span>
+            Grand Prizes (All Weeks Combined)
+          </h3>
+          
+          {expandedPrizeWeeks['Grand Prizes'] && (
+            <div className="prizes-grid">
+              {prizeLeaders.filter(p => p.prizeNumber >= 9 && p.prizeNumber <= 10).map(prize => {
+                const tooltipText = prize.type === 'correctWinners' 
+                  ? 'Players who correctly predicted the most game outcomes (which team won)'
+                  : 'Players whose predicted total scores were closest to the actual combined scores';
+                
+                return (
+                  <div key={prize.prizeNumber} className="prize-card">
+                    <div className="prize-header">
+                      <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '5px'}}>
+                        <div className="prize-number">PRIZE #{prize.prizeNumber}</div>
+                        <div 
+                          title={tooltipText}
+                          style={{
+                            cursor: 'help',
+                            fontSize: '1.1rem',
+                            opacity: 0.7,
+                            transition: 'opacity 0.2s'
+                          }}
+                          onMouseOver={(e) => e.target.style.opacity = '1'}
+                          onMouseOut={(e) => e.target.style.opacity = '0.7'}
+                        >
+                          ℹ️
+                        </div>
+                      </div>
+                      <div className="prize-name">{prize.name}</div>
+                      <div style={{
+                        fontSize: '0.85rem',
+                        color: '#666',
+                        fontWeight: '600',
+                        marginTop: '5px',
+                        fontStyle: 'italic'
+                      }}>
+                        Current Leaders
+                      </div>
+                    </div>
+                    
+                    <div className="prize-leaders">
+                      {prize.leaders.length === 0 ? (
+                        <div className="no-data">No data available yet</div>
+                      ) : (
+                        <table className="leaders-table">
+                          <thead>
+                            <tr>
+                              <th>Rank</th>
+                              <th>Player</th>
+                              <th>{prize.type === 'correctWinners' ? 'Correct' : 'Difference'}</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {prize.leaders.map((leader, idx) => {
+                              const isTied = idx > 0 && leader.score === prize.leaders[idx - 1].score;
+                              const displayRank = isTied ? '=' : idx + 1;
+                              const isLeading = idx === 0 && !isTied;
+                              
+                              return (
+                                <tr key={idx} className={isLeading ? 'leader-first' : ''}>
+                                  <td className="rank">
+                                    {displayRank}
+                                    {isLeading && <span style={{marginLeft: '5px', fontSize: '0.8em'}}>👑</span>}
+                                  </td>
+                                  <td className="player-name">
+                                    {leader.playerName}
+                                    {isLeading && (
+                                      <span style={{
+                                        marginLeft: '8px',
+                                        fontSize: '0.7rem',
+                                        background: '#4facfe',
+                                        color: 'white',
+                                        padding: '2px 6px',
+                                        borderRadius: '4px',
+                                        fontWeight: '600'
+                                      }}>
+                                        LEADING
+                                      </span>
+                                    )}
+                                  </td>
+                                  <td className="score">
+                                    {prize.type === 'correctWinners' 
+                                      ? `${leader.score} correct` 
+                                      : `${leader.score} pts`
+                                    }
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
 
         <div className="standings-note">
           <p><strong>Note:</strong> Tied players are shown with "=" rank. Pool Manager will resolve ties and declare official prize awards after all games are completed.</p>

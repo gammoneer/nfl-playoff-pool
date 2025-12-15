@@ -123,6 +123,7 @@ const PLAYER_CODES = {
   "G7R3P5": "Curtis Braun",
   "A4LJC9": "Curtis Palidwor",
   "X3P8N1": "Dallas Pylypow",
+  "W32R1Z": "Daniel Bennett",
   "HM8T67": "Darrell Klassen",
   "TA89R2": "Dave Boyarski",
   "K2P9W5": "Dave Desrosiers",
@@ -138,6 +139,7 @@ const PLAYER_CODES = {
   "B5R4T6": "Larry Strand",
   "L2W9X2": "Michelle Desrosiers",
   "5GGPL3": "Mike Brkich",
+  "PC12L3": "Natasha Biletski",
   "T4M8Z8": "Neema Dadmand", //Paid202512051700 sent code to him and link
   "9CD72G": "Neil Banman", //Paid202512051605 sent code to him and link
   "T7Y4R8": "Neil Foster",

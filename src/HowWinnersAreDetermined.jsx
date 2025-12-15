@@ -1,204 +1,103 @@
 import React, { useState } from 'react';
 import './HowWinnersAreDetermined.css';
 
-// ============================================================================
-// HOW WINNERS ARE DETERMINED - COMPONENT
-// ============================================================================
-
+/**
+ * How Winners Are Determined Page
+ * Shows calculation results and tiebreaker details for all prizes
+ * WITH COLLAPSIBLE WEEK SECTIONS
+ */
 const HowWinnersAreDetermined = ({ 
   calculatedWinners, 
   publishedWinners, 
   isPoolManager,
   onPublishPrize,
-  onUnpublishPrize 
+  onUnpublishPrize
 }) => {
-  
-  // Track which prize details are expanded
-  const [expandedPrizes, setExpandedPrizes] = useState({});
-  
-  // Toggle expand/collapse for a prize
-  const toggleExpanded = (prizeId) => {
-    setExpandedPrizes(prev => ({
+  // Track which weeks are expanded
+  const [expandedWeeks, setExpandedWeeks] = useState({
+    'Week 1': true,
+    'Week 2': false,
+    'Week 3': false,
+    'Week 4': false,
+    'Grand Prize': false
+  });
+
+  // Track which prize breakdowns are expanded
+  const [expandedBreakdowns, setExpandedBreakdowns] = useState({});
+
+  // Toggle a specific week
+  const toggleWeek = (weekKey) => {
+    setExpandedWeeks(prev => ({
       ...prev,
-      [prizeId]: !prev[prizeId]
+      [weekKey]: !prev[weekKey]
     }));
   };
-  
+
+  // Toggle a specific prize breakdown
+  const toggleBreakdown = (pubKey) => {
+    setExpandedBreakdowns(prev => ({
+      ...prev,
+      [pubKey]: !prev[pubKey]
+    }));
+  };
+
+  // Expand all weeks
+  const expandAll = () => {
+    setExpandedWeeks({
+      'Week 1': true,
+      'Week 2': true,
+      'Week 3': true,
+      'Week 4': true,
+      'Grand Prize': true
+    });
+  };
+
+  // Collapse all weeks
+  const collapseAll = () => {
+    setExpandedWeeks({
+      'Week 1': false,
+      'Week 2': false,
+      'Week 3': false,
+      'Week 4': false,
+      'Grand Prize': false
+    });
+  };
+
   // Prize definitions
   const prizes = [
-    // Week 1
-    { id: 'week1_prize1', week: 'Week 1', round: 'Wild Card Round (6 games)', title: 'Most Correct Winners', amount: '$50', calcKey: 'week1.prize1', pubKey: 'week1_prize1' },
-    { id: 'week1_prize2', week: 'Week 1', round: 'Wild Card Round (6 games)', title: 'Closest Total Points', amount: '$50', calcKey: 'week1.prize2', pubKey: 'week1_prize2' },
-    
-    // Week 2
-    { id: 'week2_prize1', week: 'Week 2', round: 'Divisional Round (4 games)', title: 'Most Correct Winners', amount: '$50', calcKey: 'week2.prize1', pubKey: 'week2_prize1' },
-    { id: 'week2_prize2', week: 'Week 2', round: 'Divisional Round (4 games)', title: 'Closest Total Points', amount: '$50', calcKey: 'week2.prize2', pubKey: 'week2_prize2' },
-    
-    // Week 3
-    { id: 'week3_prize1', week: 'Week 3', round: 'Conference Championships (2 games)', title: 'Most Correct Winners', amount: '$50', calcKey: 'week3.prize1', pubKey: 'week3_prize1' },
-    { id: 'week3_prize2', week: 'Week 3', round: 'Conference Championships (2 games)', title: 'Closest Total Points', amount: '$50', calcKey: 'week3.prize2', pubKey: 'week3_prize2' },
-    
-    // Week 4
-    { id: 'week4_prize1', week: 'Week 4', round: 'Super Bowl (1 game)', title: 'Correct Winner', amount: '$50', calcKey: 'week4.prize1', pubKey: 'week4_prize1' },
-    { id: 'week4_prize2', week: 'Week 4', round: 'Super Bowl (1 game)', title: 'Closest Total Points', amount: '$50', calcKey: 'week4.prize2', pubKey: 'week4_prize2' },
-    
-    // Grand Prizes
-    { id: 'grand_prize1', week: 'Grand Prize', round: 'Overall - All 4 Weeks', title: 'Most Correct Winners', amount: '$120', calcKey: 'grandPrize.prize1', pubKey: 'grandPrize_prize1' },
-    { id: 'grand_prize2', week: 'Grand Prize', round: 'Overall - All 4 Weeks', title: 'Closest Total Points', amount: '$80', calcKey: 'grandPrize.prize2', pubKey: 'grandPrize_prize2' },
+    { week: 'Week 1', title: 'Most Correct Winners', amount: '$50', icon: '🏆', calcKey: 'week1.prize1', pubKey: 'week1_prize1' },
+    { week: 'Week 1', title: 'Closest Total Points', amount: '$50', icon: '💰', calcKey: 'week1.prize2', pubKey: 'week1_prize2' },
+    { week: 'Week 2', title: 'Most Correct Winners', amount: '$50', icon: '🏆', calcKey: 'week2.prize1', pubKey: 'week2_prize1' },
+    { week: 'Week 2', title: 'Closest Total Points', amount: '$50', icon: '💰', calcKey: 'week2.prize2', pubKey: 'week2_prize2' },
+    { week: 'Week 3', title: 'Most Correct Winners', amount: '$50', icon: '🏆', calcKey: 'week3.prize1', pubKey: 'week3_prize1' },
+    { week: 'Week 3', title: 'Closest Total Points', amount: '$50', icon: '💰', calcKey: 'week3.prize2', pubKey: 'week3_prize2' },
+    { week: 'Week 4', title: 'Correct Winner', amount: '$50', icon: '🏆', calcKey: 'week4.prize1', pubKey: 'week4_prize1' },
+    { week: 'Week 4', title: 'Closest Total Points', amount: '$50', icon: '💰', calcKey: 'week4.prize2', pubKey: 'week4_prize2' },
+    { week: 'Grand Prize', title: 'Most Correct Winners', amount: '$120', icon: '🏆', calcKey: 'grandPrize.prize1', pubKey: 'grand_prize1' },
+    { week: 'Grand Prize', title: 'Closest Total Points', amount: '$80', icon: '💰', calcKey: 'grandPrize.prize2', pubKey: 'grand_prize2' }
   ];
-  
-  // Get calculated result for a prize
-  const getCalculatedResult = (calcKey) => {
+
+  const getResult = (calcKey) => {
     const keys = calcKey.split('.');
     let result = calculatedWinners;
     for (const key of keys) {
+      result = result?.[key];
       if (!result) return null;
-      result = result[key];
     }
     return result;
   };
-  
-  // Check if a prize is published
-  const isPrizePublished = (pubKey) => {
-    return publishedWinners && publishedWinners[pubKey] === true;
+
+  const isPublished = (pubKey) => {
+    return publishedWinners?.[pubKey] === true;
   };
-  
-  // Render a single prize
-  const renderPrize = (prize) => {
-    const isPublished = isPrizePublished(prize.pubKey);
-    const calculatedResult = getCalculatedResult(prize.calcKey);
-    const isExpanded = expandedPrizes[prize.id];
-    
-    // Determine state
-    let state = 'not_scored';
-    if (calculatedResult) {
-      state = calculatedResult.status || 'calculated';
+
+  const handleReviewPublish = (prize, result) => {
+    if (onPublishPrize) {
+      onPublishPrize(prize.pubKey, prize, result);
     }
-    
-    return (
-      <div key={prize.id} className="prize-container">
-        {renderPrizeIcon(prize.title)} <strong>{prize.title}</strong> - {prize.amount}
-        
-        {/* NOT SCORED STATE */}
-        {state === 'not_scored' && (
-          <div className="prize-status">
-            <span className="status-icon">⏸️</span> Waiting for game results
-          </div>
-        )}
-        
-        {/* UNPUBLISHED STATE (Pool Manager only) */}
-        {state === 'calculated' && !isPublished && (
-          <>
-            {isPoolManager ? (
-              <div className="prize-status unpublished">
-                <span className="status-icon">⏳</span> Not yet published
-                <button 
-                  className="review-publish-btn"
-                  onClick={() => handleReviewPublish(prize, calculatedResult)}
-                >
-                  🔍 Review &amp; Publish
-                </button>
-              </div>
-            ) : (
-              <div className="prize-status">
-                <span className="status-icon">⏳</span> Not yet published
-                <div className="status-message">(Pool Manager is reviewing calculations)</div>
-              </div>
-            )}
-          </>
-        )}
-        
-        {/* PUBLISHED STATE */}
-        {state === 'calculated' && isPublished && calculatedResult && (
-          <>
-            {renderModerateView(prize, calculatedResult)}
-            
-            <button 
-              className="expand-btn"
-              onClick={() => toggleExpanded(prize.id)}
-            >
-              {isExpanded ? '▲ Hide Full Breakdown' : '▼ Show Full Breakdown'}
-            </button>
-            
-            {isExpanded && renderExpandedView(prize, calculatedResult)}
-            
-            {/* Pool Manager unpublish button */}
-            {isPoolManager && (
-              <button 
-                className="unpublish-btn"
-                onClick={() => onUnpublishPrize(prize.pubKey)}
-              >
-                🔄 Unpublish {prize.title}
-              </button>
-            )}
-          </>
-        )}
-      </div>
-    );
   };
-  
-  // Render prize icon
-  const renderPrizeIcon = (title) => {
-    if (title.includes('Correct Winner')) return '🏆';
-    if (title.includes('Closest Total')) return '💰';
-    return '🏆';
-  };
-  
-  // Render moderate view (always visible when published)
-  const renderModerateView = (prize, result) => {
-    const winner = Array.isArray(result.winner) ? result.winner.join(', ') : result.winner;
-    const isTrueTie = result.isTrueTie;
-    
-    return (
-      <div className="moderate-view">
-        <div className="winner-name">
-          {isTrueTie ? '🏆 Winners (Tie): ' : '🏆 Winner: '}
-          <strong>{winner}</strong>
-        </div>
-        
-        {/* Prize-specific details */}
-        {prize.title.includes('Correct Winner') && (
-          <ul className="prize-details">
-            <li>{result.correctWinners} correct winner{result.correctWinners !== 1 ? 's' : ''}</li>
-            {result.tiebreakerUsed && result.tiedPlayers && (
-              <>
-                <li>{result.tiedPlayers.length} players tied with {result.correctWinners} correct</li>
-                <li>Tiebreaker: {result.tiebreakerLevel}</li>
-                {result.tiedPlayersDetails && renderTiedPlayersShort(result.tiedPlayersDetails)}
-              </>
-            )}
-            {!result.tiebreakerUsed && <li>No tiebreaker needed</li>}
-          </ul>
-        )}
-        
-        {prize.title.includes('Closest Total') && (
-          <ul className="prize-details">
-            <li>Off by {result.difference} point{result.difference !== 1 ? 's' : ''}</li>
-            <li>Predicted: {result.predictedTotal || result.overallPredictedTotal}, Actual: {result.actualTotal || result.overallActualTotal}</li>
-            {result.tiebreakerUsed ? <li>Tiebreaker used</li> : <li>No tiebreaker needed</li>}
-          </ul>
-        )}
-      </div>
-    );
-  };
-  
-  // Render short tied players info
-  const renderTiedPlayersShort = (details) => {
-    return (
-      <li className="tied-players-short">
-        {details.map((p, i) => (
-          <span key={i}>
-            {p.name}: {p.predictedTotal} (off by {p.difference})
-            {i < details.length - 1 ? ', ' : ''}
-          </span>
-        ))}
-      </li>
-    );
-  };
-  
-// Render expanded view (full breakdown)
-  const renderExpandedView = (prize, result) => {
-    // Handle different result formats
+
+  const renderExpandedViewContent = (prize, result) => {
     const hasSteps = result.steps && result.steps.length > 0;
     const hasTiebreaker = result.tiebreakerUsed && result.tiedPlayersDetails && result.tiedPlayersDetails.length > 0;
     
@@ -211,7 +110,6 @@ const HowWinnersAreDetermined = ({
       );
     }
     
-    // If we have steps (Week 4 and Grand Prizes), use existing logic
     if (hasSteps) {
       return (
         <div className="expanded-view">
@@ -269,7 +167,6 @@ const HowWinnersAreDetermined = ({
       );
     }
     
-    // Week 1-3 Prize #1 format (tiedPlayersDetails)
     if (hasTiebreaker) {
       return (
         <div className="expanded-view">
@@ -305,25 +202,151 @@ const HowWinnersAreDetermined = ({
       );
     }
   };
-  
-  // Handle review and publish (opens modal/preview)
-  const handleReviewPublish = (prize, result) => {
-    // For now, just publish directly
-    // In production, you'd show a preview modal first
-    if (onPublishPrize) {
-      onPublishPrize(prize.pubKey, prize, result);
+
+  const renderPrize = (prize) => {
+    const result = getResult(prize.calcKey);
+    const published = isPublished(prize.pubKey);
+    const isBreakdownExpanded = expandedBreakdowns[prize.pubKey] || false;
+
+    if (!result || result.status === 'not_scored' || result.status === 'no_picks') {
+      return (
+        <div key={prize.pubKey} className="prize-card">
+          <div className="prize-header">
+            <span className="prize-icon">{prize.icon}</span>
+            <span className="prize-title">{prize.title}</span>
+            <span className="prize-amount">{prize.amount}</span>
+          </div>
+          <div className="prize-status waiting">
+            ⏸️ Waiting for game results
+          </div>
+        </div>
+      );
     }
+
+    if (!published) {
+      return (
+        <div key={prize.pubKey} className="prize-card unpublished">
+          <div className="prize-header">
+            <span className="prize-icon">{prize.icon}</span>
+            <span className="prize-title">{prize.title}</span>
+            <span className="prize-amount">{prize.amount}</span>
+          </div>
+          <div className="prize-status unpublished">
+            {isPoolManager ? (
+              <>
+                ⏳ Not yet published
+                <button 
+                  className="publish-btn"
+                  onClick={() => handleReviewPublish(prize, result)}
+                >
+                  🔍 Review & Publish
+                </button>
+              </>
+            ) : (
+              <div>
+                ⏳ Not yet published
+                <div style={{fontSize: '0.85rem', marginTop: '5px', opacity: 0.8}}>
+                  (Pool Manager is reviewing calculations)
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div key={prize.pubKey} className="prize-card published">
+        <div className="prize-header">
+          <span className="prize-icon">{prize.icon}</span>
+          <span className="prize-title">{prize.title}</span>
+          <span className="prize-amount">{prize.amount}</span>
+        </div>
+        
+        <div className="moderate-view">
+          <div className="winner-announcement">
+            🏆 Winner: <strong>{Array.isArray(result.winner) ? result.winner.join(', ') : result.winner}</strong>
+          </div>
+          
+          {result.correctWinners !== undefined && (
+            <div className="winner-stat">
+              {result.correctWinners} correct winner{result.correctWinners !== 1 ? 's' : ''}
+            </div>
+          )}
+          
+          {result.difference !== undefined && (
+            <div className="winner-stat">
+              Off by {result.difference} point{result.difference !== 1 ? 's' : ''}
+              {result.predictedTotal !== undefined && result.actualTotal !== undefined && (
+                <span> (Predicted: {result.predictedTotal}, Actual: {result.actualTotal})</span>
+              )}
+            </div>
+          )}
+          
+          {result.tiebreakerUsed && (
+            <div className="tiebreaker-info">
+              {result.tiedPlayers && result.tiedPlayers.length > 1 && (
+                <div className="tied-count">
+                  {result.tiedPlayers.length} players tied with {result.correctWinners || 'same score'}
+                </div>
+              )}
+              {result.tiebreakerLevel && (
+                <div className="tiebreaker-method">
+                  Tiebreaker: {result.tiebreakerLevel}
+                </div>
+              )}
+              {result.tiedPlayers && result.tiedPlayers.length > 0 && (
+                <div className="tied-players-list">
+                  Tied players: {result.tiedPlayers.join(', ')}
+                </div>
+              )}
+            </div>
+          )}
+          
+          {result.isTrueTie && (
+            <div className="true-tie-notice">
+              ⚠️ TRUE TIE - Prize will be split equally
+            </div>
+          )}
+          
+          {!result.tiebreakerUsed && !result.isTrueTie && (
+            <div className="no-tiebreaker">
+              No tiebreaker needed
+            </div>
+          )}
+        </div>
+
+        {(result.steps?.length > 0 || result.tiebreakerUsed) && (
+          <button 
+            className="toggle-breakdown-btn"
+            onClick={() => toggleBreakdown(prize.pubKey)}
+          >
+            {isBreakdownExpanded ? '▲ Hide Full Breakdown' : '▼ Show Full Breakdown'}
+          </button>
+        )}
+
+        {isBreakdownExpanded && renderExpandedViewContent(prize, result)}
+        
+        {isPoolManager && (
+          <button 
+            className="unpublish-btn"
+            onClick={() => onUnpublishPrize(prize.pubKey)}
+          >
+            🔄 Unpublish {prize.title}
+          </button>
+        )}
+      </div>
+    );
   };
-  
-  // Group prizes by week
+
   const weekGroups = [
-    { title: 'Week 1 - Wild Card Round (6 games)', prizes: prizes.filter(p => p.week === 'Week 1') },
-    { title: 'Week 2 - Divisional Round (4 games)', prizes: prizes.filter(p => p.week === 'Week 2') },
-    { title: 'Week 3 - Conference Championships (2 games)', prizes: prizes.filter(p => p.week === 'Week 3') },
-    { title: 'Week 4 - Super Bowl (1 game)', prizes: prizes.filter(p => p.week === 'Week 4') },
-    { title: 'Grand Prizes', prizes: prizes.filter(p => p.week === 'Grand Prize') }
+    { key: 'Week 1', title: 'Week 1 - Wild Card Round (6 games)', prizes: prizes.filter(p => p.week === 'Week 1') },
+    { key: 'Week 2', title: 'Week 2 - Divisional Round (4 games)', prizes: prizes.filter(p => p.week === 'Week 2') },
+    { key: 'Week 3', title: 'Week 3 - Conference Championships (2 games)', prizes: prizes.filter(p => p.week === 'Week 3') },
+    { key: 'Week 4', title: 'Week 4 - Super Bowl (1 game)', prizes: prizes.filter(p => p.week === 'Week 4') },
+    { key: 'Grand Prize', title: 'Grand Prizes', prizes: prizes.filter(p => p.week === 'Grand Prize') }
   ];
-  
+
   return (
     <div className="how-winners-container">
       <h2>⚖️ How Winners Are Determined</h2>
@@ -332,13 +355,36 @@ const HowWinnersAreDetermined = ({
         Winners are published after the Pool Manager reviews calculations. 
         Check back after each week's games complete.
       </p>
+
+      <div className="week-controls">
+        <button className="control-btn" onClick={expandAll}>
+          ▼ Expand All Weeks
+        </button>
+        <button className="control-btn" onClick={collapseAll}>
+          ▲ Collapse All Weeks
+        </button>
+      </div>
       
       <div className="divider"></div>
       
       {weekGroups.map((group, index) => (
-        <div key={index}>
-          <h3 className="week-header">{group.title}</h3>
-          {group.prizes.map(prize => renderPrize(prize))}
+        <div key={group.key} className="week-section">
+          <h3 
+            className={`week-header collapsible ${expandedWeeks[group.key] ? 'expanded' : 'collapsed'}`}
+            onClick={() => toggleWeek(group.key)}
+          >
+            <span className="toggle-icon">
+              {expandedWeeks[group.key] ? '▼' : '►'}
+            </span>
+            {group.title}
+          </h3>
+          
+          {expandedWeeks[group.key] && (
+            <div className="prizes-container">
+              {group.prizes.map(prize => renderPrize(prize))}
+            </div>
+          )}
+          
           {index < weekGroups.length - 1 && <div className="divider"></div>}
         </div>
       ))}

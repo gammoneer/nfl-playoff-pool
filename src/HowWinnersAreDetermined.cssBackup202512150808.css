@@ -28,88 +28,13 @@
   margin: 30px 0;
 }
 
-/* Week Controls */
-.week-controls {
-  display: flex;
-  gap: 15px;
-  justify-content: center;
-  margin: 20px 0;
-}
-
-.control-btn {
-  padding: 10px 20px;
-  background: #667eea;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 0.95rem;
-  font-weight: 600;
-  transition: all 0.2s;
-}
-
-.control-btn:hover {
-  background: #5568d3;
-  transform: translateY(-1px);
-}
-
-.control-btn:active {
-  transform: translateY(0);
-}
-
-/* Week Section */
-.week-section {
-  margin-bottom: 20px;
-}
-
-/* Week Headers - Collapsible */
+/* Week Headers */
 .week-header {
   color: #2d3748;
   font-size: 1.4em;
   margin: 20px 0 15px 0;
   padding-bottom: 8px;
   border-bottom: 2px solid #cbd5e0;
-}
-
-.week-header.collapsible {
-  cursor: pointer;
-  user-select: none;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 15px 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border-radius: 8px;
-  transition: all 0.3s;
-  margin-bottom: 0;
-  border-bottom: none;
-}
-
-.week-header.collapsible:hover {
-  transform: translateX(5px);
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
-}
-
-.week-header.collapsible.collapsed {
-  margin-bottom: 0;
-}
-
-.week-header.collapsible.expanded {
-  margin-bottom: 20px;
-  border-bottom-left-radius: 0;
-  border-bottom-right-radius: 0;
-}
-
-.toggle-icon {
-  font-size: 1.2rem;
-  transition: transform 0.3s;
-}
-
-.prizes-container {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
 }
 
 /* Prize Container */
@@ -370,68 +295,4 @@
     margin: 10px 0 0 0;
     width: 100%;
   }
-}
-
-/* Moderate View - Winner Details */
-.moderate-view {
-  padding: 15px;
-  background: #f8f9fa;
-  border-radius: 6px;
-  margin: 15px 0;
-}
-
-.winner-announcement {
-  font-size: 1.2rem;
-  color: #1a202c;
-  margin-bottom: 10px;
-  font-weight: 600;
-}
-
-.winner-stat {
-  color: #4a5568;
-  margin: 8px 0;
-  font-size: 1rem;
-}
-
-.tiebreaker-info {
-  margin-top: 12px;
-  padding: 10px;
-  background: #fff3cd;
-  border-left: 4px solid #ffc107;
-  border-radius: 4px;
-}
-
-.tied-count,
-.tiebreaker-method,
-.tied-players-list {
-  margin: 5px 0;
-  color: #856404;
-  font-size: 0.95rem;
-}
-
-.true-tie-notice {
-  margin-top: 10px;
-  padding: 10px;
-  background: #fff3cd;
-  border: 2px solid #ffc107;
-  border-radius: 6px;
-  color: #856404;
-  font-weight: 600;
-}
-
-.no-tiebreaker {
-  margin-top: 10px;
-  color: #4a5568;
-  font-style: italic;
-  font-size: 0.95rem;
-}
-
-.winner-badge {
-  margin-left: 10px;
-  padding: 2px 8px;
-  background: #4caf50;
-  color: white;
-  border-radius: 4px;
-  font-size: 0.85rem;
-  font-weight: 600;
 }
