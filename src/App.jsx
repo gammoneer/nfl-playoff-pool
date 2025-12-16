@@ -4482,8 +4482,8 @@ const calculateAllPrizeWinners = () => {
                           }, 0);
                           
                           return (
-                            <div style={{fontSize: '0.85rem', color: '#16a085', marginBottom: '6px', fontWeight: '700'}}>
-                              Total: {actualTotal > 0 ? actualTotal : '-'}
+                            <div style={{fontSize: '1.05rem', color: '#131515ff', marginBottom: '6px', fontWeight: '700'}}>
+                              Actual Total: {actualTotal > 0 ? actualTotal : '-'}
                             </div>
                           );
                         })()}
