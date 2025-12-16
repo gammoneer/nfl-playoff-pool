@@ -4182,7 +4182,7 @@ const calculateAllPrizeWinners = () => {
                     ))}
                     
                     {/* CORRECT PICKS COLUMN */}
-                    <th rowSpan="2" style={{backgroundColor: '#e8f5e9', fontWeight: 'bold', color: '#2e7d32', minWidth: '60px', fontSize: '0.75rem', padding: '8px 4px'}}>
+                    <th rowSpan="2" style={{backgroundColor: '#e8f5e9', fontWeight: 'bold', color: '#090909ff', minWidth: '60px', fontSize: '0.75rem', padding: '8px 4px'}}>
                       <div style={{marginBottom: '2px'}}>Correct</div>
                       <div>Picks</div>
                     </th>
