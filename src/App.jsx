@@ -2706,7 +2706,7 @@ const calculateAllPrizeWinners = () => {
               onMouseOver={(e) => e.target.style.backgroundColor = '#a29bfe'}
               onMouseOut={(e) => e.target.style.backgroundColor = '#6c5ce7'}
             >
-              📖 View Full Rulebook (13 Pages)
+              📖 View Full Rulebook (22 Pages)
             </a>
           </div>
           <p style={{fontSize: '1.1em', marginTop: '10px', color: '#ffffff', fontWeight: '500'}}>
