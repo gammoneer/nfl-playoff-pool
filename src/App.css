@@ -681,3 +681,11 @@ footer {
     min-width: auto;
   }
 }
+/* ═══════════════════════════════════════════════════════════════
+   BRIGHT RED RING AROUND ACTIVE NAVIGATION BUTTONS
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Add this to your App.css file */
+
+.nav-btn.active {
+  box-shadow: 0 0 0 3px red !important;

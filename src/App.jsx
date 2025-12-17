@@ -3747,7 +3747,7 @@ const calculateAllPrizeWinners = () => {
               className={`nav-btn ${currentView === 'picks' ? 'active' : ''}`}
               onClick={() => setCurrentView('picks')}
             >
-              📝 #1 Make Picks
+              📝 #1 Make Picks or Logout
               {currentView === 'picks' && (
                 <span style={{
                   marginLeft: '8px',
