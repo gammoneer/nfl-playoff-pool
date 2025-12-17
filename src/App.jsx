@@ -4037,7 +4037,7 @@ const calculateAllPrizeWinners = () => {
                   margin: 0,
                   opacity: 0.95
                 }}>
-                  The 2025 NFL Playoff teams will be determined after the regular season ends in early January 2026.
+                  The 2025 NFL Playoff teams will be determined/entered here after the regular season ends January 4, 2026.
                   <br />
                   Pool Manager will announce the 14 playoff teams here once finalized.
                 </p>
