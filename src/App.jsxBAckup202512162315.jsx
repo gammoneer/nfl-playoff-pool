@@ -208,6 +208,7 @@ const PLAYOFF_WEEKS = {
 const getTeamName = (week, gameId, teamPosition, playoffTeams) => {
   // If playoff teams not configured, return placeholder
   if (!playoffTeams?.week1?.configured) {
+    // Return original placeholders from PLAYOFF_WEEKS
     const game = PLAYOFF_WEEKS[week].games.find(g => g.id === gameId);
     return game ? game[teamPosition] : `Team ${teamPosition}`;
   }
@@ -217,7 +218,10 @@ const getTeamName = (week, gameId, teamPosition, playoffTeams) => {
     const game = PLAYOFF_WEEKS.wildcard.games.find(g => g.id === gameId);
     if (!game) return 'TBD';
     
+    // Map placeholder to actual team
     const placeholder = game[teamPosition];
+    
+    // Parse seed from placeholder (e.g., "AFC #2" -> conference: afc, seed: 2)
     const match = placeholder.match(/(AFC|NFC) #(\d)/);
     if (match) {
       const conference = match[1].toLowerCase();
@@ -237,6 +241,7 @@ const getTeamName = (week, gameId, teamPosition, playoffTeams) => {
     
     const placeholder = game[teamPosition];
     
+    // If Week 2 configured, show actual team
     if (playoffTeams?.week2) {
       let actualTeam = null;
       
@@ -250,6 +255,7 @@ const getTeamName = (week, gameId, teamPosition, playoffTeams) => {
       }
     }
     
+    // Not configured yet, return placeholder
     return placeholder;
   }
 
@@ -291,6 +297,7 @@ const getTeamName = (week, gameId, teamPosition, playoffTeams) => {
     return placeholder;
   }
 
+  // Fallback
   return 'TBD';
 };
 
@@ -1157,19 +1164,9 @@ function App() {
     });
   }, []);
 
-  // 📊 Load playoff teams configuration from Firebase
-  useEffect(() => {
-    const playoffTeamsRef = ref(database, 'playoffTeams');
-    onValue(playoffTeamsRef, (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        setPlayoffTeams(data);
-        console.log('📊 Loaded playoff teams:', data);
-      } else {
-        setPlayoffTeams({});
-      }
-    });
-  }, []);
+    // Playoff Teams Configuration
+
+  const [playoffTeams, setPlayoffTeams] = useState({});
 
   // 📡 Load game locks from Firebase
   useEffect(() => {
@@ -1491,7 +1488,7 @@ function App() {
     alert(`✅ Published: ${prize.title}\n\nWinner: ${result.winner}\n\nPlayers can now see this result!`);
   };
 
-// Pool Manager: Unpublish a prize
+  // Pool Manager: Unpublish a prize
   const handleUnpublishPrize = (prizeKey) => {
     const confirmed = window.confirm(
       '⚠️ UNPUBLISH PRIZE?\n\n' +
@@ -1513,33 +1510,6 @@ function App() {
     set(ref(database, `publishedWinners/${prizeKey}`), false);
     
     alert('✅ Prize unpublished successfully!');
-  };
-
-  /**
-   * Save Playoff Teams Configuration
-   * Pool Manager only - saves Week 1 manual setup or Weeks 2-4 auto-generated matchups
-   */
-  const handleSavePlayoffTeams = async (data) => {
-    if (!isPoolManager()) {
-      alert('⛔ Only Pool Manager can save playoff teams configuration.');
-      return;
-    }
-
-    try {
-      const playoffTeamsRef = ref(database, 'playoffTeams');
-      
-      // Merge new data with existing data
-      const currentData = playoffTeams || {};
-      const updatedData = { ...currentData, ...data };
-      
-      await set(playoffTeamsRef, updatedData);
-      
-      console.log('✅ Playoff teams saved:', updatedData);
-      
-    } catch (error) {
-      console.error('❌ Error saving playoff teams:', error);
-      alert('Error saving playoff teams. Check console for details.');
-    }
   };
   
   /**
@@ -3793,35 +3763,6 @@ const calculateAllPrizeWinners = () => {
             </button>
             {isPoolManager() && (
               <button
-                className={`nav-btn ${currentView === 'playoffSetup' ? 'active' : ''}`}
-                onClick={() => setCurrentView('playoffSetup')}
-              >
-                ⚙️ Setup Playoff Teams
-                <span style={{
-                  marginLeft: '8px',
-                  fontSize: '0.7rem',
-                  padding: '2px 6px',
-                  background: '#667eea',
-                  color: 'white',
-                  borderRadius: '10px',
-                  fontWeight: '500'
-                }}>
-                  Pool Manager
-                </span>
-                {currentView === 'playoffSetup' && (
-                  <span style={{
-                    marginLeft: '8px',
-                    fontSize: '0.75rem',
-                    opacity: 0.9,
-                    fontStyle: 'italic'
-                  }}>
-                    (you are here)
-                  </span>
-                )}
-              </button>
-            )}
-            {isPoolManager() && (
-              <button
                 className={`nav-btn ${currentView === 'loginLogs' ? 'active' : ''}`}
                 onClick={() => setCurrentView('loginLogs')}
               >
@@ -3876,13 +3817,6 @@ const calculateAllPrizeWinners = () => {
           <LoginLogsViewer 
             isPoolManager={isPoolManager()}
             playerCodes={PLAYER_CODES}
-          />
-        ) : currentView === 'playoffSetup' && codeValidated ? (
-          <PlayoffTeamsSetup
-            playoffTeams={playoffTeams}
-            actualScores={actualScores}
-            onSavePlayoffTeams={handleSavePlayoffTeams}
-            isPoolManager={isPoolManager()}
           />
         ) : (
           <>
@@ -4010,39 +3944,6 @@ const calculateAllPrizeWinners = () => {
                 💡 Playing with multiple entries? Logout to switch between your codes.
               </p>
             </div>
-
-            {/* Playoff Teams Banner - Show if Week 1 not configured */}
-            {!playoffTeams?.week1?.configured && (
-              <div style={{
-                margin: '20px 0',
-                padding: '20px',
-                background: 'linear-gradient(135deg, #ffd89b 0%, #19547b 100%)',
-                borderRadius: '12px',
-                border: '3px solid #ff9800',
-                boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-                textAlign: 'center'
-              }}>
-                <div style={{fontSize: '2rem', marginBottom: '10px'}}>⏳</div>
-                <h3 style={{
-                  color: 'white',
-                  margin: '0 0 10px 0',
-                  fontSize: '1.3rem',
-                  textShadow: '2px 2px 4px rgba(0,0,0,0.3)'
-                }}>
-                  Playoff Teams Will Be Announced Soon
-                </h3>
-                <p style={{
-                  color: 'white',
-                  fontSize: '1rem',
-                  margin: 0,
-                  opacity: 0.95
-                }}>
-                  The 2025 NFL Playoff teams will be determined after the regular season ends in early January 2026.
-                  <br />
-                  Pool Manager will announce the 14 playoff teams here once finalized.
-                </p>
-              </div>
-            )}
 
             {/* Lockout Warning */}
             {!isSubmissionAllowed() && (

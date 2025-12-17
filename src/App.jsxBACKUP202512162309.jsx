@@ -200,100 +200,6 @@ const PLAYOFF_WEEKS = {
   }
 };
 
-/**
- * Get real team name from playoff teams configuration
- * Falls back to placeholder if not configured yet
- * Handles enhanced display like "KC (AFC #1)" or "BUF (Game #1 Winner)"
- */
-const getTeamName = (week, gameId, teamPosition, playoffTeams) => {
-  // If playoff teams not configured, return placeholder
-  if (!playoffTeams?.week1?.configured) {
-    const game = PLAYOFF_WEEKS[week].games.find(g => g.id === gameId);
-    return game ? game[teamPosition] : `Team ${teamPosition}`;
-  }
-
-  // Week 1 - Wild Card
-  if (week === 'wildcard') {
-    const game = PLAYOFF_WEEKS.wildcard.games.find(g => g.id === gameId);
-    if (!game) return 'TBD';
-    
-    const placeholder = game[teamPosition];
-    const match = placeholder.match(/(AFC|NFC) #(\d)/);
-    if (match) {
-      const conference = match[1].toLowerCase();
-      const seed = parseInt(match[2]);
-      const team = playoffTeams.week1[conference][`seed${seed}`];
-      if (team) {
-        return `${team.name} (${placeholder})`;
-      }
-    }
-    return placeholder;
-  }
-
-  // Week 2 - Divisional
-  if (week === 'divisional') {
-    const game = PLAYOFF_WEEKS.divisional.games.find(g => g.id === gameId);
-    if (!game) return 'TBD';
-    
-    const placeholder = game[teamPosition];
-    
-    if (playoffTeams?.week2) {
-      let actualTeam = null;
-      
-      if (gameId === 7) actualTeam = playoffTeams.week2.afc[0][teamPosition];
-      else if (gameId === 8) actualTeam = playoffTeams.week2.afc[1][teamPosition];
-      else if (gameId === 9) actualTeam = playoffTeams.week2.nfc[0][teamPosition];
-      else if (gameId === 10) actualTeam = playoffTeams.week2.nfc[1][teamPosition];
-      
-      if (actualTeam) {
-        return `${actualTeam.name} (${placeholder})`;
-      }
-    }
-    
-    return placeholder;
-  }
-
-  // Week 3 - Conference Championships
-  if (week === 'conference') {
-    const game = PLAYOFF_WEEKS.conference.games.find(g => g.id === gameId);
-    if (!game) return 'TBD';
-    
-    const placeholder = game[teamPosition];
-    
-    if (playoffTeams?.week3) {
-      let actualTeam = null;
-      
-      if (gameId === 11) actualTeam = playoffTeams.week3.afcChampionship[teamPosition];
-      else if (gameId === 12) actualTeam = playoffTeams.week3.nfcChampionship[teamPosition];
-      
-      if (actualTeam) {
-        return `${actualTeam.name} (${placeholder})`;
-      }
-    }
-    
-    return placeholder;
-  }
-
-  // Week 4 - Super Bowl
-  if (week === 'superbowl') {
-    const game = PLAYOFF_WEEKS.superbowl.games.find(g => g.id === gameId);
-    if (!game) return 'TBD';
-    
-    const placeholder = game[teamPosition];
-    
-    if (playoffTeams?.week4) {
-      const actualTeam = playoffTeams.week4.superBowl[teamPosition];
-      if (actualTeam) {
-        return `${actualTeam.name} (${placeholder})`;
-      }
-    }
-    
-    return placeholder;
-  }
-
-  return 'TBD';
-};
-
 function App() {
   // Navigation state for switching between views
   const [currentView, setCurrentView] = useState('picks'); // 'picks' or 'standings'
@@ -1157,19 +1063,9 @@ function App() {
     });
   }, []);
 
-  // 📊 Load playoff teams configuration from Firebase
-  useEffect(() => {
-    const playoffTeamsRef = ref(database, 'playoffTeams');
-    onValue(playoffTeamsRef, (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        setPlayoffTeams(data);
-        console.log('📊 Loaded playoff teams:', data);
-      } else {
-        setPlayoffTeams({});
-      }
-    });
-  }, []);
+    // Playoff Teams Configuration
+
+  const [playoffTeams, setPlayoffTeams] = useState({});
 
   // 📡 Load game locks from Firebase
   useEffect(() => {
@@ -1491,7 +1387,7 @@ function App() {
     alert(`✅ Published: ${prize.title}\n\nWinner: ${result.winner}\n\nPlayers can now see this result!`);
   };
 
-// Pool Manager: Unpublish a prize
+  // Pool Manager: Unpublish a prize
   const handleUnpublishPrize = (prizeKey) => {
     const confirmed = window.confirm(
       '⚠️ UNPUBLISH PRIZE?\n\n' +
@@ -1513,33 +1409,6 @@ function App() {
     set(ref(database, `publishedWinners/${prizeKey}`), false);
     
     alert('✅ Prize unpublished successfully!');
-  };
-
-  /**
-   * Save Playoff Teams Configuration
-   * Pool Manager only - saves Week 1 manual setup or Weeks 2-4 auto-generated matchups
-   */
-  const handleSavePlayoffTeams = async (data) => {
-    if (!isPoolManager()) {
-      alert('⛔ Only Pool Manager can save playoff teams configuration.');
-      return;
-    }
-
-    try {
-      const playoffTeamsRef = ref(database, 'playoffTeams');
-      
-      // Merge new data with existing data
-      const currentData = playoffTeams || {};
-      const updatedData = { ...currentData, ...data };
-      
-      await set(playoffTeamsRef, updatedData);
-      
-      console.log('✅ Playoff teams saved:', updatedData);
-      
-    } catch (error) {
-      console.error('❌ Error saving playoff teams:', error);
-      alert('Error saving playoff teams. Check console for details.');
-    }
   };
   
   /**
@@ -3225,13 +3094,13 @@ const calculateAllPrizeWinners = () => {
                     border: '2px solid #e9ecef'
                   }}>
                     <div style={{fontWeight: '600', marginBottom: '5px', color: '#333'}}>
-                      Game {game.id}: {getTeamName(currentWeek, game.id, 'team1', playoffTeams)} vs {getTeamName(currentWeek, game.id, 'team2', playoffTeams)}
+                      Game {game.id}: {game.team1} vs {game.team2}
                     </div>
                     <div style={{fontSize: '1.2rem', fontWeight: '700', color: '#9b59b6'}}>
                       {rngPreview[game.id].team1} - {rngPreview[game.id].team2}
                       {rngPreview[game.id].team1 > rngPreview[game.id].team2 
-                        ? ` (${getTeamName(currentWeek, game.id, 'team1', playoffTeams)} wins)` 
-                        : ` (${getTeamName(currentWeek, game.id, 'team2', playoffTeams)} wins)`}
+                        ? ` (${game.team1} wins)` 
+                        : ` (${game.team2} wins)`}
                     </div>
                   </div>
                 ))}
@@ -3793,35 +3662,6 @@ const calculateAllPrizeWinners = () => {
             </button>
             {isPoolManager() && (
               <button
-                className={`nav-btn ${currentView === 'playoffSetup' ? 'active' : ''}`}
-                onClick={() => setCurrentView('playoffSetup')}
-              >
-                ⚙️ Setup Playoff Teams
-                <span style={{
-                  marginLeft: '8px',
-                  fontSize: '0.7rem',
-                  padding: '2px 6px',
-                  background: '#667eea',
-                  color: 'white',
-                  borderRadius: '10px',
-                  fontWeight: '500'
-                }}>
-                  Pool Manager
-                </span>
-                {currentView === 'playoffSetup' && (
-                  <span style={{
-                    marginLeft: '8px',
-                    fontSize: '0.75rem',
-                    opacity: 0.9,
-                    fontStyle: 'italic'
-                  }}>
-                    (you are here)
-                  </span>
-                )}
-              </button>
-            )}
-            {isPoolManager() && (
-              <button
                 className={`nav-btn ${currentView === 'loginLogs' ? 'active' : ''}`}
                 onClick={() => setCurrentView('loginLogs')}
               >
@@ -3876,13 +3716,6 @@ const calculateAllPrizeWinners = () => {
           <LoginLogsViewer 
             isPoolManager={isPoolManager()}
             playerCodes={PLAYER_CODES}
-          />
-        ) : currentView === 'playoffSetup' && codeValidated ? (
-          <PlayoffTeamsSetup
-            playoffTeams={playoffTeams}
-            actualScores={actualScores}
-            onSavePlayoffTeams={handleSavePlayoffTeams}
-            isPoolManager={isPoolManager()}
           />
         ) : (
           <>
@@ -4011,39 +3844,6 @@ const calculateAllPrizeWinners = () => {
               </p>
             </div>
 
-            {/* Playoff Teams Banner - Show if Week 1 not configured */}
-            {!playoffTeams?.week1?.configured && (
-              <div style={{
-                margin: '20px 0',
-                padding: '20px',
-                background: 'linear-gradient(135deg, #ffd89b 0%, #19547b 100%)',
-                borderRadius: '12px',
-                border: '3px solid #ff9800',
-                boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-                textAlign: 'center'
-              }}>
-                <div style={{fontSize: '2rem', marginBottom: '10px'}}>⏳</div>
-                <h3 style={{
-                  color: 'white',
-                  margin: '0 0 10px 0',
-                  fontSize: '1.3rem',
-                  textShadow: '2px 2px 4px rgba(0,0,0,0.3)'
-                }}>
-                  Playoff Teams Will Be Announced Soon
-                </h3>
-                <p style={{
-                  color: 'white',
-                  fontSize: '1rem',
-                  margin: 0,
-                  opacity: 0.95
-                }}>
-                  The 2025 NFL Playoff teams will be determined after the regular season ends in early January 2026.
-                  <br />
-                  Pool Manager will announce the 14 playoff teams here once finalized.
-                </p>
-              </div>
-            )}
-
             {/* Lockout Warning */}
             {!isSubmissionAllowed() && (
               <div className="closed-warning">
@@ -4132,7 +3932,7 @@ const calculateAllPrizeWinners = () => {
                 {currentWeekData.games.map(game => (
                   <div key={game.id} className="game-prediction">
                     <h3>
-                      Game {game.id}: {getTeamName(currentWeek, game.id, 'team1', playoffTeams)} @ {getTeamName(currentWeek, game.id, 'team2', playoffTeams)}
+                      Game {game.id}: {game.team1} @ {game.team2}
                       {/* Show team codes if available */}
                       {teamCodes[currentWeek]?.[game.id] && (
                         <span style={{fontSize: '0.9rem', color: '#666', marginLeft: '10px'}}>
@@ -4341,7 +4141,7 @@ const calculateAllPrizeWinners = () => {
                     {currentWeekData.games.map(game => (
                       <th key={game.id} colSpan="2">
                         Game {game.id}<br/>
-                        <small style={{color: '#ffffff', fontWeight: '700'}}>{getTeamName(currentWeek, game.id, 'team1', playoffTeams)} @ {getTeamName(currentWeek, game.id, 'team2', playoffTeams)}</small>
+                        <small style={{color: '#ffffff', fontWeight: '700'}}>{game.team1} @ {game.team2}</small>
                         {/* Team codes row for Pool Manager */}
                         {isPoolManager() && (
                           <div style={{marginTop: '5px', display: 'flex', gap: '5px', justifyContent: 'center', alignItems: 'center'}}>
