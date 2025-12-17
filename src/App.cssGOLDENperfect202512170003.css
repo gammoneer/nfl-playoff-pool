@@ -618,6 +618,7 @@ footer {
 /* ============================================ */
 /* NAVIGATION BUTTONS (Add this to your App.css) */
 /* ============================================ */
+
 .view-navigation {
   display: flex;
   gap: 15px;
@@ -638,7 +639,6 @@ footer {
   transition: all 0.3s ease;
   box-shadow: 0 2px 6px rgba(0,0,0,0.1);
   min-width: 200px;
-  margin: 5px;
 }
 
 .nav-btn:hover {
@@ -650,7 +650,7 @@ footer {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   transform: scale(1.05);
-  box-shadow: 0 0 0 3px red !important;
+  box-shadow: 0 4px 10px rgba(102, 126, 234, 0.4);
 }
 
 .nav-btn.active:hover {
@@ -662,21 +662,11 @@ footer {
   .view-navigation {
     gap: 10px;
   }
-  
+
   .nav-btn {
     padding: 12px 20px;
     font-size: 1rem;
     min-width: 160px;
-  }
-  
-  /* MOBILE FIX: Force all weeks to be visible */
-  .week-content {
-    display: block !important;
-    max-height: none !important;
-  }
-  
-  .week-header {
-    cursor: default !important;
   }
 }
 
@@ -685,7 +675,7 @@ footer {
     flex-direction: column;
     gap: 10px;
   }
-  
+
   .nav-btn {
     width: 100%;
     min-width: auto;
