@@ -24,22 +24,6 @@ import {
 } from './winnerService';
 import LoginLogsViewer from './LoginLogsViewer';
 import { logSuccessfulLogin, logFailedLogin } from './loginLogging';
-import { 
-  calculateWeekPrize1, 
-  calculateWeekPrize2,
-  calculateWeek4Prize1,
-  calculateWeek4Prize2,
-  calculateGrandPrize1,
-  calculateGrandPrize2
-} from './winnerCalculations';
-import HowWinnersAreDetermined from './HowWinnersAreDetermined';
-import './HowWinnersAreDetermined.css';
-import PlayoffTeamsSetup from './PlayoffTeamsSetup';
-import './PlayoffTeamsSetup.css';
-
-// In useEffect after loading data:
-// const result = calculateWeekPrize2(allPicks, actualScores, 'wildcard');
-// console.log('Week 1 Prize #2:', result);
 
 // Firebase configuration
 const firebaseConfig = {
@@ -115,23 +99,22 @@ const POOL_MANAGER_CODES = ["76BB89", "Z9Y8X7"];  // Add more codes here as need
 // Codes are now 6-character alphanumeric (A-Z, 2-9)
 // Avoid confusing characters: 0, O, I, 1, l
 const PLAYER_CODES = {
-  "76BB89": "POOL MANAGER - Richard",  // Pool Manager #1  //Paid202512051130 sent code to him
+  "76BB89": "POOL MANAGER - Richard",  // Pool Manager #1
   "Z9Y8X7": "POOL MANAGER - Dennis",   // Pool Manager #2
   "J239W4": "Bob Casson",
   "B7Y4X3": "Bob Desrosiers",
   "D4F7G5": "Bonnie Biletski",
   "536EE2": "Brian Colburg",
-  "X8HH67": "Chris Neufeld", //Paid 20251214008  Did SEND code to him and link 202512141140
+  "X8HH67": "Chris Neufeld",
   "G7R3P5": "Curtis Braun",
   "A4LJC9": "Curtis Palidwor",
   "X3P8N1": "Dallas Pylypow",
-  "W32R1Z": "Daniel Bennett",
   "HM8T67": "Darrell Klassen",
   "TA89R2": "Dave Boyarski",
   "K2P9W5": "Dave Desrosiers",
   "A5K4T7": "Dennis Biletski",
   "6WRUJR": "Emily Chadwick",
-  "AB6C89": "Gareth Reeve", //Paid202512051130 sent code to him and link
+  "AB6C89": "Gareth Reeve",
   "D3F6G9": "Jarrod Reimer",
   "T42B67": "Jo Behr",
   "PUEFKF": "Joshua Biletski",
@@ -141,15 +124,14 @@ const PLAYER_CODES = {
   "B5R4T6": "Larry Strand",
   "L2W9X2": "Michelle Desrosiers",
   "5GGPL3": "Mike Brkich",
-  "PC12L3": "Natasha Biletski",
-  "T4M8Z8": "Neema Dadmand", //Paid202512051700 sent code to him and link
-  "9CD72G": "Neil Banman", //Paid202512051605 sent code to him and link
+  "T4M8Z8": "Neema Dadmand",
+  "9CD72G": "Neil Banman",
   "T7Y4R8": "Neil Foster",
   "KWBZ86": "Nick Melanidis",
   "2WQA9X": "Nima Ahmadi",
   "E4T6J7": "Orest Pich",
   "N4M8Q2": "Randy Moffatt",
-  "B8L9M2": "Richard Biletski", //Paid202512051130 sent code to him
+  "B8L9M2": "Richard Biletski",
   "62R92L": "Rob Crowe",
   "H8M3N7": "Rob Kost",
   "WW3F44": "Ryan Moffatt",
@@ -200,100 +182,6 @@ const PLAYOFF_WEEKS = {
   }
 };
 
-/**
- * Get real team name from playoff teams configuration
- * Falls back to placeholder if not configured yet
- * Handles enhanced display like "KC (AFC #1)" or "BUF (Game #1 Winner)"
- */
-const getTeamName = (week, gameId, teamPosition, playoffTeams) => {
-  // If playoff teams not configured, return placeholder
-  if (!playoffTeams?.week1?.configured) {
-    const game = PLAYOFF_WEEKS[week].games.find(g => g.id === gameId);
-    return game ? game[teamPosition] : `Team ${teamPosition}`;
-  }
-
-  // Week 1 - Wild Card
-  if (week === 'wildcard') {
-    const game = PLAYOFF_WEEKS.wildcard.games.find(g => g.id === gameId);
-    if (!game) return 'TBD';
-    
-    const placeholder = game[teamPosition];
-    const match = placeholder.match(/(AFC|NFC) #(\d)/);
-    if (match) {
-      const conference = match[1].toLowerCase();
-      const seed = parseInt(match[2]);
-      const team = playoffTeams.week1[conference][`seed${seed}`];
-      if (team) {
-        return `${team.name} (${placeholder})`;
-      }
-    }
-    return placeholder;
-  }
-
-  // Week 2 - Divisional
-  if (week === 'divisional') {
-    const game = PLAYOFF_WEEKS.divisional.games.find(g => g.id === gameId);
-    if (!game) return 'TBD';
-    
-    const placeholder = game[teamPosition];
-    
-    if (playoffTeams?.week2) {
-      let actualTeam = null;
-      
-      if (gameId === 7) actualTeam = playoffTeams.week2.afc[0][teamPosition];
-      else if (gameId === 8) actualTeam = playoffTeams.week2.afc[1][teamPosition];
-      else if (gameId === 9) actualTeam = playoffTeams.week2.nfc[0][teamPosition];
-      else if (gameId === 10) actualTeam = playoffTeams.week2.nfc[1][teamPosition];
-      
-      if (actualTeam) {
-        return `${actualTeam.name} (${placeholder})`;
-      }
-    }
-    
-    return placeholder;
-  }
-
-  // Week 3 - Conference Championships
-  if (week === 'conference') {
-    const game = PLAYOFF_WEEKS.conference.games.find(g => g.id === gameId);
-    if (!game) return 'TBD';
-    
-    const placeholder = game[teamPosition];
-    
-    if (playoffTeams?.week3) {
-      let actualTeam = null;
-      
-      if (gameId === 11) actualTeam = playoffTeams.week3.afcChampionship[teamPosition];
-      else if (gameId === 12) actualTeam = playoffTeams.week3.nfcChampionship[teamPosition];
-      
-      if (actualTeam) {
-        return `${actualTeam.name} (${placeholder})`;
-      }
-    }
-    
-    return placeholder;
-  }
-
-  // Week 4 - Super Bowl
-  if (week === 'superbowl') {
-    const game = PLAYOFF_WEEKS.superbowl.games.find(g => g.id === gameId);
-    if (!game) return 'TBD';
-    
-    const placeholder = game[teamPosition];
-    
-    if (playoffTeams?.week4) {
-      const actualTeam = playoffTeams.week4.superBowl[teamPosition];
-      if (actualTeam) {
-        return `${actualTeam.name} (${placeholder})`;
-      }
-    }
-    
-    return placeholder;
-  }
-
-  return 'TBD';
-};
-
 function App() {
   // Navigation state for switching between views
   const [currentView, setCurrentView] = useState('picks'); // 'picks' or 'standings'
@@ -319,12 +207,7 @@ function App() {
     superbowl_week1: '',
     superbowl_grand: ''  // Grand total for all 4 weeks combined
   });
-  const [calculatedWinners, setCalculatedWinners] = useState({});
-  const [publishedWinners, setPublishedWinners] = useState({});
-  // Playoff Teams Configuration
-  const [playoffTeams, setPlayoffTeams] = useState({});
-  const [showWinnersPage, setShowWinnersPage] = useState(false);
-
+  
   // Track which totals are manually overridden (vs auto-calculated)
   const [manualOverrides, setManualOverrides] = useState({
     superbowl_week4: false,
@@ -355,7 +238,6 @@ function App() {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [showPopup, setShowPopup] = useState(null);
   const [pendingWeekChange, setPendingWeekChange] = useState(null);
-  const [isRefreshing, setIsRefreshing] = useState(false); // For refresh button feedback
   const [missingGames, setMissingGames] = useState([]);
   const [invalidScores, setInvalidScores] = useState([]);
   
@@ -1124,7 +1006,7 @@ function App() {
     });
   }, []);
 
-// 💰 Load prize pool setup from Firebase
+  // 💰 Load prize pool setup from Firebase
   useEffect(() => {
     const prizePoolRef = ref(database, 'prizePool');
     onValue(prizePoolRef, (snapshot) => {
@@ -1135,43 +1017,7 @@ function App() {
     });
   }, []);
 
-  // 🏆 Load calculated winners from Firebase
-  useEffect(() => {
-    const winnersRef = ref(database, 'calculatedWinners');
-    onValue(winnersRef, (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        setCalculatedWinners(data);
-      }
-    });
-  }, []);
-
-  // 📢 Load published winners status from Firebase
-  useEffect(() => {
-    const publishedRef = ref(database, 'publishedWinners');
-    onValue(publishedRef, (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        setPublishedWinners(data);
-      }
-    });
-  }, []);
-
-  // 📊 Load playoff teams configuration from Firebase
-  useEffect(() => {
-    const playoffTeamsRef = ref(database, 'playoffTeams');
-    onValue(playoffTeamsRef, (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        setPlayoffTeams(data);
-        console.log('📊 Loaded playoff teams:', data);
-      } else {
-        setPlayoffTeams({});
-      }
-    });
-  }, []);
-
-  // 📡 Load game locks from Firebase
+  // 📡 Load game locks from Firebase  ← ADD THIS NEW ONE HERE
   useEffect(() => {
     const gameLocksRef = ref(database, 'gameLocks');
     onValue(gameLocksRef, (snapshot) => {
@@ -1455,7 +1301,7 @@ function App() {
     set(ref(database, `gameStatus/${currentWeek}/${gameId}`), status);
   };
 
-// Pool Manager function to update manual week totals
+  // Pool Manager function to update manual week totals
   const handleManualTotalChange = (weekKey, value) => {
     const updatedTotals = {
       ...manualWeekTotals,
@@ -1473,73 +1319,6 @@ function App() {
     
     // Save to Firebase
     set(ref(database, `manualWeekTotals/${weekKey}`), value || null);
-  };
-
-  // Pool Manager: Publish a prize
-  const handlePublishPrize = (prizeKey, prize, result) => {
-    console.log('Publishing prize:', prizeKey);
-    
-    // Update state
-    setPublishedWinners(prev => ({
-      ...prev,
-      [prizeKey]: true
-    }));
-    
-    // Save to Firebase
-    set(ref(database, `publishedWinners/${prizeKey}`), true);
-    
-    alert(`✅ Published: ${prize.title}\n\nWinner: ${result.winner}\n\nPlayers can now see this result!`);
-  };
-
-// Pool Manager: Unpublish a prize
-  const handleUnpublishPrize = (prizeKey) => {
-    const confirmed = window.confirm(
-      '⚠️ UNPUBLISH PRIZE?\n\n' +
-      'This will hide the winner from all players.\n\n' +
-      'Continue?'
-    );
-    
-    if (!confirmed) return;
-    
-    console.log('Unpublishing prize:', prizeKey);
-    
-    // Update state
-    setPublishedWinners(prev => ({
-      ...prev,
-      [prizeKey]: false
-    }));
-    
-    // Save to Firebase
-    set(ref(database, `publishedWinners/${prizeKey}`), false);
-    
-    alert('✅ Prize unpublished successfully!');
-  };
-
-  /**
-   * Save Playoff Teams Configuration
-   * Pool Manager only - saves Week 1 manual setup or Weeks 2-4 auto-generated matchups
-   */
-  const handleSavePlayoffTeams = async (data) => {
-    if (!isPoolManager()) {
-      alert('⛔ Only Pool Manager can save playoff teams configuration.');
-      return;
-    }
-
-    try {
-      const playoffTeamsRef = ref(database, 'playoffTeams');
-      
-      // Merge new data with existing data
-      const currentData = playoffTeams || {};
-      const updatedData = { ...currentData, ...data };
-      
-      await set(playoffTeamsRef, updatedData);
-      
-      console.log('✅ Playoff teams saved:', updatedData);
-      
-    } catch (error) {
-      console.error('❌ Error saving playoff teams:', error);
-      alert('Error saving playoff teams. Check console for details.');
-    }
   };
   
   /**
@@ -1998,23 +1777,6 @@ function App() {
     setHasUnsavedChanges(false);
     console.log('🚪 Logout complete');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  };
-
-  // ============================================
-  // 🔄 REFRESH PICKS HANDLER
-  // ============================================
-  
-  const handleRefreshPicks = () => {
-    // Show "refreshing" feedback
-    setIsRefreshing(true);
-    
-    // The picks are already real-time synced via Firebase onValue listener
-    // So we just show feedback and then hide it after a brief moment
-    setTimeout(() => {
-      setIsRefreshing(false);
-    }, 800);
-    
-    // Optional: Could force a re-fetch if needed, but onValue already handles this
   };
 
   // ============================================
@@ -2702,97 +2464,6 @@ function App() {
     return totals;
   }, [allPicks, currentWeek, actualScores]);
 
-const calculateAllPrizeWinners = () => {
-  console.log('🏆 Starting winner calculations...');
-  
-  // STEP 1: Convert allPicks array to object format the functions expect
-  const picksObject = {};
-  
-  allPicks.forEach(pick => {
-    if (pick.firebaseKey && pick.playerCode && pick.predictions) {
-      // Initialize player if not exists
-      if (!picksObject[pick.playerCode]) {
-        picksObject[pick.playerCode] = {
-          name: pick.playerName,
-          picks: {}
-        };
-      }
-      
-      // Convert predictions array to object (skip index 0)
-      const predictionsObj = {};
-      
-      if (Array.isArray(pick.predictions)) {
-        pick.predictions.forEach((pred, index) => {
-          if (index > 0 && pred) {
-            predictionsObj[index.toString()] = pred;
-          }
-        });
-      } else {
-        Object.assign(predictionsObj, pick.predictions);
-      }
-      
-      // Add this week's picks to the player
-      picksObject[pick.playerCode].picks[pick.week] = predictionsObj;
-    }
-  });
-  
-// STEP 2: Convert actualScores to ensure string keys
-  const actualScoresObj = {};
-  
-  Object.keys(actualScores).forEach(week => {
-    if (actualScores[week]) {
-      const weekObj = {};
-      Object.keys(actualScores[week]).forEach(gameId => {
-        // Ensure game ID is a string
-        weekObj[gameId.toString()] = actualScores[week][gameId];
-      });
-      actualScoresObj[week] = weekObj;
-    }
-  });
-  
-  console.log('📊 Converted picks:', Object.keys(picksObject).length, 'players');
-  console.log('📊 Converted scores:', Object.keys(actualScoresObj));
-  
-  // STEP 3: Run all calculations
-  const results = {
-    week1: {
-      prize1: calculateWeekPrize1(picksObject, actualScoresObj, 'wildcard'),
-      prize2: calculateWeekPrize2(picksObject, actualScoresObj, 'wildcard')
-    },
-    week2: {
-      prize1: calculateWeekPrize1(picksObject, actualScoresObj, 'divisional'),
-      prize2: calculateWeekPrize2(picksObject, actualScoresObj, 'divisional')
-    },
-    week3: {
-      prize1: calculateWeekPrize1(picksObject, actualScoresObj, 'conference'),
-      prize2: calculateWeekPrize2(picksObject, actualScoresObj, 'conference')
-    },
-    week4: {
-      prize1: calculateWeek4Prize1(picksObject, actualScoresObj),
-      prize2: calculateWeek4Prize2(picksObject, actualScoresObj)
-    },
-    grandPrize: {
-      prize1: calculateGrandPrize1(picksObject, actualScoresObj),
-      prize2: calculateGrandPrize2(picksObject, actualScoresObj)
-    }
-  };
-  
-  console.log('✅ All calculations complete!');
-  console.log('📊 Results:', results);
-  
-  return results;
-};
-
-// Calculate winners whenever picks or scores change
-  useEffect(() => {
-    if (allPicks.length > 0 && actualScores) {
-      const results = calculateAllPrizeWinners();
-      setCalculatedWinners(results);
-      
-      // Save to Firebase
-      set(ref(database, 'calculatedWinners'), results);
-    }
-  }, [allPicks, actualScores]);
   return (
     <div className="App">
       <header>
@@ -2845,7 +2516,7 @@ const calculateAllPrizeWinners = () => {
               onMouseOver={(e) => e.target.style.backgroundColor = '#a29bfe'}
               onMouseOut={(e) => e.target.style.backgroundColor = '#6c5ce7'}
             >
-              📖 View Full Rulebook (22 Pages)
+              📖 View Full Rulebook (13 Pages)
             </a>
           </div>
           <p style={{fontSize: '1.1em', marginTop: '10px', color: '#ffffff', fontWeight: '500'}}>
@@ -3225,13 +2896,13 @@ const calculateAllPrizeWinners = () => {
                     border: '2px solid #e9ecef'
                   }}>
                     <div style={{fontWeight: '600', marginBottom: '5px', color: '#333'}}>
-                      Game {game.id}: {getTeamName(currentWeek, game.id, 'team1', playoffTeams)} vs {getTeamName(currentWeek, game.id, 'team2', playoffTeams)}
+                      Game {game.id}: {game.team1} vs {game.team2}
                     </div>
                     <div style={{fontSize: '1.2rem', fontWeight: '700', color: '#9b59b6'}}>
                       {rngPreview[game.id].team1} - {rngPreview[game.id].team2}
                       {rngPreview[game.id].team1 > rngPreview[game.id].team2 
-                        ? ` (${getTeamName(currentWeek, game.id, 'team1', playoffTeams)} wins)` 
-                        : ` (${getTeamName(currentWeek, game.id, 'team2', playoffTeams)} wins)`}
+                        ? ` (${game.team1} wins)` 
+                        : ` (${game.team2} wins)`}
                     </div>
                   </div>
                 ))}
@@ -3740,7 +3411,7 @@ const calculateAllPrizeWinners = () => {
           />
         )}
         
-{/* 🆕 Navigation Buttons - Show after code validation */}
+        {/* 🆕 Navigation Buttons - Show after code validation */}
         {codeValidated && (
           <div className="view-navigation">
             <button
@@ -3775,51 +3446,6 @@ const calculateAllPrizeWinners = () => {
                 </span>
               )}
             </button>
-            <button
-              className={`nav-btn ${currentView === 'winners' ? 'active' : ''}`}
-              onClick={() => setCurrentView('winners')}
-            >
-              ⚖️ How Winners Are Determined
-              {currentView === 'winners' && (
-                <span style={{
-                  marginLeft: '8px',
-                  fontSize: '0.75rem',
-                  opacity: 0.9,
-                  fontStyle: 'italic'
-                }}>
-                  (you are here)
-                </span>
-              )}
-            </button>
-            {isPoolManager() && (
-              <button
-                className={`nav-btn ${currentView === 'playoffSetup' ? 'active' : ''}`}
-                onClick={() => setCurrentView('playoffSetup')}
-              >
-                ⚙️ Setup Playoff Teams
-                <span style={{
-                  marginLeft: '8px',
-                  fontSize: '0.7rem',
-                  padding: '2px 6px',
-                  background: '#667eea',
-                  color: 'white',
-                  borderRadius: '10px',
-                  fontWeight: '500'
-                }}>
-                  Pool Manager
-                </span>
-                {currentView === 'playoffSetup' && (
-                  <span style={{
-                    marginLeft: '8px',
-                    fontSize: '0.75rem',
-                    opacity: 0.9,
-                    fontStyle: 'italic'
-                  }}>
-                    (you are here)
-                  </span>
-                )}
-              </button>
-            )}
             {isPoolManager() && (
               <button
                 className={`nav-btn ${currentView === 'loginLogs' ? 'active' : ''}`}
@@ -3864,27 +3490,11 @@ const calculateAllPrizeWinners = () => {
             prizePool={prizePool}
             officialWinners={officialWinners}
             onLogout={handleLogout}
-          />) : currentView === 'winners' && codeValidated ? (
-          <HowWinnersAreDetermined 
-            calculatedWinners={calculatedWinners}
-            publishedWinners={publishedWinners}
-            isPoolManager={isPoolManager()}
-            onPublishPrize={handlePublishPrize}
-            onUnpublishPrize={handleUnpublishPrize}
-            allPicks={allPicks}
-            actualScores={actualScores}
           />
         ) : currentView === 'loginLogs' && codeValidated ? (
           <LoginLogsViewer 
             isPoolManager={isPoolManager()}
             playerCodes={PLAYER_CODES}
-          />
-        ) : currentView === 'playoffSetup' && codeValidated ? (
-          <PlayoffTeamsSetup
-            playoffTeams={playoffTeams}
-            actualScores={actualScores}
-            onSavePlayoffTeams={handleSavePlayoffTeams}
-            isPoolManager={isPoolManager()}
           />
         ) : (
           <>
@@ -4013,39 +3623,6 @@ const calculateAllPrizeWinners = () => {
               </p>
             </div>
 
-            {/* Playoff Teams Banner - Show if Week 1 not configured */}
-            {!playoffTeams?.week1?.configured && (
-              <div style={{
-                margin: '20px 0',
-                padding: '20px',
-                background: 'linear-gradient(135deg, #ffd89b 0%, #19547b 100%)',
-                borderRadius: '12px',
-                border: '3px solid #ff9800',
-                boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-                textAlign: 'center'
-              }}>
-                <div style={{fontSize: '2rem', marginBottom: '10px'}}>⏳</div>
-                <h3 style={{
-                  color: 'white',
-                  margin: '0 0 10px 0',
-                  fontSize: '1.3rem',
-                  textShadow: '2px 2px 4px rgba(0,0,0,0.3)'
-                }}>
-                  Playoff Teams Will Be Announced Soon
-                </h3>
-                <p style={{
-                  color: 'white',
-                  fontSize: '1rem',
-                  margin: 0,
-                  opacity: 0.95
-                }}>
-                  The 2025 NFL Playoff teams will be determined after the regular season ends in early January 2026.
-                  <br />
-                  Pool Manager will announce the 14 playoff teams here once finalized.
-                </p>
-              </div>
-            )}
-
             {/* Lockout Warning */}
             {!isSubmissionAllowed() && (
               <div className="closed-warning">
@@ -4134,7 +3711,7 @@ const calculateAllPrizeWinners = () => {
                 {currentWeekData.games.map(game => (
                   <div key={game.id} className="game-prediction">
                     <h3>
-                      Game {game.id}: {getTeamName(currentWeek, game.id, 'team1', playoffTeams)} @ {getTeamName(currentWeek, game.id, 'team2', playoffTeams)}
+                      Game {game.id}: {game.team1} @ {game.team2}
                       {/* Show team codes if available */}
                       {teamCodes[currentWeek]?.[game.id] && (
                         <span style={{fontSize: '0.9rem', color: '#666', marginLeft: '10px'}}>
@@ -4313,22 +3890,20 @@ const calculateAllPrizeWinners = () => {
               📱 Mobile: Open the DOWNLOADABLE CSV file with Google Sheets (free app) or MS Office EXCEL
             </div>
             <button 
-              onClick={handleRefreshPicks}
-              disabled={isRefreshing}
+              onClick={() => window.location.reload()}
               style={{
                 marginLeft: '10px',
                 padding: '8px 16px',
-                background: isRefreshing ? '#a0a0a0' : '#667eea',
+                background: '#667eea',
                 color: 'white',
                 border: 'none',
                 borderRadius: '6px',
-                cursor: isRefreshing ? 'not-allowed' : 'pointer',
+                cursor: 'pointer',
                 fontSize: '0.9rem',
-                fontWeight: '600',
-                opacity: isRefreshing ? 0.7 : 1
+                fontWeight: '600'
               }}
             >
-              {isRefreshing ? '✓ Refreshed!' : '🔄 Refresh Picks Table'}
+              🔄 Refresh Picks Table
             </button>
           </h2>
 
@@ -4343,7 +3918,7 @@ const calculateAllPrizeWinners = () => {
                     {currentWeekData.games.map(game => (
                       <th key={game.id} colSpan="2">
                         Game {game.id}<br/>
-                        <small style={{color: '#ffffff', fontWeight: '700'}}>{getTeamName(currentWeek, game.id, 'team1', playoffTeams)} @ {getTeamName(currentWeek, game.id, 'team2', playoffTeams)}</small>
+                        <small style={{color: '#ffffff', fontWeight: '700'}}>{game.team1} @ {game.team2}</small>
                         {/* Team codes row for Pool Manager */}
                         {isPoolManager() && (
                           <div style={{marginTop: '5px', display: 'flex', gap: '5px', justifyContent: 'center', alignItems: 'center'}}>
@@ -4392,7 +3967,7 @@ const calculateAllPrizeWinners = () => {
                     ))}
                     
                     {/* CORRECT PICKS COLUMN */}
-                    <th rowSpan="2" style={{backgroundColor: '#e8f5e9', fontWeight: 'bold', color: '#090909ff', minWidth: '60px', fontSize: '0.75rem', padding: '8px 4px'}}>
+                    <th rowSpan="2" style={{backgroundColor: '#e8f5e9', fontWeight: 'bold', color: '#2e7d32', minWidth: '60px', fontSize: '0.75rem', padding: '8px 4px'}}>
                       <div style={{marginBottom: '2px'}}>Correct</div>
                       <div>Picks</div>
                     </th>
@@ -4692,8 +4267,8 @@ const calculateAllPrizeWinners = () => {
                           }, 0);
                           
                           return (
-                            <div style={{fontSize: '1.05rem', color: '#131515ff', marginBottom: '6px', fontWeight: '700'}}>
-                              Actual Total: {actualTotal > 0 ? actualTotal : '-'}
+                            <div style={{fontSize: '0.85rem', color: '#16a085', marginBottom: '6px', fontWeight: '700'}}>
+                              Total: {actualTotal > 0 ? actualTotal : '-'}
                             </div>
                           );
                         })()}

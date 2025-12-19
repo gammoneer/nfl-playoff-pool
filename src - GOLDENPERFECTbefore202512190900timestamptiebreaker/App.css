@@ -1,0 +1,693 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+}
+
+.App {
+  min-height: 100vh;
+  padding: 20px;
+}
+
+header {
+  text-align: center;
+  color: white;
+  margin-bottom: 30px;
+}
+
+header h1 {
+  font-size: 2.5rem;
+  margin-bottom: 10px;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+}
+
+header p {
+  font-size: 1.1rem;
+  opacity: 0.9;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Week Selector */
+.week-selector {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 30px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.week-selector button {
+  padding: 12px 24px;
+  border: none;
+  background: white;
+  color: #667eea;
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.week-selector button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.week-selector button.active {
+  background: #4caf50;
+  color: white;
+  transform: scale(1.05);
+}
+
+/* Prediction Form */
+.prediction-form {
+  background: white;
+  border-radius: 12px;
+  padding: 30px;
+  margin-bottom: 30px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.prediction-form h2 {
+  color: #333;
+  margin-bottom: 25px;
+  text-align: center;
+  font-size: 1.8rem;
+}
+
+.form-group {
+  margin-bottom: 25px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #555;
+}
+
+.form-group input[type="text"] {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid #e0e0e0;
+  border-radius: 6px;
+  font-size: 1rem;
+  transition: border-color 0.3s ease;
+}
+
+.form-group input[type="text"]:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.form-group select {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid #e0e0e0;
+  border-radius: 6px;
+  font-size: 1rem;
+  transition: border-color 0.3s ease;
+  background: white;
+  cursor: pointer;
+}
+
+.form-group select:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.form-group small {
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+/* Code Entry Section */
+.code-entry-section {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.code-entry-section h3 {
+  color: #667eea;
+  font-size: 1.8rem;
+  margin-bottom: 15px;
+}
+
+.code-input-group {
+  max-width: 400px;
+  margin: 30px auto;
+}
+
+.code-input-group label {
+  display: block;
+  margin-bottom: 10px;
+  font-weight: 600;
+  color: #333;
+  text-align: left;
+}
+
+.code-input {
+  width: 100%;
+  padding: 15px;
+  border: 3px solid #667eea;
+  border-radius: 8px;
+  font-size: 2rem;
+  text-align: center;
+  font-weight: bold;
+  letter-spacing: 8px;
+  margin-bottom: 15px;
+  font-family: 'Courier New', monospace;
+}
+
+.code-input:focus {
+  outline: none;
+  border-color: #4caf50;
+  box-shadow: 0 0 10px rgba(76, 175, 80, 0.3);
+}
+
+.validate-btn {
+  width: 100%;
+  padding: 15px;
+  background: #667eea;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1.2rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.validate-btn:hover {
+  background: #5568d3;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.validate-btn:active {
+  transform: translateY(0);
+}
+
+/* Player Confirmed Section */
+.player-confirmed {
+  background: #d4edda;
+  border: 3px solid #28a745;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 30px;
+  text-align: center;
+}
+
+.confirmation-badge {
+  display: inline-block;
+  background: #28a745;
+  color: white;
+  padding: 8px 20px;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin-bottom: 10px;
+}
+
+.player-name-highlight {
+  color: #155724;
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+
+.player-confirmed h3 {
+  color: #155724;
+  margin: 10px 0;
+}
+
+/* Game Predictions */
+.game-prediction {
+  background: #f8f9fa;
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  border-left: 4px solid #667eea;
+}
+
+.game-prediction h3 {
+  color: #667eea;
+  margin-bottom: 15px;
+  font-size: 1.2rem;
+}
+
+.score-inputs {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.team-score {
+  flex: 1;
+  min-width: 200px;
+}
+
+.team-score label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #333;
+  font-size: 0.95rem;
+}
+
+.team-score label .team-designation {
+  display: block;
+  font-size: 0.75rem;
+  color: #667eea;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 4px;
+}
+
+.team-score label .team-name-label {
+  display: block;
+  font-size: 1rem;
+  color: #333;
+  font-weight: 600;
+}
+
+.team-score input {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid #e0e0e0;
+  border-radius: 6px;
+  font-size: 1.2rem;
+  text-align: center;
+  font-weight: bold;
+  transition: border-color 0.3s ease;
+}
+
+.team-score input:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.vs {
+  font-weight: bold;
+  color: #667eea;
+  font-size: 1.5rem;
+  flex-shrink: 0;
+  padding: 0 10px;
+}
+
+/* Submit Button */
+.submit-btn {
+  width: 100%;
+  padding: 15px;
+  background: #4caf50;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 20px;
+}
+
+/* Progress Indicator */
+.progress-indicator {
+  margin: 25px 0 15px 0;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 2px solid #e0e0e0;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 24px;
+  background: #e0e0e0;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-top: 8px;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #4caf50 0%, #45a049 100%);
+  transition: width 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: bold;
+  font-size: 0.85rem;
+}
+
+.submit-btn:hover {
+  background: #45a049;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(76, 175, 80, 0.3);
+}
+
+.submit-btn:active {
+  transform: translateY(0);
+}
+
+.submit-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.submit-btn {
+  font-size: 1rem;
+  line-height: 1.4;
+  padding: 18px 15px;
+  white-space: normal;
+  min-height: 60px;
+}
+
+/* Closed Warning Banner */
+.closed-warning {
+  background: #ff6b6b;
+  color: white;
+  padding: 15px;
+  border-radius: 8px;
+  text-align: center;
+  font-weight: bold;
+  font-size: 1.1rem;
+  margin-bottom: 20px;
+  border: 3px solid #d63031;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+/* All Picks Section */
+.all-picks {
+  background: white;
+  border-radius: 12px;
+  padding: 30px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.all-picks h2 {
+  color: #333;
+  margin-bottom: 25px;
+  text-align: center;
+  font-size: 1.8rem;
+}
+
+.no-picks {
+  text-align: center;
+  color: #999;
+  font-style: italic;
+  padding: 40px;
+}
+
+/* Picks Table */
+.picks-table-container {
+  overflow-x: auto;
+  max-height: 600px;
+  overflow-y: auto;
+  position: relative;
+}
+
+.picks-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.picks-table thead {
+  background: #667eea;
+  color: white;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+.picks-table thead th {
+  position: sticky;
+  top: 0;
+  background: #667eea;
+}
+
+.picks-table th {
+  padding: 12px 8px;
+  text-align: center;
+  font-weight: 600;
+  border: 1px solid #5568d3;
+}
+
+.picks-table th small {
+  font-size: 0.75rem;
+  opacity: 0.9;
+  display: block;
+  margin-top: 4px;
+  font-weight: normal;
+}
+
+.picks-table td {
+  padding: 10px 8px;
+  text-align: center;
+  border: 1px solid #e0e0e0;
+}
+
+.picks-table tbody tr:nth-child(even) {
+  background: #f8f9fa;
+}
+
+.picks-table tbody tr:hover {
+  background: #e3f2fd;
+}
+
+.picks-table .player-name {
+  font-weight: 600;
+  color: #333;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.picks-table .score {
+  font-weight: bold;
+  color: #667eea;
+  font-size: 1rem;
+}
+
+.picks-table .score-winner {
+  background: #d4edda;
+  color: #155724;
+  font-weight: 900;
+  border: 2px solid #28a745;
+  box-shadow: 0 0 5px rgba(40, 167, 69, 0.3);
+}
+
+.picks-table .timestamp {
+  font-size: 0.85rem;
+  color: #999;
+}
+
+.picks-table .grand-total {
+  font-size: 1.3rem;
+  font-weight: 900;
+  color: #ffffff;
+  background: #4caf50;
+  border-left: 4px solid #2e7d32;
+  border-right: 4px solid #2e7d32;
+  box-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
+}
+
+/* Footer */
+footer {
+  text-align: center;
+  color: white;
+  margin-top: 40px;
+  padding: 20px;
+  opacity: 0.8;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  header h1 {
+    font-size: 2rem;
+  }
+
+  .prediction-form,
+  .all-picks {
+    padding: 20px;
+  }
+
+  .score-inputs {
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .team-score {
+    min-width: 100%;
+  }
+
+  .vs {
+    display: none;
+  }
+
+  .week-selector {
+    gap: 8px;
+  }
+
+  .week-selector button {
+    padding: 10px 16px;
+    font-size: 0.9rem;
+  }
+
+  .picks-table {
+    font-size: 0.8rem;
+  }
+
+  .picks-table th,
+  .picks-table td {
+    padding: 8px 4px;
+  }
+
+  .code-input {
+    font-size: 1.5rem;
+    letter-spacing: 5px;
+    padding: 12px;
+  }
+  
+  .code-entry-section h3 {
+    font-size: 1.4rem;
+  }
+  
+  .player-name-highlight {
+    font-size: 1.2rem;
+  }
+
+  /* Mobile sticky header fix */
+  .picks-table-container {
+    max-height: 500px;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .picks-table thead {
+    position: sticky;
+    top: -1px;
+    z-index: 999;
+  }
+  
+  .picks-table thead th {
+    background: #667eea !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .App {
+    padding: 10px;
+  }
+
+  header h1 {
+    font-size: 1.5rem;
+  }
+
+  .prediction-form h2,
+  .all-picks h2 {
+    font-size: 1.4rem;
+  }
+}
+/* ============================================ */
+/* NAVIGATION BUTTONS (Add this to your App.css) */
+/* ============================================ */
+.view-navigation {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 30px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.nav-btn {
+  padding: 15px 30px;
+  border: none;
+  background: white;
+  color: #667eea;
+  font-size: 1.1rem;
+  font-weight: 600;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  min-width: 200px;
+  margin: 5px;
+}
+
+.nav-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+}
+
+.nav-btn.active {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  transform: scale(1.05);
+  box-shadow: 0 0 0 3px red !important;
+}
+
+.nav-btn.active:hover {
+  transform: scale(1.05) translateY(-2px);
+}
+
+/* Responsive Design for Navigation */
+@media (max-width: 768px) {
+  .view-navigation {
+    gap: 10px;
+  }
+  
+  .nav-btn {
+    padding: 12px 20px;
+    font-size: 1rem;
+    min-width: 160px;
+  }
+  
+  /* MOBILE FIX: Force all weeks to be visible */
+  .week-content {
+    display: block !important;
+    max-height: none !important;
+  }
+  
+  .week-header {
+    cursor: default !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .view-navigation {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .nav-btn {
+    width: 100%;
+    min-width: auto;
+  }
+}
