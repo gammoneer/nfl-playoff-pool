@@ -3747,7 +3747,7 @@ const calculateAllPrizeWinners = () => {
               className={`nav-btn ${currentView === 'picks' ? 'active' : ''}`}
               onClick={() => setCurrentView('picks')}
             >
-              📝 Make Picks
+              📝 #1 Make Picks & Logout
               {currentView === 'picks' && (
                 <span style={{
                   marginLeft: '8px',
@@ -3763,7 +3763,7 @@ const calculateAllPrizeWinners = () => {
               className={`nav-btn ${currentView === 'standings' ? 'active' : ''}`}
               onClick={() => setCurrentView('standings')}
             >
-              🏆 Standings & Prizes
+              🏆 #2 Standings & Prizes
               {currentView === 'standings' && (
                 <span style={{
                   marginLeft: '8px',
@@ -3779,7 +3779,7 @@ const calculateAllPrizeWinners = () => {
               className={`nav-btn ${currentView === 'winners' ? 'active' : ''}`}
               onClick={() => setCurrentView('winners')}
             >
-              ⚖️ How Winners Are Determined
+              ⚖️ #3 How Winners Are Determined
               {currentView === 'winners' && (
                 <span style={{
                   marginLeft: '8px',
