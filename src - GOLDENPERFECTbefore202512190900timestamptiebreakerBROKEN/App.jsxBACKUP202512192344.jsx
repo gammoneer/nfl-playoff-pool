@@ -121,7 +121,7 @@ const PLAYER_CODES = {
   "B7Y4X3": "Bob Desrosiers",
   "D4F7G5": "Bonnie Biletski",
   "536EE2": "Brian Colburg",
-  "X8HH67": "Chris Neufeld", //Paid 20251214008  Did SEND code to him and link 202512141140 #6
+  "X8HH67": "Chris Neufeld", //Paid 20251214008  Did SEND code to him and link 202512141140
   "G7R3P5": "Curtis Braun",
   "A4LJC9": "Curtis Palidwor",
   "X3P8N1": "Dallas Pylypow",
@@ -131,7 +131,7 @@ const PLAYER_CODES = {
   "K2P9W5": "Dave Desrosiers",
   "A5K4T7": "Dennis Biletski",
   "6WRUJR": "Emily Chadwick",
-  "AB6C89": "Gareth Reeve", //Paid202512051130 sent code to him and link #3
+  "AB6C89": "Gareth Reeve", //Paid202512051130 sent code to him and link
   "D3F6G9": "Jarrod Reimer",
   "T42B67": "Jo Behr",
   "PUEFKF": "Joshua Biletski",
@@ -142,14 +142,14 @@ const PLAYER_CODES = {
   "L2W9X2": "Michelle Desrosiers",
   "5GGPL3": "Mike Brkich",
   "PC12L3": "Natasha Biletski",
-  "T4M8Z8": "Neema Dadmand", //Paid202512051700 sent code to him and link #5
-  "9CD72G": "Neil Banman", //Paid202512051605 sent code to him and link #4
+  "T4M8Z8": "Neema Dadmand", //Paid202512051700 sent code to him and link
+  "9CD72G": "Neil Banman", //Paid202512051605 sent code to him and link
   "T7Y4R8": "Neil Foster",
   "KWBZ86": "Nick Melanidis",
   "2WQA9X": "Nima Ahmadi",
   "E4T6J7": "Orest Pich",
   "N4M8Q2": "Randy Moffatt",
-  "B8L9M2": "Richard Biletski", //Paid202512051130 sent code to him #1
+  "B8L9M2": "Richard Biletski", //Paid202512051130 sent code to him
   "62R92L": "Rob Crowe",
   "H8M3N7": "Rob Kost",
   "WW3F44": "Ryan Moffatt",
@@ -3747,7 +3747,7 @@ const calculateAllPrizeWinners = () => {
               className={`nav-btn ${currentView === 'picks' ? 'active' : ''}`}
               onClick={() => setCurrentView('picks')}
             >
-              📝 #1 Make Picks or Logout
+              📝 Make Picks
               {currentView === 'picks' && (
                 <span style={{
                   marginLeft: '8px',
@@ -3763,7 +3763,7 @@ const calculateAllPrizeWinners = () => {
               className={`nav-btn ${currentView === 'standings' ? 'active' : ''}`}
               onClick={() => setCurrentView('standings')}
             >
-              🏆 #2 Standings & Prizes
+              🏆 Standings & Prizes
               {currentView === 'standings' && (
                 <span style={{
                   marginLeft: '8px',
@@ -3779,7 +3779,7 @@ const calculateAllPrizeWinners = () => {
               className={`nav-btn ${currentView === 'winners' ? 'active' : ''}`}
               onClick={() => setCurrentView('winners')}
             >
-              ⚖️ #3 How Winners Are Determined
+              ⚖️ How Winners Are Determined
               {currentView === 'winners' && (
                 <span style={{
                   marginLeft: '8px',
@@ -3871,6 +3871,8 @@ const calculateAllPrizeWinners = () => {
             isPoolManager={isPoolManager()}
             onPublishPrize={handlePublishPrize}
             onUnpublishPrize={handleUnpublishPrize}
+            allPicks={allPicks}
+            actualScores={actualScores}
           />
         ) : currentView === 'loginLogs' && codeValidated ? (
           <LoginLogsViewer 
@@ -4037,7 +4039,7 @@ const calculateAllPrizeWinners = () => {
                   margin: 0,
                   opacity: 0.95
                 }}>
-                  The 2025 NFL Playoff teams will be determined/entered here after the regular season ends January 4, 2026.
+                  The 2025 NFL Playoff teams will be determined after the regular season ends in early January 2026.
                   <br />
                   Pool Manager will announce the 14 playoff teams here once finalized.
                 </p>

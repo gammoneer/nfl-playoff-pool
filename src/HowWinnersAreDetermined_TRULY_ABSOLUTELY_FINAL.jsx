@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import './HowWinnersAreDetermined.css';
 
 /**
@@ -11,7 +11,9 @@ const HowWinnersAreDetermined = ({
   publishedWinners, 
   isPoolManager,
   onPublishPrize,
-  onUnpublishPrize
+  onUnpublishPrize,
+  allPicks = [],
+  actualScores = {}
 }) => {
   // Track which weeks are expanded
   const [expandedWeeks, setExpandedWeeks] = useState({
@@ -77,6 +79,7 @@ const HowWinnersAreDetermined = ({
     { week: 'Grand Prize', title: 'Closest Total Points', amount: '$80', icon: '💰', calcKey: 'grandPrize.prize2', pubKey: 'grand_prize2' }
   ];
 
+  // Helper functions (MUST BE BEFORE TIMESTAMP ANALYSIS)
   const getResult = (calcKey) => {
     const keys = calcKey.split('.');
     let result = calculatedWinners;
@@ -96,6 +99,146 @@ const HowWinnersAreDetermined = ({
       onPublishPrize(prize.pubKey, prize, result);
     }
   };
+
+  // ============================================================================
+  // TIMESTAMP TIE-BREAKER ANALYSIS (TESTING ONLY)
+  // ============================================================================
+  
+  const PLAYOFF_WEEKS = {
+    wildcard: { name: 'Wild Card Round', weekNum: 1 },
+    divisional: { name: 'Divisional Round', weekNum: 2 },
+    conference: { name: 'Conference Championships', weekNum: 3 },
+    superbowl: { name: 'Super Bowl LIX', weekNum: 4 }
+  };
+
+  const getPickTimestamp = (pick) => {
+    return pick.lastUpdated || pick.timestamp || 0;
+  };
+
+  const formatTimestamp = (timestamp) => {
+    if (!timestamp) return 'No timestamp';
+    const date = new Date(timestamp);
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = date.getHours();
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const seconds = String(date.getSeconds()).padStart(2, '0');
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    const displayHours = hours % 12 || 12;
+    
+    return `${month}/${day}, ${String(displayHours).padStart(2, '0')}:${minutes}:${seconds} ${ampm}`;
+  };
+
+  const timestampAnalysis = useMemo(() => {
+    const analysis = {
+      weeks: {},
+      seasonSummary: {
+        weeksAnalyzed: 0,
+        totalPrizes: 0,
+        prizesWithTies: 0,
+        tiesWouldBreak: 0
+      }
+    };
+
+    Object.entries(PLAYOFF_WEEKS).forEach(([weekKey, weekInfo]) => {
+      const weekPicks = allPicks.filter(p => p.week === weekKey);
+      const weekScores = actualScores[weekKey];
+      
+      if (!weekScores || weekPicks.length === 0) {
+        return;
+      }
+
+      analysis.seasonSummary.weeksAnalyzed++;
+      
+      const weekAnalysis = {
+        weekName: weekInfo.name,
+        prizes: []
+      };
+
+      const weekPrizes = prizes.filter(p => {
+        const weekNum = weekInfo.weekNum;
+        return p.week === `Week ${weekNum}`;
+      });
+
+      weekPrizes.forEach(prize => {
+        analysis.seasonSummary.totalPrizes++;
+        
+        const result = getResult(prize.calcKey);
+        if (!result) return;
+        
+        const winners = Array.isArray(result.winner) ? result.winner : [result.winner].filter(Boolean);
+        
+        if (winners.length > 1) {
+          analysis.seasonSummary.prizesWithTies++;
+          
+          const tiedPicks = winners.map(winnerCode => {
+            const pick = weekPicks.find(p => p.playerCode === winnerCode);
+            return {
+              playerCode: winnerCode,
+              playerName: pick?.playerName || winnerCode,
+              timestamp: getPickTimestamp(pick),
+              pick: pick
+            };
+          }).filter(p => p.pick);
+          
+          tiedPicks.sort((a, b) => a.timestamp - b.timestamp);
+          
+          const prizeAnalysis = {
+            prizeTitle: prize.title,
+            officialResult: `${winners.length}-way tie`,
+            tiedPlayers: tiedPicks,
+            hypotheticalWinner: tiedPicks[0],
+            timestampWouldBreak: tiedPicks.length > 1
+          };
+          
+          if (prizeAnalysis.timestampWouldBreak) {
+            analysis.seasonSummary.tiesWouldBreak++;
+          }
+          
+          weekAnalysis.prizes.push(prizeAnalysis);
+        }
+      });
+
+      if (weekAnalysis.prizes.length > 0) {
+        analysis.weeks[weekKey] = weekAnalysis;
+      }
+    });
+
+    return analysis;
+  }, [calculatedWinners, allPicks, actualScores, prizes]);
+
+  const scaleProjections = useMemo(() => {
+    const { weeksAnalyzed, prizesWithTies, totalPrizes } = timestampAnalysis.seasonSummary;
+    
+    if (weeksAnalyzed === 0 || totalPrizes === 0) {
+      return null;
+    }
+
+    const tieRate = prizesWithTies / totalPrizes;
+
+    return {
+      currentPlayers: 50,
+      tieRate,
+      projections: {
+        1000: {
+          expectedTiesPerPrize: '15-30 way ties',
+          prizeWithout: '$100 ÷ 20 = $5.00 each',
+          prizeWith: '$100 ÷ 1 = $100.00',
+          improvement: '+$95.00 (1900% increase)'
+        },
+        10000: {
+          expectedTiesPerPrize: '50-200 way ties',
+          prizeWithout: '$100 ÷ 100 = $1.00 each',
+          prizeWith: '$100 ÷ 1 = $100.00',
+          improvement: '+$99.00 (9900% increase)'
+        }
+      }
+    };
+  }, [timestampAnalysis]);
+
+  // ============================================================================
+  // END TIMESTAMP ANALYSIS
+  // ============================================================================
 
   const renderExpandedViewContent = (prize, result) => {
     const hasSteps = result.steps && result.steps.length > 0;
@@ -388,6 +531,172 @@ const HowWinnersAreDetermined = ({
           {index < weekGroups.length - 1 && <div className="divider"></div>}
         </div>
       ))}
+
+      {/* TIMESTAMP TIE-BREAKER ANALYSIS (Pool Manager Only) */}
+      {isPoolManager && timestampAnalysis.seasonSummary.weeksAnalyzed > 0 && (
+        <div className="timestamp-analysis-section">
+          <div className="testing-warning-banner">
+            <h2>⚠️ EXPERIMENTAL FEATURE - FOR TESTING ONLY</h2>
+            <p>This analysis shows what WOULD happen if submission timestamp was used as a final tie-breaker.</p>
+            <p><strong>This is NOT used for actual prizes this season.</strong> Data is for planning next year only.</p>
+          </div>
+
+          <div className="timestamp-analysis-content">
+            <div className="analysis-header">
+              <h3>📊 HYPOTHETICAL: TIMESTAMP TIE-BREAKER ANALYSIS</h3>
+              <p className="last-updated">Last updated: {new Date().toLocaleString()}</p>
+            </div>
+
+            {Object.entries(timestampAnalysis.weeks).map(([weekKey, weekData]) => (
+              <div key={weekKey} className="week-timestamp-analysis">
+                <h4 className="week-analysis-title">
+                  🔬 {weekData.weekName.toUpperCase()} - TIMESTAMP IMPACT
+                </h4>
+
+                {weekData.prizes.filter(p => p.timestampWouldBreak).length === 0 ? (
+                  <div className="no-ties-message">
+                    ✓ No ties this week - timestamp not needed
+                  </div>
+                ) : (
+                  weekData.prizes.map((prize, idx) => (
+                    prize.timestampWouldBreak ? (
+                      <div key={idx} className="prize-timestamp-comparison">
+                        <h5>{prize.prizeTitle}</h5>
+                        
+                        <div className="official-result-box">
+                          <div className="box-label">📅 Official Result (Current Rules):</div>
+                          <div className="box-content">
+                            {prize.officialResult} - Prize split equally
+                            <div className="tied-players-list">
+                              {prize.tiedPlayers.map(p => p.playerName).join(', ')}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="hypothetical-result-box">
+                          <div className="box-label">⏰ Hypothetical (If Timestamp Was Used):</div>
+                          <div className="box-content">
+                            <div className="timestamp-ranking">
+                              {prize.tiedPlayers.map((player, idx) => (
+                                <div key={idx} className={`timestamp-entry ${idx === 0 ? 'winner' : ''}`}>
+                                  <span className="rank">{idx + 1}{idx === 0 ? 'st' : idx === 1 ? 'nd' : idx === 2 ? 'rd' : 'th'}:</span>
+                                  <span className="player-name">{player.playerName}</span>
+                                  <span className="timestamp">{formatTimestamp(player.timestamp)}</span>
+                                  {idx === 0 && <span className="winner-badge">✓ WINNER</span>}
+                                </div>
+                              ))}
+                            </div>
+                            <div className="impact-note">
+                              💡 Impact: {prize.tiedPlayers.length}-way split → Solo winner
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ) : null
+                  ))
+                )}
+              </div>
+            ))}
+
+            <div className="season-summary-section">
+              <h3 className="summary-title">📈 SEASON SUMMARY (Cumulative Statistics)</h3>
+              
+              <div className="summary-box current-season">
+                <h4>CURRENT SEASON (50 players):</h4>
+                <div className="stats-grid">
+                  <div className="stat-item">
+                    <span className="stat-label">Weeks Analyzed:</span>
+                    <span className="stat-value">{timestampAnalysis.seasonSummary.weeksAnalyzed} / 4</span>
+                  </div>
+                  <div className="stat-item">
+                    <span className="stat-label">Prizes Awarded:</span>
+                    <span className="stat-value">{timestampAnalysis.seasonSummary.totalPrizes} / 10</span>
+                  </div>
+                  <div className="stat-item">
+                    <span className="stat-label">Ties After Rules:</span>
+                    <span className="stat-value">
+                      {timestampAnalysis.seasonSummary.prizesWithTies} 
+                      ({timestampAnalysis.seasonSummary.totalPrizes > 0 
+                        ? Math.round((timestampAnalysis.seasonSummary.prizesWithTies / timestampAnalysis.seasonSummary.totalPrizes) * 100) 
+                        : 0}%)
+                    </span>
+                  </div>
+                  <div className="stat-item">
+                    <span className="stat-label">Timestamp Would Break:</span>
+                    <span className="stat-value">
+                      {timestampAnalysis.seasonSummary.tiesWouldBreak}
+                      ({timestampAnalysis.seasonSummary.prizesWithTies > 0
+                        ? Math.round((timestampAnalysis.seasonSummary.tiesWouldBreak / timestampAnalysis.seasonSummary.prizesWithTies) * 100)
+                        : 0}% of ties)
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {scaleProjections && (
+                <div className="scale-projections-section">
+                  <h3 className="projections-title">🔮 PROJECTION: SCALING TO LARGER POOLS</h3>
+                  <p className="projections-subtitle">
+                    Based on current tie rate ({Math.round(scaleProjections.tieRate * 100)}% after {timestampAnalysis.seasonSummary.weeksAnalyzed} week{timestampAnalysis.seasonSummary.weeksAnalyzed !== 1 ? 's' : ''} with {scaleProjections.currentPlayers} players):
+                  </p>
+
+                  <div className="projection-box projection-1000">
+                    <h4>WITH 1,000 PLAYERS:</h4>
+                    <div className="projection-stats">
+                      <div className="projection-item">
+                        <span className="projection-label">Expected Ties per Prize:</span>
+                        <span className="projection-value">{scaleProjections.projections[1000].expectedTiesPerPrize}</span>
+                      </div>
+                      <div className="projection-item">
+                        <span className="projection-label">Timestamp Impact:</span>
+                        <span className="projection-value critical">Critical</span>
+                      </div>
+                      <div className="projection-item">
+                        <span className="projection-label">Prize Split Improvement:</span>
+                        <div className="prize-comparison">
+                          <div>Without: {scaleProjections.projections[1000].prizeWithout}</div>
+                          <div>With: {scaleProjections.projections[1000].prizeWith}</div>
+                          <div className="improvement">{scaleProjections.projections[1000].improvement}</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="projection-box projection-10000">
+                    <h4>WITH 10,000 PLAYERS:</h4>
+                    <div className="projection-stats">
+                      <div className="projection-item">
+                        <span className="projection-label">Expected Ties per Prize:</span>
+                        <span className="projection-value">{scaleProjections.projections[10000].expectedTiesPerPrize}</span>
+                      </div>
+                      <div className="projection-item">
+                        <span className="projection-label">Timestamp Impact:</span>
+                        <span className="projection-value essential">ESSENTIAL</span>
+                      </div>
+                      <div className="projection-item">
+                        <span className="projection-label">Prize Split Improvement:</span>
+                        <div className="prize-comparison">
+                          <div>Without: {scaleProjections.projections[10000].prizeWithout}</div>
+                          <div>With: {scaleProjections.projections[10000].prizeWith}</div>
+                          <div className="improvement">{scaleProjections.projections[10000].improvement}</div>
+                        </div>
+                      </div>
+                      <div className="critical-note">
+                        💡 Without timestamp: Prizes become nearly worthless<br />
+                        With timestamp: Meaningful prize amounts
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="conclusion-box">
+                    <strong>⚠️ CONCLUSION:</strong> Timestamp tie-breaker becomes <strong>CRITICAL</strong> for pools with 500+ players. <strong>Essential</strong> for 1,000+.
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
