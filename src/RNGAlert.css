@@ -1,5 +1,5 @@
 /* ============================================================================
-   RNG ALERT - STYLES
+   RNG ALERT - STYLES WITH ELIGIBILITY INDICATORS
    ============================================================================ */
 
 .rng-alert-container {
@@ -77,13 +77,29 @@
   background: #e3f2fd;
   border-left: 4px solid #2196f3;
   border-radius: 6px;
-  margin-bottom: 25px;
+  margin-bottom: 20px;
   font-size: 1.1rem;
   color: #1a202c;
 }
 
 .alert-week-info strong {
   color: #2196f3;
+}
+
+/* Eligibility Notice */
+.eligibility-notice {
+  padding: 15px;
+  background: #d1fae5;
+  border-left: 4px solid #10b981;
+  border-radius: 6px;
+  margin-bottom: 25px;
+  font-size: 1rem;
+  color: #065f46;
+  line-height: 1.6;
+}
+
+.eligibility-notice strong {
+  color: #047857;
 }
 
 /* Players List */
@@ -112,7 +128,7 @@
   gap: 10px;
   padding: 12px;
   background: white;
-  border: 2px solid #fbbf24;
+  border: 2px solid #10b981;
   border-radius: 6px;
   margin-bottom: 10px;
   transition: all 0.2s;
@@ -123,8 +139,8 @@
 }
 
 .missing-player-item:hover {
-  background: #fffbeb;
-  border-color: #f59e0b;
+  background: #ecfdf5;
+  border-color: #059669;
   transform: translateX(5px);
 }
 
@@ -154,6 +170,16 @@
   border-radius: 12px;
   font-size: 0.9rem;
   font-weight: 600;
+}
+
+.eligibility-indicator {
+  padding: 4px 12px;
+  background: #d1fae5;
+  color: #065f46;
+  border: 2px solid #10b981;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 700;
 }
 
 /* Action Buttons */
@@ -284,6 +310,10 @@
 
   .picks-status {
     order: 4;
+  }
+
+  .eligibility-indicator {
+    order: 5;
   }
 }
 

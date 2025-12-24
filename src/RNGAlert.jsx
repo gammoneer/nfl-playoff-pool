@@ -1,9 +1,10 @@
 import React, { useMemo } from 'react';
 import './RNGAlert.css';
+import { isPlayerEligible } from './eligibilityUtils';
 
 /**
- * RNG Alert Component
- * Detects paid players with no picks and provides quick RNG options
+ * RNG Alert Component - WITH ELIGIBILITY FILTERING
+ * Detects ELIGIBLE (paid+visible) players with no picks
  * Pool Manager only
  */
 const RNGAlert = ({ 
@@ -16,15 +17,15 @@ const RNGAlert = ({
   onDismiss
 }) => {
 
-  // Detect paid players who need RNG picks
+  // Detect ELIGIBLE players who need RNG picks
   const playersNeedingRNG = useMemo(() => {
     if (!currentWeek || !weekData) return [];
 
-    // Get all paid players
-    const paidPlayers = players.filter(p => p.paymentStatus === 'PAID');
+    // IMPORTANT: Only check ELIGIBLE players (paid + visible)
+    const eligiblePlayers = players.filter(isPlayerEligible);
 
-    // Check which paid players have NO picks for this week
-    const playersWithoutPicks = paidPlayers.filter(player => {
+    // Check which eligible players have NO picks for this week
+    const playersWithoutPicks = eligiblePlayers.filter(player => {
       const playerPick = allPicks.find(
         pick => pick.playerCode === player.playerCode && pick.week === currentWeek
       );
@@ -48,7 +49,7 @@ const RNGAlert = ({
     }));
   }, [players, allPicks, currentWeek, weekData]);
 
-  // Don't show alert if no players need RNG
+  // Don't show alert if no ELIGIBLE players need RNG
   if (playersNeedingRNG.length === 0) {
     return null;
   }
@@ -68,9 +69,10 @@ const RNGAlert = ({
   const handleApplyAll = () => {
     if (confirm(
       `⚠️ APPLY RNG TO ${playersNeedingRNG.length} PLAYER(S)?\n\n` +
-      `This will generate random scores (10-50) for:\n` +
+      `These players are ELIGIBLE (Paid + Visible) but have no picks:\n\n` +
       playersNeedingRNG.map(p => `• ${p.playerName}`).join('\n') +
-      `\n\nContinue?`
+      `\n\nThis will generate random scores (10-50) for all games.\n\n` +
+      `Continue?`
     )) {
       onApplyRNGToAll(playersNeedingRNG);
     }
@@ -80,7 +82,7 @@ const RNGAlert = ({
     <div className="rng-alert-container">
       <div className="rng-alert-header">
         <span className="alert-icon">⚠️</span>
-        <h3>RNG ALERT: {playersNeedingRNG.length} PAID PLAYER{playersNeedingRNG.length !== 1 ? 'S' : ''} NEED PICKS</h3>
+        <h3>RNG ALERT: {playersNeedingRNG.length} ELIGIBLE PLAYER{playersNeedingRNG.length !== 1 ? 'S' : ''} NEED PICKS</h3>
         <button className="dismiss-alert-btn" onClick={onDismiss} title="Dismiss Alert">
           ❌
         </button>
@@ -91,8 +93,12 @@ const RNGAlert = ({
           <strong>Week:</strong> {getWeekDisplayName()}
         </div>
 
+        <div className="eligibility-notice">
+          <strong>ℹ️ Only Eligible Players:</strong> These players are PAID + VISIBLE (eligible to win prizes) but haven't submitted picks yet.
+        </div>
+
         <div className="players-list-section">
-          <h4>📋 Players Missing Picks (Paid Players Only):</h4>
+          <h4>📋 Eligible Players Missing Picks:</h4>
           <div className="players-missing-list">
             {playersNeedingRNG.map((player, index) => (
               <div key={player.playerCode} className="missing-player-item">
@@ -100,6 +106,7 @@ const RNGAlert = ({
                 <span className="player-name-rng">{player.playerName}</span>
                 <span className="player-code-rng">({player.playerCode})</span>
                 <span className="picks-status">0/{player.totalGames} picks</span>
+                <span className="eligibility-indicator">💰✅ ELIGIBLE</span>
               </div>
             ))}
           </div>
@@ -118,7 +125,7 @@ const RNGAlert = ({
         </div>
 
         <div className="rng-info-note">
-          <strong>ℹ️ Note:</strong> This alert will reappear when you login until all paid players have submitted picks or you apply RNG.
+          <strong>ℹ️ Note:</strong> This alert only shows ELIGIBLE players (Paid + Visible). Unpaid or hidden players are not included as they cannot win prizes.
         </div>
       </div>
     </div>

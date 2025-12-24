@@ -401,11 +401,8 @@ function App() {
   // 🎲 RNG ALERT STATE (ADD THESE 2 LINES) ⬇️
   const [showRNGAlert, setShowRNGAlert] = useState(true);
   const [rngAlertDismissed, setRngAlertDismissed] = useState(false);
-  // 💰 PLAYERS STATE (for payment tracking and eligibility)
-  const [allPlayers, setAllPlayers] = useState([]);
 
 
-  // Check if current user is Pool Manager
   // Check if current user is Pool Manager
   const isPoolManager = () => {
     return POOL_MANAGER_CODES.includes(playerCode) && codeValidated;
@@ -1706,31 +1703,6 @@ function App() {
   };
 
   // Pool Manager functions to update game status
-
-  // ============================================
-  // 💰 LOAD PLAYERS FROM FIREBASE
-  // ============================================
-  useEffect(() => {
-    const playersRef = ref(database, 'players');
-    const unsubscribe = onValue(playersRef, (snapshot) => {
-      if (snapshot.exists()) {
-        const playersData = snapshot.val();
-        const playersArray = Object.keys(playersData).map(key => ({
-          id: key,
-          ...playersData[key]
-        }));
-        
-        setAllPlayers(playersArray);
-        console.log(`✅ Loaded ${playersArray.length} players from Firebase`);
-      } else {
-        console.log('ℹ️ No players found in Firebase. Run migration script to create players table.');
-        setAllPlayers([]);
-      }
-    });
-
-    return () => unsubscribe();
-  }, []);
-
   const handleGameStatusChange = (gameId, status) => {
     const updatedStatus = {
       ...gameStatus,

@@ -691,3 +691,55 @@ footer {
     min-width: auto;
   }
 }
+
+/* ============================================================================
+   ADD THIS TO THE END OF YOUR APP.CSS FILE
+   Status badges for payment eligibility
+   ============================================================================ */
+
+/* Payment Status Badges */
+.status-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.status-badge.paid {
+  background: #d4edda;
+  color: #155724;
+  border: 1px solid #28a745;
+}
+
+.status-badge.unpaid {
+  background: #fff3cd;
+  color: #856404;
+  border: 1px solid #ffc107;
+}
+
+.status-badge.pending {
+  background: #e3f2fd;
+  color: #0d47a1;
+  border: 1px solid #2196f3;
+}
+
+/* Table row highlighting */
+tr.status-paid {
+  background: rgba(212, 237, 218, 0.2);
+}
+
+tr.status-unpaid {
+  background: rgba(255, 243, 205, 0.2);
+}
+
+tr.eligible-row {
+  background: rgba(209, 250, 229, 0.3);
+  border-left: 4px solid #10b981;
+}
+
+tr.ineligible-row {
+  background: rgba(254, 202, 202, 0.2);
+  border-left: 4px solid #ef4444;
+}

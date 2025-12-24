@@ -2,8 +2,10 @@ import React, { useState, useMemo } from 'react';
 import './PaymentManagement.css';
 
 /**
- * Payment Management Component
+ * Payment Management Component - WITH PRIZE ELIGIBILITY RULES
  * Pool Manager only - track player payments, hide/show players, batch entry
+ * 
+ * ELIGIBILITY RULE: Only PAID + VISIBLE players can win prizes!
  */
 const PaymentManagement = ({ 
   players = [],
@@ -123,7 +125,7 @@ const PaymentManagement = ({
     return filtered;
   }, [players, searchTerm, filterStatus, sortBy]);
 
-  // Calculate summary stats
+  // Calculate summary stats with eligibility
   const stats = useMemo(() => {
     const paid = players.filter(p => p.paymentStatus === 'PAID').length;
     const unpaid = players.filter(p => !p.paymentStatus || p.paymentStatus === 'UNPAID').length;
@@ -131,7 +133,14 @@ const PaymentManagement = ({
     const totalCollected = players.filter(p => p.paymentStatus === 'PAID')
       .reduce((sum, p) => sum + (p.paymentAmount || 20), 0);
     
-    return { paid, unpaid, pending, totalCollected, total: players.length };
+    // NEW: Calculate eligible players (PAID + VISIBLE)
+    const eligible = players.filter(p => 
+      p.paymentStatus === 'PAID' && p.visibleToPlayers !== false
+    ).length;
+    
+    const ineligible = players.length - eligible;
+    
+    return { paid, unpaid, pending, totalCollected, total: players.length, eligible, ineligible };
   }, [players]);
 
   // Quick mark as paid
@@ -160,9 +169,15 @@ const PaymentManagement = ({
     }
   };
 
-  // Mark as unpaid
-  const handleMarkUnpaid = (playerCode) => {
-    if (confirm('Mark this player as UNPAID?')) {
+  // Mark as unpaid with warning
+  const handleMarkUnpaid = (playerCode, playerName) => {
+    const confirmed = confirm(
+      `⚠️ MARK ${playerName} AS UNPAID?\n\n` +
+      `This will make them INELIGIBLE to win prizes!\n\n` +
+      `Continue?`
+    );
+    
+    if (confirmed) {
       onUpdatePayment(playerCode, {
         status: 'UNPAID',
         timestamp: null,
@@ -172,12 +187,23 @@ const PaymentManagement = ({
     }
   };
 
-  // Toggle visibility
-  const handleToggleVisibility = (playerCode, currentVisibility) => {
+  // Toggle visibility with eligibility warning
+  const handleToggleVisibility = (playerCode, playerName, currentVisibility, isPaid) => {
     const action = currentVisibility === false ? 'SHOW' : 'HIDE';
-    if (confirm(`${action} this player from regular player view?`)) {
-      onTogglePlayerVisibility(playerCode);
+    
+    // Warn if hiding a paid player
+    if (action === 'HIDE' && isPaid) {
+      const confirmed = confirm(
+        `⚠️ HIDE ${playerName}?\n\n` +
+        `This player is PAID!\n\n` +
+        `Hiding them will make them INELIGIBLE to win prizes.\n\n` +
+        `Continue?`
+      );
+      
+      if (!confirmed) return;
     }
+    
+    onTogglePlayerVisibility(playerCode);
   };
 
   // Remove permanently
@@ -200,12 +226,42 @@ const PaymentManagement = ({
     }
   };
 
+  // Get eligibility status
+  const getEligibilityStatus = (player) => {
+    const isPaid = player.paymentStatus === 'PAID';
+    const isVisible = player.visibleToPlayers !== false;
+    
+    if (isPaid && isVisible) {
+      return { eligible: true, badge: '💰✅', text: 'ELIGIBLE' };
+    } else if (!isPaid && isVisible) {
+      return { eligible: false, badge: '⏳❌', text: 'NOT PAID' };
+    } else if (isPaid && !isVisible) {
+      return { eligible: false, badge: '🚫❌', text: 'HIDDEN' };
+    } else {
+      return { eligible: false, badge: '⏳🚫', text: 'UNPAID+HIDDEN' };
+    }
+  };
+
   return (
     <div className="payment-management-container">
       <h2>💰 Payment Management</h2>
       <p className="subtitle">Track player payments, manage visibility, and process batch entries</p>
 
-      {/* Summary Stats */}
+      {/* ELIGIBILITY WARNING */}
+      <div className="eligibility-warning">
+        <h3>⚖️ Prize Eligibility Rule</h3>
+        <p>
+          <strong>Only players who are PAID + VISIBLE can win prizes!</strong><br/>
+          Actions that make players ineligible:
+        </p>
+        <ul>
+          <li>❌ Mark as UNPAID → Player cannot win prizes</li>
+          <li>❌ Hide Player → Player cannot win prizes</li>
+          <li>✅ Mark as PAID + Show Player → Player can win prizes</li>
+        </ul>
+      </div>
+
+      {/* Summary Stats with Eligibility */}
       <div className="payment-stats">
         <div className="stat-box paid">
           <div className="stat-value">{stats.paid}</div>
@@ -215,9 +271,9 @@ const PaymentManagement = ({
           <div className="stat-value">{stats.unpaid}</div>
           <div className="stat-label">Unpaid Players</div>
         </div>
-        <div className="stat-box pending">
-          <div className="stat-value">{stats.pending}</div>
-          <div className="stat-label">Pending</div>
+        <div className="stat-box eligible">
+          <div className="stat-value">{stats.eligible}</div>
+          <div className="stat-label">✅ Eligible to Win</div>
         </div>
         <div className="stat-box total">
           <div className="stat-value">${stats.totalCollected}</div>
@@ -287,14 +343,6 @@ Richard Smith - 202412212130 - etransfer"
             >
               Unpaid ({stats.unpaid})
             </button>
-            {stats.pending > 0 && (
-              <button 
-                className={filterStatus === 'pending' ? 'active' : ''}
-                onClick={() => setFilterStatus('pending')}
-              >
-                Pending ({stats.pending})
-              </button>
-            )}
           </div>
           
           <select 
@@ -315,11 +363,11 @@ Richard Smith - 202412212130 - etransfer"
               <tr>
                 <th>Player Name</th>
                 <th>Code</th>
-                <th>Status</th>
+                <th>Payment Status</th>
                 <th>Payment Time</th>
                 <th>Method</th>
-                <th>Amount</th>
                 <th>Visibility</th>
+                <th>Prize Eligibility</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -334,9 +382,11 @@ Richard Smith - 202412212130 - etransfer"
                 filteredPlayers.map(player => {
                   const status = player.paymentStatus || 'UNPAID';
                   const isVisible = player.visibleToPlayers !== false;
+                  const isPaid = status === 'PAID';
+                  const eligibility = getEligibilityStatus(player);
                   
                   return (
-                    <tr key={player.playerCode} className={`status-${status.toLowerCase()}`}>
+                    <tr key={player.playerCode} className={`status-${status.toLowerCase()} ${eligibility.eligible ? 'eligible-row' : 'ineligible-row'}`}>
                       <td className="player-name-cell">{player.playerName}</td>
                       <td className="code-cell">{player.playerCode}</td>
                       <td className="status-cell">
@@ -346,13 +396,17 @@ Richard Smith - 202412212130 - etransfer"
                       </td>
                       <td className="time-cell">{player.paymentTimestamp || '—'}</td>
                       <td className="method-cell">{player.paymentMethod || '—'}</td>
-                      <td className="amount-cell">{player.paymentAmount ? `$${player.paymentAmount}` : '—'}</td>
                       <td className="visibility-cell">
                         {isVisible ? (
                           <span className="visibility-badge visible">👁️ VISIBLE</span>
                         ) : (
                           <span className="visibility-badge hidden">🚫 HIDDEN</span>
                         )}
+                      </td>
+                      <td className="eligibility-cell">
+                        <span className={`eligibility-badge ${eligibility.eligible ? 'eligible' : 'ineligible'}`}>
+                          {eligibility.badge} {eligibility.text}
+                        </span>
                       </td>
                       <td className="actions-cell">
                         <div className="action-buttons">
@@ -367,8 +421,8 @@ Richard Smith - 202412212130 - etransfer"
                           ) : (
                             <button 
                               className="action-btn unpaid-btn"
-                              onClick={() => handleMarkUnpaid(player.playerCode)}
-                              title="Mark as Unpaid"
+                              onClick={() => handleMarkUnpaid(player.playerCode, player.playerName)}
+                              title="Mark as Unpaid (Makes Ineligible!)"
                             >
                               ⏳ Mark Unpaid
                             </button>
@@ -376,8 +430,8 @@ Richard Smith - 202412212130 - etransfer"
                           
                           <button 
                             className="action-btn visibility-btn"
-                            onClick={() => handleToggleVisibility(player.playerCode, isVisible)}
-                            title={isVisible ? "Hide from Players" : "Show to Players"}
+                            onClick={() => handleToggleVisibility(player.playerCode, player.playerName, isVisible, isPaid)}
+                            title={isVisible ? "Hide from Players (Makes Ineligible!)" : "Show to Players"}
                           >
                             {isVisible ? '🚫 Hide' : '👁️ Show'}
                           </button>
@@ -400,7 +454,9 @@ Richard Smith - 202412212130 - etransfer"
         </div>
 
         <div className="table-footer">
-          Showing {filteredPlayers.length} of {players.length} players
+          Showing {filteredPlayers.length} of {players.length} players | 
+          ✅ {stats.eligible} Eligible to Win Prizes | 
+          ❌ {stats.ineligible} Ineligible
         </div>
       </div>
     </div>
