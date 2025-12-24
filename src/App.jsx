@@ -4726,6 +4726,7 @@ const calculateAllPrizeWinners = () => {
                 <thead>
                   <tr>
                     <th rowSpan="2">Player</th>
+                    <th rowSpan="2">Status</th>
                     {currentWeekData.games.map(game => (
                       <th key={game.id} colSpan="2">
                         Game {game.id}<br/>
@@ -5294,6 +5295,16 @@ const calculateAllPrizeWinners = () => {
                       return (
                         <tr key={idx}>
                           <td className="player-name">{pick.playerName}</td>
+                          <td>
+                            {(() => {
+                              const playerData = allPlayers.find(p => p.playerCode === pick.playerCode);
+                              if (!playerData) return <span className="status-badge unpaid">⏳ UNPAID</span>;
+                              if (playerData.paymentStatus === 'PAID') {
+                                return <span className="status-badge paid">💰 PAID</span>;
+                              }
+                              return <span className="status-badge unpaid">⏳ UNPAID</span>;
+                            })()}
+                          </td>
                           {currentWeekData.games.map(game => {
                             const pred = pick.predictions[game.id];
                             const actual = actualScores[currentWeek]?.[game.id];
