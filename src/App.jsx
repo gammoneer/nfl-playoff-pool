@@ -4069,7 +4069,7 @@ const calculateAllPrizeWinners = () => {
               className={`nav-btn ${currentView === 'winners' ? 'active' : ''}`}
               onClick={() => setCurrentView('winners')}
             >
-              ⚖️ #3 How Winners Are Determined
+            ⚖️ #3 How Winners Are Determined
               {currentView === 'winners' && (
                 <span style={{
                   marginLeft: '8px',
@@ -4081,6 +4081,39 @@ const calculateAllPrizeWinners = () => {
                 </span>
               )}
             </button>
+            
+            {/* 💰 NEW PAYMENTS BUTTON - PASTE THIS ENTIRE BLOCK */}
+            {isPoolManager() && (
+              <button
+                className={`nav-btn ${currentView === 'payments' ? 'active' : ''}`}
+                onClick={() => setCurrentView('payments')}
+              >
+                💰 Payments
+                <span style={{
+                  marginLeft: '8px',
+                  fontSize: '0.7rem',
+                  padding: '2px 6px',
+                  background: '#667eea',
+                  color: 'white',
+                  borderRadius: '10px',
+                  fontWeight: '500'
+                }}>
+                  Pool Manager
+                </span>
+                {currentView === 'payments' && (
+                  <span style={{
+                    marginLeft: '8px',
+                    fontSize: '0.75rem',
+                    opacity: 0.9,
+                    fontStyle: 'italic'
+                  }}>
+                    (you are here)
+                  </span>
+                )}
+              </button>
+            )}
+            {/* END NEW PAYMENTS BUTTON */}
+            
             {isPoolManager() && (
               <button
                 className={`nav-btn ${currentView === 'playoffSetup' ? 'active' : ''}`}
@@ -4224,6 +4257,13 @@ const calculateAllPrizeWinners = () => {
           <LoginLogsViewer 
             isPoolManager={isPoolManager()}
             playerCodes={PLAYER_CODES}
+          />
+        ) : currentView === 'payments' && codeValidated ? (
+          <PaymentManagement
+            players={allPlayers}
+            onUpdatePayment={updatePayment}
+            onTogglePlayerVisibility={togglePlayerVisibility}
+            onRemovePlayer={removePlayer}
           />
         ) : currentView === 'playoffSetup' && codeValidated ? (
           <PlayoffTeamsSetup
