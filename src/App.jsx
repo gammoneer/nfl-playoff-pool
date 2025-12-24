@@ -4139,9 +4139,65 @@ const calculateAllPrizeWinners = () => {
                 )}
               </button>
             )}
+
+            {/* 🔄 MIGRATION BUTTON - ADD THIS */}
+            {isPoolManager() && (
+              <button
+                className="nav-btn"
+                style={{ background: '#10b981', color: 'white' }}
+                onClick={async () => {
+                  if (!confirm('Create players table in Firebase?\n\nThis will add all ' + Object.keys(PLAYER_CODES).length + ' players to Firebase.')) return;
+                  
+                  try {
+                    const playersRef = ref(database, 'players');
+                    const snapshot = await get(playersRef);
+                    
+                    if (snapshot.exists()) {
+                      alert('✅ Players table already exists in Firebase!');
+                      return;
+                    }
+                    
+                    let count = 0;
+                    for (const [code, name] of Object.entries(PLAYER_CODES)) {
+                      await push(ref(database, 'players'), {
+                        playerCode: code,
+                        playerName: name,
+                        role: POOL_MANAGER_CODES.includes(code) ? 'MANAGER' : 'PLAYER',
+                        paymentStatus: 'UNPAID',
+                        paymentTimestamp: '',
+                        paymentMethod: '',
+                        paymentAmount: 0,
+                        visibleToPlayers: true,
+                        createdAt: Date.now(),
+                        updatedAt: Date.now()
+                      });
+                      count++;
+                    }
+                    
+                    alert('✅ SUCCESS!\n\nCreated ' + count + ' players in Firebase!\n\nREFRESH THE PAGE NOW!');
+                  } catch (error) {
+                    alert('❌ Error: ' + error.message);
+                    console.error('Migration error:', error);
+                  }
+                }}
+              >
+                🔄 Create Players Table
+                <span style={{
+                  marginLeft: '8px',
+                  fontSize: '0.7rem',
+                  padding: '2px 6px',
+                  background: '#059669',
+                  color: 'white',
+                  borderRadius: '10px',
+                  fontWeight: '500'
+                }}>
+                  One-Time Setup
+                </span>
+              </button>
+            )}
           </div>
         )}
-
+        
         {/* Conditional Content Based on View */}
         {currentView === 'standings' && codeValidated ? (
           <StandingsPage 
