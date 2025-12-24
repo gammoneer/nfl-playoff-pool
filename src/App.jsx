@@ -4228,6 +4228,81 @@ const calculateAllPrizeWinners = () => {
                 </span>
               </button>
             )}
+            
+            {/* ➕ ADD NEW PLAYER BUTTON */}
+            {isPoolManager() && (
+              <button
+                className="nav-btn"
+                style={{ background: '#3b82f6', color: 'white' }}
+                onClick={async () => {
+                  const newName = prompt('Enter new player name:');
+                  if (!newName || !newName.trim()) {
+                    alert('❌ Cancelled - no name entered');
+                    return;
+                  }
+                  
+                  const newCode = prompt('Enter 6-character access code\n(or leave blank to auto-generate):');
+                  const code = newCode && newCode.trim() ? 
+                               newCode.trim().toUpperCase() : 
+                               Math.random().toString(36).substring(2, 8).toUpperCase();
+                  
+                  if (code.length !== 6) {
+                    alert('❌ Access code must be exactly 6 characters!');
+                    return;
+                  }
+                  
+                  const playersRef = ref(database, 'players');
+                  const snapshot = await get(playersRef);
+                  
+                  if (snapshot.exists()) {
+                    const existingPlayers = snapshot.val();
+                    const codeExists = Object.values(existingPlayers).some(p => p.playerCode === code);
+                    
+                    if (codeExists) {
+                      alert(`❌ Code "${code}" already exists! Please use a different code.`);
+                      return;
+                    }
+                  }
+                  
+                  try {
+                    await push(playersRef, {
+                      playerCode: code,
+                      playerName: newName.trim(),
+                      role: 'PLAYER',
+                      paymentStatus: 'UNPAID',
+                      paymentTimestamp: '',
+                      paymentMethod: '',
+                      paymentAmount: 0,
+                      visibleToPlayers: true,
+                      createdAt: Date.now(),
+                      updatedAt: Date.now()
+                    });
+                    
+                    alert(
+                      `✅ PLAYER ADDED!\n\n` +
+                      `Name: ${newName.trim()}\n` +
+                      `Access Code: ${code}\n\n` +
+                      `📧 Give this code to the player!`
+                    );
+                  } catch (error) {
+                    alert('❌ Error: ' + error.message);
+                  }
+                }}
+              >
+                ➕ Add New Player
+                <span style={{
+                  marginLeft: '8px',
+                  fontSize: '0.7rem',
+                  padding: '2px 6px',
+                  background: '#2563eb',
+                  color: 'white',
+                  borderRadius: '10px',
+                  fontWeight: '500'
+                }}>
+                  Pool Manager
+                </span>
+              </button>
+            )}
           </div>
         )}
         
