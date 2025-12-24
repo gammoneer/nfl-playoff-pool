@@ -124,7 +124,6 @@ const PLAYER_CODES = {
   "D4F7G5": "Bonnie Biletski",
   "536EE2": "Brian Colburg",
   "X8HH67": "Chris Neufeld", //Paid 20251214008  Did SEND code to him and link 202512141140
-  "4HX33H": "Corey Denham",
   "G7R3P5": "Curtis Braun",
   "A4LJC9": "Curtis Palidwor",
   "X3P8N1": "Dallas Pylypow",
@@ -562,7 +561,7 @@ function App() {
           rngPredictions[game.id] = generateRNGScore();
         });
 
-        await submitRNGPicksHelper(
+        await submitPicksForPlayer(
           player.playerCode,
           currentWeek,
           rngPredictions,
@@ -618,7 +617,7 @@ function App() {
   /**
    * Helper: Submit picks for any player (used by RNG)
    */
-  const submitRNGPicksHelper = async (playerCode, week, predictions, enteredBy = 'PLAYER') => {
+  const submitPicksForPlayer = async (playerCode, week, predictions, enteredBy = 'PLAYER') => {
     try {
       const picksRef = ref(database, 'picks');
       const snapshot = await get(picksRef);
