@@ -4274,7 +4274,7 @@ const calculateAllPrizeWinners = () => {
               </button>
             )}
             
-            {/* ➕ ADD NEW PLAYER BUTTON */}
+{/* ➕ ADD NEW PLAYER BUTTON */}
             {isPoolManager() && (
               <button
                 className="nav-btn"
@@ -4348,6 +4348,58 @@ const calculateAllPrizeWinners = () => {
                 </span>
               </button>
             )}
+            
+            {/* 🔄 ADD TABLE FIELD BUTTON - PASTE HERE! */}
+            {isPoolManager() && (
+              <button
+                className="nav-btn"
+                style={{ background: '#f59e0b', color: 'white' }}
+                onClick={async () => {
+                  if (!confirm('Add showInPicksTable field to all players?')) return;
+                  
+                  try {
+                    const playersRef = ref(database, 'players');
+                    const snapshot = await get(playersRef);
+                    
+                    if (!snapshot.exists()) {
+                      alert('❌ No players found');
+                      return;
+                    }
+                    
+                    const players = snapshot.val();
+                    let count = 0;
+                    
+                    for (const [key, player] of Object.entries(players)) {
+                      if (player.showInPicksTable === undefined) {
+                        const playerRef = ref(database, `players/${key}`);
+                        await update(playerRef, {
+                          showInPicksTable: false
+                        });
+                        count++;
+                      }
+                    }
+                    
+                    alert(`✅ Added showInPicksTable to ${count} players!\n\nREFRESH PAGE NOW!`);
+                  } catch (error) {
+                    alert('❌ Error: ' + error.message);
+                  }
+                }}
+              >
+                🔄 Add Table Field
+                <span style={{
+                  marginLeft: '8px',
+                  fontSize: '0.7rem',
+                  padding: '2px 6px',
+                  background: '#d97706',
+                  color: 'white',
+                  borderRadius: '10px',
+                  fontWeight: '500'
+                }}>
+                  One-Time
+                </span>
+              </button>
+            )}
+            
           </div>
         )}
         
