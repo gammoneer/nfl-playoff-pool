@@ -545,6 +545,51 @@ function App() {
     }
   };
 
+  /**
+   * Toggle player's showInPicksTable status
+   */
+  const toggleTableDisplay = async (playerCode) => {
+    try {
+      const playersRef = ref(database, 'players');
+      const snapshot = await get(playersRef);
+      
+      if (!snapshot.exists()) {
+        alert('❌ No players found in database.');
+        return;
+      }
+      
+      const allPlayersData = snapshot.val();
+      let playerKey = null;
+      let currentStatus = false;
+      
+      for (const [key, player] of Object.entries(allPlayersData)) {
+        if (player.playerCode === playerCode) {
+          playerKey = key;
+          currentStatus = player.showInPicksTable === true;
+          break;
+        }
+      }
+      
+      if (!playerKey) {
+        alert(`❌ Player ${playerCode} not found.`);
+        return;
+      }
+      
+      const newStatus = !currentStatus;
+      const playerRef = ref(database, `players/${playerKey}`);
+      await update(playerRef, {
+        showInPicksTable: newStatus,
+        updatedAt: Date.now()
+      });
+      
+      console.log(`✅ Table display toggled for ${playerCode}: ${newStatus ? 'SHOW' : 'HIDE'}`);
+    } catch (error) {
+      console.error('Error toggling table display:', error);
+      alert('❌ Error updating table display. Please try again.');
+    }
+  };
+
+  // ============================================
   // ============================================
   // 🎲 RNG ALERT SYSTEM FUNCTIONS
   // ============================================
@@ -4336,9 +4381,11 @@ const calculateAllPrizeWinners = () => {
         ) : currentView === 'payments' && codeValidated ? (
           <PaymentManagement
             players={allPlayers}
+            allPicks={allPicks}
             onUpdatePayment={updatePayment}
             onTogglePlayerVisibility={togglePlayerVisibility}
             onRemovePlayer={removePlayer}
+            onToggleTableDisplay={toggleTableDisplay}
           />
         ) : currentView === 'playoffSetup' && codeValidated ? (
           <PlayoffTeamsSetup
@@ -5321,28 +5368,61 @@ const calculateAllPrizeWinners = () => {
                   {(() => {
                     // For Super Bowl, show ALL players (even without Week 4 picks)
                     // For other weeks, only show players with picks for that week
-                    const displayPicks = currentWeek === 'superbowl'
-                      ? (() => {
-                          // Get all unique players from all weeks
-                          const uniquePlayers = new Map();
-                          allPicks.forEach(pick => {
-                            if (!uniquePlayers.has(pick.playerCode)) {
-                              // Find if they have superbowl picks
-                              const superbowlPick = allPicks.find(p => p.playerCode === pick.playerCode && p.week === 'superbowl');
-                              
-                              uniquePlayers.set(pick.playerCode, superbowlPick || {
-                                playerName: pick.playerName,
-                                playerCode: pick.playerCode,
-                                week: 'superbowl',
-                                predictions: {},
-                                timestamp: pick.timestamp,
-                                lastUpdated: pick.lastUpdated || pick.timestamp
-                              });
-                            }
-                          });
-                          return Array.from(uniquePlayers.values());
-                        })()
-                      : allPicks.filter(pick => pick.week === currentWeek);
+                    const displayPicks = (() => {
+                      if (currentWeek === 'superbowl') {
+                        // For Super Bowl, show ALL unique players
+                        const uniquePlayers = new Map();
+                        allPicks.forEach(pick => {
+                          if (!uniquePlayers.has(pick.playerCode)) {
+                            const superbowlPick = allPicks.find(p => p.playerCode === pick.playerCode && p.week === 'superbowl');
+                            uniquePlayers.set(pick.playerCode, superbowlPick || {
+                              playerName: pick.playerName,
+                              playerCode: pick.playerCode,
+                              week: 'superbowl',
+                              predictions: {},
+                              timestamp: pick.timestamp,
+                              lastUpdated: pick.lastUpdated || pick.timestamp
+                            });
+                          }
+                        });
+                        
+                        // Add players marked as "showInPicksTable" even if no picks
+                        allPlayers.forEach(player => {
+                          if (player.showInPicksTable === true && !uniquePlayers.has(player.playerCode)) {
+                            uniquePlayers.set(player.playerCode, {
+                              playerName: player.playerName,
+                              playerCode: player.playerCode,
+                              week: 'superbowl',
+                              predictions: {},
+                              timestamp: Date.now(),
+                              lastUpdated: Date.now()
+                            });
+                          }
+                        });
+                        
+                        return Array.from(uniquePlayers.values());
+                      } else {
+                        // For other weeks, show players with picks OR marked to show in table
+                        const picksForWeek = allPicks.filter(pick => pick.week === currentWeek);
+                        const displayedCodes = new Set(picksForWeek.map(p => p.playerCode));
+                        
+                        // Add players marked to show in table (even without picks)
+                        allPlayers.forEach(player => {
+                          if (player.showInPicksTable === true && !displayedCodes.has(player.playerCode)) {
+                            picksForWeek.push({
+                              playerName: player.playerName,
+                              playerCode: player.playerCode,
+                              week: currentWeek,
+                              predictions: {},
+                              timestamp: Date.now(),
+                              lastUpdated: Date.now()
+                            });
+                          }
+                        });
+                        
+                        return picksForWeek;
+                      }
+                    })();
                     
                     return displayPicks
                       .sort((a, b) => (b.lastUpdated || b.timestamp) - (a.lastUpdated || a.timestamp))
