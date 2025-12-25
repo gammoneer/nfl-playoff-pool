@@ -545,3 +545,47 @@
     width: 100%;
   }
 }
+/* FIX: Make payment table scrollable on wide screens */
+.payment-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin-bottom: 20px;
+}
+
+/* Make table fit better */
+.payment-table {
+  min-width: 1400px; /* Minimum width before scrolling */
+}
+
+/* Compact column widths */
+.payment-table th,
+.payment-table td {
+  padding: 10px 8px !important;
+  font-size: 0.9rem;
+}
+
+/* Smaller code column */
+.code-cell {
+  min-width: 70px;
+  font-size: 0.85rem;
+}
+
+/* Compact action buttons */
+.action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 140px;
+}
+
+.action-btn {
+  padding: 6px 10px !important;
+  font-size: 0.85rem !important;
+}
+
+/* Compact table display buttons */
+.table-toggle-btn {
+  padding: 6px 12px !important;
+  font-size: 0.85rem !important;
+}
