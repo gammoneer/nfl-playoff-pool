@@ -2,22 +2,30 @@ import React, { useState, useMemo } from 'react';
 import './PaymentManagement.css';
 
 /**
- * Payment Management Component - WITH PRIZE ELIGIBILITY RULES
- * Pool Manager only - track player payments, hide/show players, batch entry
+ * Payment Management Component - WITH SHOW IN TABLE FEATURE
+ * Pool Manager only - track player payments, hide/show players, control table display
  * 
  * ELIGIBILITY RULE: Only PAID + VISIBLE players can win prizes!
+ * TABLE DISPLAY: Pool Manager controls who appears in All Player Picks table
  */
 const PaymentManagement = ({ 
   players = [],
+  allPicks = [],
   onUpdatePayment,
   onTogglePlayerVisibility,
-  onRemovePlayer
+  onRemovePlayer,
+  onToggleTableDisplay
 }) => {
   
   const [batchText, setBatchText] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all'); // all, paid, unpaid, pending
   const [sortBy, setSortBy] = useState('name'); // name, status, time
+
+  // Check if player has submitted picks
+  const playerHasPicks = (playerCode) => {
+    return allPicks.some(pick => pick.playerCode === playerCode);
+  };
 
   // Parse batch entry text
   const parseBatchEntry = (text) => {
@@ -133,15 +141,21 @@ const PaymentManagement = ({
     const totalCollected = players.filter(p => p.paymentStatus === 'PAID')
       .reduce((sum, p) => sum + (p.paymentAmount || 20), 0);
     
-    // NEW: Calculate eligible players (PAID + VISIBLE)
+    // Eligible players (PAID + VISIBLE)
     const eligible = players.filter(p => 
       p.paymentStatus === 'PAID' && p.visibleToPlayers !== false
     ).length;
     
     const ineligible = players.length - eligible;
     
-    return { paid, unpaid, pending, totalCollected, total: players.length, eligible, ineligible };
-  }, [players]);
+    // Players shown in table
+    const inTable = players.filter(p => {
+      const hasPicks = playerHasPicks(p.playerCode);
+      return hasPicks || p.showInPicksTable === true;
+    }).length;
+    
+    return { paid, unpaid, pending, totalCollected, total: players.length, eligible, ineligible, inTable };
+  }, [players, allPicks]);
 
   // Quick mark as paid
   const handleQuickPaid = (playerCode, playerName) => {
@@ -206,6 +220,25 @@ const PaymentManagement = ({
     onTogglePlayerVisibility(playerCode);
   };
 
+  // Toggle table display
+  const handleToggleTableDisplay = (playerCode, playerName, currentStatus, hasPicks) => {
+    if (hasPicks) {
+      alert(`❌ Cannot hide ${playerName} from table - they have submitted picks!`);
+      return;
+    }
+    
+    const action = currentStatus === true ? 'HIDE' : 'SHOW';
+    const confirmed = confirm(
+      `${action === 'SHOW' ? '✅' : '🚫'} ${action} ${playerName} IN TABLE?\n\n` +
+      `This will ${action === 'SHOW' ? 'add them to' : 'remove them from'} the "All Player Picks" table.\n\n` +
+      `Continue?`
+    );
+    
+    if (confirmed) {
+      onToggleTableDisplay(playerCode);
+    }
+  };
+
   // Remove permanently
   const handleRemovePermanently = (playerCode, playerName) => {
     const confirmed = confirm(
@@ -245,7 +278,7 @@ const PaymentManagement = ({
   return (
     <div className="payment-management-container">
       <h2>💰 Payment Management</h2>
-      <p className="subtitle">Track player payments, manage visibility, and process batch entries</p>
+      <p className="subtitle">Track player payments, manage visibility, and control table display</p>
 
       {/* ELIGIBILITY WARNING */}
       <div className="eligibility-warning">
@@ -261,7 +294,7 @@ const PaymentManagement = ({
         </ul>
       </div>
 
-      {/* Summary Stats with Eligibility */}
+      {/* Summary Stats */}
       <div className="payment-stats">
         <div className="stat-box paid">
           <div className="stat-value">{stats.paid}</div>
@@ -274,6 +307,10 @@ const PaymentManagement = ({
         <div className="stat-box eligible">
           <div className="stat-value">{stats.eligible}</div>
           <div className="stat-label">✅ Eligible to Win</div>
+        </div>
+        <div className="stat-box total" style={{ background: 'linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%)', border: '3px solid #0ea5e9' }}>
+          <div className="stat-value">{stats.inTable}</div>
+          <div className="stat-label">📊 Shown in Table</div>
         </div>
         <div className="stat-box total">
           <div className="stat-value">${stats.totalCollected}</div>
@@ -312,7 +349,7 @@ Richard Smith - 202412212130 - etransfer"
 
       {/* Payment Table */}
       <div className="payment-table-section">
-        <h3>📊 All Players - Payment Status</h3>
+        <h3>📊 All Players - Payment Status & Table Display</h3>
         
         {/* Search and Filters */}
         <div className="table-controls">
@@ -366,6 +403,8 @@ Richard Smith - 202412212130 - etransfer"
                 <th>Payment Status</th>
                 <th>Payment Time</th>
                 <th>Method</th>
+                <th>Picks</th>
+                <th>Show in Table</th>
                 <th>Visibility</th>
                 <th>Prize Eligibility</th>
                 <th>Actions</th>
@@ -374,7 +413,7 @@ Richard Smith - 202412212130 - etransfer"
             <tbody>
               {filteredPlayers.length === 0 ? (
                 <tr>
-                  <td colSpan="8" className="no-results">
+                  <td colSpan="10" className="no-results">
                     No players found
                   </td>
                 </tr>
@@ -384,6 +423,8 @@ Richard Smith - 202412212130 - etransfer"
                   const isVisible = player.visibleToPlayers !== false;
                   const isPaid = status === 'PAID';
                   const eligibility = getEligibilityStatus(player);
+                  const hasPicks = playerHasPicks(player.playerCode);
+                  const showInTable = player.showInPicksTable === true;
                   
                   return (
                     <tr key={player.playerCode} className={`status-${status.toLowerCase()} ${eligibility.eligible ? 'eligible-row' : 'ineligible-row'}`}>
@@ -396,6 +437,34 @@ Richard Smith - 202412212130 - etransfer"
                       </td>
                       <td className="time-cell">{player.paymentTimestamp || '—'}</td>
                       <td className="method-cell">{player.paymentMethod || '—'}</td>
+                      <td className="picks-cell">
+                        {hasPicks ? (
+                          <span style={{ color: '#10b981', fontWeight: 'bold' }}>✓ Has Picks</span>
+                        ) : (
+                          <span style={{ color: '#ef4444' }}>No Picks</span>
+                        )}
+                      </td>
+                      <td className="table-display-cell">
+                        {hasPicks ? (
+                          <span className="table-badge locked">
+                            ✓ IN TABLE 🔒
+                          </span>
+                        ) : showInTable ? (
+                          <button
+                            className="table-toggle-btn show"
+                            onClick={() => handleToggleTableDisplay(player.playerCode, player.playerName, showInTable, hasPicks)}
+                          >
+                            ☑️ Shown
+                          </button>
+                        ) : (
+                          <button
+                            className="table-toggle-btn hide"
+                            onClick={() => handleToggleTableDisplay(player.playerCode, player.playerName, showInTable, hasPicks)}
+                          >
+                            ☐ Hidden
+                          </button>
+                        )}
+                      </td>
                       <td className="visibility-cell">
                         {isVisible ? (
                           <span className="visibility-badge visible">👁️ VISIBLE</span>
@@ -456,7 +525,7 @@ Richard Smith - 202412212130 - etransfer"
         <div className="table-footer">
           Showing {filteredPlayers.length} of {players.length} players | 
           ✅ {stats.eligible} Eligible to Win Prizes | 
-          ❌ {stats.ineligible} Ineligible
+          📊 {stats.inTable} Shown in Picks Table
         </div>
       </div>
     </div>
