@@ -1,3 +1,4 @@
+console.log('🔥🔥🔥 LEADERDISPLAY FILE LOADED 🔥🔥🔥');
 // ============================================
 // LEADER DISPLAY COMPONENT - FINAL VERSION
 // Shows ALL tied leaders + ALL players
@@ -408,7 +409,8 @@ function PrizeLeaderCard({
                   </span>
                   <span className="leader-score">
                     {isCorrectWinners 
-                      ? `✓ Correctly predicted ${leader.score} NFL winning teams (out of ${gameStatus.totalGames})`
+                      ? `🔥🔥🔥 TEST ${leader.score} TEAMS 🔥🔥🔥`
+                      // ? `✓ Correctly predicted ${leader.score} NFL winning teams (out of ${gameStatus.totalGames})`
                       : `${leader.score} pts · Actual: ${leader.actualTotal || 0} pts · Off by: ${leader.difference} pts`
                     }
                   </span>
@@ -429,8 +431,8 @@ function PrizeLeaderCard({
                   <span className="leader-name">{player.playerName}</span>
                   <span className="leader-score">
                     {isCorrectWinners 
-
-                      ? `✓ Correctly predicted ${player.score} NFL winning teams (out of ${gameStatus.totalGames})`
+                      ? `🔥🔥🔥 TEST ${player.score} TEAMS 🔥🔥🔥`
+                      // ? `✓ Correctly predicted ${player.score} NFL winning teams (out of ${gameStatus.totalGames})`
                       : `${player.score} pts · Actual: ${player.actualTotal || 0} pts · Off by: ${player.difference} pts`
                     }
                   </span>
@@ -464,7 +466,8 @@ function PrizeLeaderCard({
                   </span>
                   <span className="leader-score">
                     {isCorrectWinners 
-                      ? `✓ Correctly predicted ${player.score} NFL winning teams (out of ${gameStatus.totalGames})`
+                      ? `🔥🔥🔥 TEST ${player.score} TEAMS 🔥🔥🔥`
+                      // ? `✓ Correctly predicted ${player.score} NFL winning teams (out of ${gameStatus.totalGames})`
                       : `${player.score} pts · Actual: ${player.actualTotal || 0} pts · Off by: ${player.difference} pts`
                     }
                   </span>
