@@ -589,3 +589,85 @@
   padding: 6px 12px !important;
   font-size: 0.85rem !important;
 }
+
+/* ========================================
+   FIX: Better horizontal scrolling on PC
+   ======================================== */
+
+/* Make table wrapper scrollable with visible scrollbar */
+.payment-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: visible;
+  position: relative;
+  margin-bottom: 20px;
+}
+
+/* Force scrollbar to always show */
+.payment-table-wrapper::-webkit-scrollbar {
+  height: 12px;
+}
+
+.payment-table-wrapper::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+.payment-table-wrapper::-webkit-scrollbar-thumb {
+  background: #667eea;
+  border-radius: 10px;
+}
+
+.payment-table-wrapper::-webkit-scrollbar-thumb:hover {
+  background: #5a67d8;
+}
+
+/* Make table headers sticky so they don't scroll away */
+.payment-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+/* Add a scroll hint at the top */
+.payment-table-section::before {
+  content: "⬅️ Scroll horizontally to see all columns ➡️";
+  display: block;
+  text-align: center;
+  padding: 10px;
+  background: #fff3cd;
+  border: 2px solid #ffc107;
+  border-radius: 8px;
+  margin-bottom: 15px;
+  font-weight: 600;
+  color: #856404;
+}
+
+/* Alternative: Make table columns narrower to fit on screen */
+@media (min-width: 1024px) {
+  .payment-table th,
+  .payment-table td {
+    padding: 8px 6px !important;
+    font-size: 0.85rem !important;
+  }
+  
+  .player-name-cell {
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  
+  .code-cell {
+    font-size: 0.8rem !important;
+  }
+  
+  .action-buttons {
+    gap: 4px;
+  }
+  
+  .action-btn {
+    padding: 5px 8px !important;
+    font-size: 0.8rem !important;
+  }
+}
