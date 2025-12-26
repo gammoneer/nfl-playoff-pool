@@ -176,7 +176,7 @@ const HowWinnersAreDetermined = ({
           
           <div className="breakdown-step">
             <div className="step-header">
-              INITIAL TIE: {result.correctWinners} correct winner{result.correctWinners !== 1 ? 's' : ''}
+              INITIAL TIE: Correctly predicted {result.correctWinners} NFL winning team{result.correctWinners !== 1 ? 's' : ''}
             </div>
             <div className="step-detail tied-players">
               ✅ Tied: {result.tiedPlayers.join(', ')}
@@ -272,7 +272,7 @@ const HowWinnersAreDetermined = ({
           
           {result.correctWinners !== undefined && (
             <div className="winner-stat">
-              {result.correctWinners} correct winner{result.correctWinners !== 1 ? 's' : ''}
+              ✓ Correctly predicted {result.correctWinners} NFL winning team{result.correctWinners !== 1 ? 's' : ''}
             </div>
           )}
           
@@ -289,7 +289,7 @@ const HowWinnersAreDetermined = ({
             <div className="tiebreaker-info">
               {result.tiedPlayers && result.tiedPlayers.length > 1 && (
                 <div className="tied-count">
-                  {result.tiedPlayers.length} players tied with {result.correctWinners || 'same score'}
+                  {result.tiedPlayers.length} players tied - each correctly predicted {result.correctWinners} NFL winning team{result.correctWinners !== 1 ? 's' : ''}
                 </div>
               )}
               {result.tiebreakerLevel && (
