@@ -4401,6 +4401,69 @@ const calculateAllPrizeWinners = () => {
               </button>
             )}
             
+            {/* 🔄 SYNC PLAYER CODES BUTTON - PASTE HERE */}
+            {isPoolManager() && (
+              <button
+                className="nav-btn"
+                style={{ background: '#8b5cf6', color: 'white' }}
+                onClick={async () => {
+                  if (!confirm('Sync player codes with PLAYER_CODES?\n\nThis will update all player codes in Firebase to match your hardcoded PLAYER_CODES object.')) return;
+                  
+                  try {
+                    const playersRef = ref(database, 'players');
+                    const snapshot = await get(playersRef);
+                    
+                    if (!snapshot.exists()) {
+                      alert('❌ No players found');
+                      return;
+                    }
+                    
+                    const players = snapshot.val();
+                    let count = 0;
+                    
+                    for (const [firebaseKey, player] of Object.entries(players)) {
+                      // Find matching player in PLAYER_CODES by name
+                      const matchingCode = Object.entries(PLAYER_CODES).find(
+                        ([code, name]) => name === player.playerName
+                      );
+                      
+                      if (matchingCode) {
+                        const [correctCode, name] = matchingCode;
+                        
+                        // Only update if code is different
+                        if (player.playerCode !== correctCode) {
+                          const playerRef = ref(database, `players/${firebaseKey}`);
+                          await update(playerRef, {
+                            playerCode: correctCode,
+                            updatedAt: Date.now()
+                          });
+                          count++;
+                          console.log(`Updated ${name}: ${player.playerCode} → ${correctCode}`);
+                        }
+                      }
+                    }
+                    
+                    alert(`✅ Synced ${count} player codes!\n\nREFRESH PAGE!`);
+                  } catch (error) {
+                    alert('❌ Error: ' + error.message);
+                  }
+                }}
+              >
+                🔄 Sync Player Codes
+                <span style={{
+                  marginLeft: '8px',
+                  fontSize: '0.7rem',
+                  padding: '2px 6px',
+                  background: '#7c3aed',
+                  color: 'white',
+                  borderRadius: '10px',
+                  fontWeight: '500'
+                }}>
+                  Pool Manager
+                </span>
+              </button>
+            )}
+            
           </div>
         )}
         
