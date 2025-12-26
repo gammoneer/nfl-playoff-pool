@@ -429,6 +429,7 @@ function PrizeLeaderCard({
                   <span className="leader-name">{player.playerName}</span>
                   <span className="leader-score">
                     {isCorrectWinners 
+
                       ? `✓ Correctly predicted ${player.score} NFL winning teams (out of ${gameStatus.totalGames})`
                       : `${player.score} pts · Actual: ${player.actualTotal || 0} pts · Off by: ${player.difference} pts`
                     }
@@ -463,7 +464,7 @@ function PrizeLeaderCard({
                   </span>
                   <span className="leader-score">
                     {isCorrectWinners 
-                      ? `${player.score} correct`
+                      ? `✓ Correctly predicted ${player.score} NFL winning teams (out of ${gameStatus.totalGames})`
                       : `${player.score} pts · Actual: ${player.actualTotal || 0} pts · Off by: ${player.difference} pts`
                     }
                   </span>
