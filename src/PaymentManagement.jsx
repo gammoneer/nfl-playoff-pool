@@ -14,7 +14,7 @@ const PaymentManagement = ({
   onUpdatePayment,
   onTogglePlayerVisibility,
   onRemovePlayer,
-  onToggleTableDisplay
+  onToggleTableDisplay,
   onUpdatePlayerCode
 }) => {
   
