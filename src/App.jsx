@@ -650,7 +650,8 @@ const exportPlayersToExcel = async () => {
     const players = snapshot.val();
     
     // Convert to array and format for CSV
-    const playerArray = Object.values(players).map(player => ({
+    const playerArray = Object.entries(players).map(([firebaseKey, player]) => ({
+      'Firebase Key': firebaseKey,
       'Player Name': player.playerName || '',
       'Access Code': player.playerCode || '',
       'Role': player.role || 'PLAYER',
