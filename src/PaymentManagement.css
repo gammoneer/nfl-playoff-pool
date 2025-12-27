@@ -674,14 +674,14 @@
 /* Make table fit on screen - adjust all column widths */
 .payment-table th:nth-child(1) { width: 10%; }  /* Player Name */
 .payment-table th:nth-child(2) { width: 6%; }  /* Code + Edit button */
-.payment-table th:nth-child(3) { width: 12%; }   /* Payment Status */
-.payment-table th:nth-child(4) { width: 9%; }   /* Payment Time */
-.payment-table th:nth-child(5) { width: 6%; }   /* Method */
-.payment-table th:nth-child(6) { width: 6%; }   /* Picks */
-.payment-table th:nth-child(7) { width: 9%; }   /* Show in Table */
-.payment-table th:nth-child(8) { width: 7%; }   /* Visibility */
+.payment-table th:nth-child(3) { width: 10%; }   /* Payment Status */
+.payment-table th:nth-child(4) { width: 6%; }   /* Payment Time */
+.payment-table th:nth-child(5) { width: 10%; }   /* Method */
+.payment-table th:nth-child(6) { width: 8%; }   /* Picks */
+.payment-table th:nth-child(7) { width: 10%; }   /* Show in Table */
+.payment-table th:nth-child(8) { width: 9%; }   /* Visibility */
 .payment-table th:nth-child(9) { width: 11%; }  /* Prize Eligibility */
-.payment-table th:nth-child(10) { width: 22%; } /* Actions */
+.payment-table th:nth-child(10) { width: 20%; } /* Actions */
 
 /* Code column - narrower, stacked layout */
 .code-cell {
