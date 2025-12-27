@@ -15,6 +15,7 @@ const PaymentManagement = ({
   onTogglePlayerVisibility,
   onRemovePlayer,
   onToggleTableDisplay
+  onUpdatePlayerCode
 }) => {
   
   const [batchText, setBatchText] = useState('');
@@ -25,6 +26,54 @@ const PaymentManagement = ({
   // Check if player has submitted picks
   const playerHasPicks = (playerCode) => {
     return allPicks.some(pick => pick.playerCode === playerCode);
+  };
+
+  /**
+   * Handle editing player code
+   */
+  const handleEditCode = (player) => {
+    const currentCode = player.playerCode;
+    const newCode = prompt(
+      `Edit Access Code for ${player.playerName}\n\n` +
+      `Current code: ${currentCode}\n\n` +
+      `Enter new 6-character code (letters and numbers only):`
+    );
+    
+    if (!newCode) return;
+    
+    const cleanCode = newCode.trim().toUpperCase();
+    
+    if (cleanCode.length !== 6) {
+      alert('❌ Code must be exactly 6 characters!');
+      return;
+    }
+    
+    if (!/^[A-Z0-9]{6}$/.test(cleanCode)) {
+      alert('❌ Code must contain only letters and numbers!');
+      return;
+    }
+    
+    const codeExists = players.some(p => 
+      p.playerCode.toUpperCase() === cleanCode && p.playerCode !== currentCode
+    );
+    
+    if (codeExists) {
+      alert(`❌ Code "${cleanCode}" is already in use!`);
+      return;
+    }
+    
+    const confirmed = window.confirm(
+      `⚠️ Change Access Code?\n\n` +
+      `Player: ${player.playerName}\n` +
+      `Old: ${currentCode}\n` +
+      `New: ${cleanCode}\n\n` +
+      `The player will need the NEW code to login!\n\n` +
+      `Continue?`
+    );
+    
+    if (!confirmed) return;
+    
+    onUpdatePlayerCode(currentCode, cleanCode);
   };
 
   // Parse batch entry text

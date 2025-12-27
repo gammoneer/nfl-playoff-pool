@@ -590,6 +590,51 @@ function App() {
     }
   };
 /**
+ * Update player's access code
+ */
+const updatePlayerCode = async (oldCode, newCode) => {
+  try {
+    const playersRef = ref(database, 'players');
+    const snapshot = await get(playersRef);
+    
+    if (!snapshot.exists()) {
+      alert('❌ No players found in database.');
+      return;
+    }
+    
+    const allPlayersData = snapshot.val();
+    let playerKey = null;
+    let playerName = '';
+    
+    // Find player by old code
+    for (const [key, player] of Object.entries(allPlayersData)) {
+      if (player.playerCode === oldCode) {
+        playerKey = key;
+        playerName = player.playerName;
+        break;
+      }
+    }
+    
+    if (!playerKey) {
+      alert(`❌ Player with code ${oldCode} not found.`);
+      return;
+    }
+    
+    // Update the code
+    const playerRef = ref(database, `players/${playerKey}`);
+    await update(playerRef, {
+      playerCode: newCode,
+      updatedAt: Date.now()
+    });
+    
+    console.log(`✅ Updated ${playerName}: ${oldCode} → ${newCode}`);
+    alert(`✅ Code Updated!\n\nPlayer: ${playerName}\nOld: ${oldCode}\nNew: ${newCode}\n\n📧 Make sure to tell the player their new code!`);
+  } catch (error) {
+    console.error('Error updating player code:', error);
+    alert('❌ Error updating code: ' + error.message);
+  }
+};
+/**
  * Export all Firebase players to Excel/CSV
  */
 const exportPlayersToExcel = async () => {
@@ -4659,6 +4704,7 @@ const calculateAllPrizeWinners = () => {
             onTogglePlayerVisibility={togglePlayerVisibility}
             onRemovePlayer={removePlayer}
             onToggleTableDisplay={toggleTableDisplay}
+            onUpdatePlayerCode={updatePlayerCode}
           />
         ) : currentView === 'playoffSetup' && codeValidated ? (
           <PlayoffTeamsSetup
