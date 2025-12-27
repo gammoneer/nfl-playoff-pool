@@ -589,7 +589,73 @@ function App() {
       alert('❌ Error updating table display. Please try again.');
     }
   };
-
+/**
+ * Export all Firebase players to Excel/CSV
+ */
+const exportPlayersToExcel = async () => {
+  try {
+    const playersRef = ref(database, 'players');
+    const snapshot = await get(playersRef);
+    
+    if (!snapshot.exists()) {
+      alert('❌ No players found in database.');
+      return;
+    }
+    
+    const players = snapshot.val();
+    
+    // Convert to array and format for CSV
+    const playerArray = Object.values(players).map(player => ({
+      'Player Name': player.playerName || '',
+      'Access Code': player.playerCode || '',
+      'Role': player.role || 'PLAYER',
+      'Payment Status': player.paymentStatus || 'UNPAID',
+      'Payment Time': player.paymentTimestamp ? new Date(player.paymentTimestamp).toLocaleString() : '',
+      'Payment Method': player.paymentMethod || '',
+      'Payment Amount': player.paymentAmount || 0,
+      'Visible to Players': player.visibleToPlayers ? 'YES' : 'NO',
+      'Show in Picks Table': player.showInPicksTable ? 'YES' : 'NO',
+      'Created': player.createdAt ? new Date(player.createdAt).toLocaleString() : '',
+      'Last Updated': player.updatedAt ? new Date(player.updatedAt).toLocaleString() : ''
+    }));
+    
+    // Sort by player name
+    playerArray.sort((a, b) => a['Player Name'].localeCompare(b['Player Name']));
+    
+    // Create CSV
+    const headers = Object.keys(playerArray[0]);
+    const csvContent = [
+      headers.join(','),
+      ...playerArray.map(row => 
+        headers.map(header => {
+          const value = row[header].toString();
+          // Escape commas and quotes
+          return value.includes(',') || value.includes('"') 
+            ? `"${value.replace(/"/g, '""')}"` 
+            : value;
+        }).join(',')
+      )
+    ].join('\n');
+    
+    // Download file
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    const timestamp = new Date().toISOString().split('T')[0];
+    
+    link.setAttribute('href', url);
+    link.setAttribute('download', `NFL_Pool_Players_${timestamp}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    alert(`✅ SUCCESS!\n\nDownloaded ${playerArray.length} players to CSV file!\n\nFile: NFL_Pool_Players_${timestamp}.csv\n\nOpen with Excel or Google Sheets.`);
+  } catch (error) {
+    console.error('Error exporting players:', error);
+    alert('❌ Error exporting players: ' + error.message);
+  }
+};
   // ============================================
   // ============================================
   // 🎲 RNG ALERT SYSTEM FUNCTIONS
@@ -2586,11 +2652,34 @@ function App() {
       return;
     }
     
-    const playerNameForCode = PLAYER_CODES[code];
-    
+//    const playerNameForCode = PLAYER_CODES[code];
+//    
+//    if (!playerNameForCode) {
+//      logFailedLogin(code, 'Code not recognized');
+//      alert('Invalid player code!\n\nThis code is not recognized.\n\nMake sure you:\n1. Paid your $20 entry fee\n2. Received your code from the pool manager\n3. Entered the code correctly\n\nContact: gammoneer2b@gmail.com');
+//      return;
+//    }
+    // CHECK FIREBASE FIRST (Source of Truth)
+    let playerNameForCode = null;
+    let foundInFirebase = false;
+
+    // Check Firebase players
+    const firebasePlayer = allPlayers.find(p => p.playerCode === code);
+    if (firebasePlayer) {
+      playerNameForCode = firebasePlayer.playerName;
+      foundInFirebase = true;
+      console.log('✅ Player found in Firebase:', playerNameForCode);
+    } else {
+      // Fallback to PLAYER_CODES (Emergency backup)
+      playerNameForCode = PLAYER_CODES[code];
+      if (playerNameForCode) {
+        console.log('⚠️ Player found in App.jsx backup (not in Firebase):', playerNameForCode);
+      }
+    }
+
     if (!playerNameForCode) {
       logFailedLogin(code, 'Code not recognized');
-      alert('Invalid player code!\n\nThis code is not recognized.\n\nMake sure you:\n1. Paid your $20 entry fee\n2. Received your code from the pool manager\n3. Entered the code correctly\n\nContact: gammoneer2b@gmail.com');
+      alert('Invalid player code!\n\nThis code is not recognized in Firebase OR App.jsx.\n\nMake sure you:\n1. Paid your $20 entry fee\n2. Received your code from the pool manager\n3. Entered the code correctly\n\nContact: gammoneer2b@gmail.com');
       return;
     }
     
@@ -4401,25 +4490,83 @@ const calculateAllPrizeWinners = () => {
               </button>
             )}
             
-            {/* 🔄 SYNC PLAYER CODES BUTTON - PASTE HERE */}
+            {/* 📥 EXPORT PLAYERS TO EXCEL BUTTON */}
             {isPoolManager() && (
               <button
                 className="nav-btn"
-                style={{ background: '#8b5cf6', color: 'white' }}
+                style={{ background: '#10b981', color: 'white' }}
+                onClick={exportPlayersToExcel}
+              >
+                📥 Download All Players (Excel)
+                <span style={{
+                  marginLeft: '8px',
+                  fontSize: '0.7rem',
+                  padding: '2px 6px',
+                  background: '#059669',
+                  color: 'white',
+                  borderRadius: '10px',
+                  fontWeight: '500'
+                }}>
+                  Backup
+                </span>
+              </button>
+            )}
+
+            {/* ⚠️ EMERGENCY: SYNC PLAYER CODES (App.jsx → Firebase) */}
+            {isPoolManager() && (
+              <button
+                className="nav-btn"
+                style={{ background: '#dc2626', color: 'white' }}
                 onClick={async () => {
-                  if (!confirm('Sync player codes with PLAYER_CODES?\n\nThis will update all player codes in Firebase to match your hardcoded PLAYER_CODES object.')) return;
+                  // STEP 1: Show checkbox confirmation dialog
+                  const checkboxConfirmed = window.confirm(
+                    '⚠️⚠️⚠️ EMERGENCY OVERRIDE ⚠️⚠️⚠️\n\n' +
+                    'This will OVERWRITE all player codes in Firebase\n' +
+                    'with the hardcoded PLAYER_CODES from App.jsx.\n\n' +
+                    '❌ Any codes manually updated in Firebase will be LOST!\n' +
+                    '❌ This should ONLY be used in emergencies!\n\n' +
+                    'Firebase is the SOURCE OF TRUTH.\n' +
+                    'App.jsx is only a backup.\n\n' +
+                    'Are you SURE you want to override Firebase?'
+                  );
                   
+                  if (!checkboxConfirmed) return;
+                  
+                  // STEP 2: Final confirmation
+                  const finalConfirm = window.confirm(
+                    '🚨 FINAL WARNING 🚨\n\n' +
+                    'Type YES in the next prompt to proceed.\n\n' +
+                    'This action CANNOT be undone!\n\n' +
+                    'Click OK to continue or Cancel to abort.'
+                  );
+                  
+                  if (!finalConfirm) return;
+                  
+                  // STEP 3: Require typing "YES"
+                  const typedConfirmation = prompt(
+                    '⚠️ Type YES (all caps) to confirm:\n\n' +
+                    'I understand this will ERASE all Firebase player codes\n' +
+                    'and replace them with App.jsx PLAYER_CODES.'
+                  );
+                  
+                  if (typedConfirmation !== 'YES') {
+                    alert('❌ Cancelled - you must type YES exactly.');
+                    return;
+                  }
+                  
+                  // STEP 4: Execute override
                   try {
                     const playersRef = ref(database, 'players');
                     const snapshot = await get(playersRef);
                     
                     if (!snapshot.exists()) {
-                      alert('❌ No players found');
+                      alert('❌ No players found in Firebase.');
                       return;
                     }
                     
                     const players = snapshot.val();
                     let count = 0;
+                    let notFound = [];
                     
                     for (const [firebaseKey, player] of Object.entries(players)) {
                       // Find matching player in PLAYER_CODES by name
@@ -4430,40 +4577,50 @@ const calculateAllPrizeWinners = () => {
                       if (matchingCode) {
                         const [correctCode, name] = matchingCode;
                         
-                        // Only update if code is different
-                        if (player.playerCode !== correctCode) {
-                          const playerRef = ref(database, `players/${firebaseKey}`);
-                          await update(playerRef, {
-                            playerCode: correctCode,
-                            updatedAt: Date.now()
-                          });
-                          count++;
-                          console.log(`Updated ${name}: ${player.playerCode} → ${correctCode}`);
-                        }
+                        // Update code in Firebase
+                        const playerRef = ref(database, `players/${firebaseKey}`);
+                        await update(playerRef, {
+                          playerCode: correctCode,
+                          updatedAt: Date.now()
+                        });
+                        count++;
+                        console.log(`✅ Updated ${name}: ${player.playerCode} → ${correctCode}`);
+                      } else {
+                        notFound.push(player.playerName);
                       }
                     }
                     
-                    alert(`✅ Synced ${count} player codes!\n\nREFRESH PAGE!`);
+                    let message = `✅ Emergency Override Complete!\n\n`;
+                    message += `Updated ${count} player codes from App.jsx.\n\n`;
+                    
+                    if (notFound.length > 0) {
+                      message += `⚠️ ${notFound.length} players NOT found in App.jsx PLAYER_CODES:\n`;
+                      message += notFound.join(', ') + '\n\n';
+                      message += `These players were NOT updated!\n\n`;
+                    }
+                    
+                    message += `REFRESH PAGE NOW!`;
+                    
+                    alert(message);
                   } catch (error) {
                     alert('❌ Error: ' + error.message);
                   }
                 }}
               >
-                🔄 Sync Player Codes
+                ⚠️ EMERGENCY: Override Firebase
                 <span style={{
                   marginLeft: '8px',
                   fontSize: '0.7rem',
                   padding: '2px 6px',
-                  background: '#7c3aed',
+                  background: '#991b1b',
                   color: 'white',
                   borderRadius: '10px',
                   fontWeight: '500'
                 }}>
-                  Pool Manager
+                  DANGER
                 </span>
               </button>
-            )}
-            
+            )}            
           </div>
         )}
         
