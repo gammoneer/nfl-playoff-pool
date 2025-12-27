@@ -479,24 +479,26 @@ Richard Smith - 202412212130 - etransfer"
                     <tr key={player.playerCode} className={`status-${status.toLowerCase()} ${eligibility.eligible ? 'eligible-row' : 'ineligible-row'}`}>
                       <td className="player-name-cell">{player.playerName}</td>
                       <td className="code-cell">
-                        {player.playerCode}
-                        <button
-                          onClick={() => handleEditCode(player)}
-                          style={{
-                            marginLeft: '8px',
-                            padding: '4px 8px',
-                            background: '#667eea',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '4px',
-                            cursor: 'pointer',
-                            fontSize: '0.75rem',
-                            fontWeight: '600'
-                          }}
-                          title="Edit access code"
-                        >
-                          ✏️ Edit
-                        </button>
+                        <div style={{display: 'flex', flexDirection: 'column', gap: '4px'}}>
+                          <span>{player.playerCode}</span>
+                          <button
+                            onClick={() => handleEditCode(player)}
+                            style={{
+                              padding: '4px 8px',
+                              background: '#667eea',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '4px',
+                              cursor: 'pointer',
+                              fontSize: '0.7rem',
+                              fontWeight: '600',
+                              whiteSpace: 'nowrap'
+                            }}
+                            title="Edit access code"
+                          >
+                            ✏️ Edit
+                          </button>
+                        </div>
                       </td>
                       <td className="status-cell">
                         {status === 'PAID' && <span className="status-badge paid">💰 PAID</span>}

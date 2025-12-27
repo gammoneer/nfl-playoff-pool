@@ -294,16 +294,16 @@
 }
 
 /* Fixed Column Widths - Fits on Screen */
-.payment-table th:nth-child(1) { width: 11%; } /* Player Name */
-.payment-table th:nth-child(2) { width: 6%; }  /* Code */
-.payment-table th:nth-child(3) { width: 9%; }  /* Payment Status */
-.payment-table th:nth-child(4) { width: 10%; } /* Payment Time */
-.payment-table th:nth-child(5) { width: 7%; }  /* Method */
-.payment-table th:nth-child(6) { width: 7%; }  /* Picks */
-.payment-table th:nth-child(7) { width: 10%; } /* Show in Table */
-.payment-table th:nth-child(8) { width: 8%; }  /* Visibility */
-.payment-table th:nth-child(9) { width: 12%; } /* Prize Eligibility */
-.payment-table th:nth-child(10) { width: 20%; } /* Actions */
+/* .payment-table th:nth-child(1) { width: 11%; } /* Player Name */
+/* .payment-table th:nth-child(2) { width: 15%; }  /* Code */
+/* .payment-table th:nth-child(3) { width: 9%; }  /* Payment Status */
+/* .payment-table th:nth-child(4) { width: 10%; } /* Payment Time */
+/* .payment-table th:nth-child(5) { width: 7%; }  /* Method */
+/* .payment-table th:nth-child(6) { width: 7%; }  /* Picks */
+/* .payment-table th:nth-child(7) { width: 10%; } /* Show in Table */
+/* .payment-table th:nth-child(8) { width: 8%; }  /* Visibility */
+/* .payment-table th:nth-child(9) { width: 12%; } /* Prize Eligibility */
+/* .payment-table th:nth-child(10) { width: 20%; } /* Actions */
 
 .payment-table thead {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -639,4 +639,70 @@
   .action-btn {
     width: 100%;
   }
+}
+
+/* ========================================
+   FIX: Word wrap for Player Name & Payment Time
+   Make Code column wider for Edit button
+   Everything fits on one page
+   ======================================== */
+
+/* Player Name - Allow word wrap */
+.player-name-cell {
+  white-space: normal !important;
+  word-break: break-word !important;
+  line-height: 1.3 !important;
+  min-width: 100px !important;
+  max-width: 150px !important;
+}
+
+/* Code column - Wider for Edit button */
+.code-cell {
+  min-width: 180px !important;
+  white-space: normal !important;
+}
+
+/* Payment Time - Allow word wrap */
+.time-cell {
+  white-space: normal !important;
+  word-break: break-word !important;
+  font-size: 0.75rem !important;
+  line-height: 1.2 !important;
+  max-width: 120px !important;
+}
+
+/* Make table fit on screen - adjust all column widths */
+.payment-table th:nth-child(1) { width: 10%; }  /* Player Name */
+.payment-table th:nth-child(2) { width: 10%; }  /* Code + Edit button */
+.payment-table th:nth-child(3) { width: 10%; }   /* Payment Status */
+.payment-table th:nth-child(4) { width: 9%; }   /* Payment Time */
+.payment-table th:nth-child(5) { width: 6%; }   /* Method */
+.payment-table th:nth-child(6) { width: 6%; }   /* Picks */
+.payment-table th:nth-child(7) { width: 9%; }   /* Show in Table */
+.payment-table th:nth-child(8) { width: 7%; }   /* Visibility */
+.payment-table th:nth-child(9) { width: 11%; }  /* Prize Eligibility */
+.payment-table th:nth-child(10) { width: 22%; } /* Actions */
+
+/* Code column - narrower, stacked layout */
+.code-cell {
+  min-width: 90px !important;
+  max-width: 110px !important;
+  white-space: normal !important;
+  padding: 8px 6px !important;
+}
+
+/* Player Name - word wrap */
+.player-name-cell {
+  white-space: normal !important;
+  word-break: break-word !important;
+  line-height: 1.3 !important;
+  max-width: 140px !important;
+}
+
+/* Payment Time - word wrap */
+.time-cell {
+  white-space: normal !important;
+  word-break: break-word !important;
+  font-size: 0.75rem !important;
+  line-height: 1.2 !important;
 }
