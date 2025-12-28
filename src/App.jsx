@@ -4898,9 +4898,9 @@ const calculateAllPrizeWinners = () => {
                       fontWeight: '600'
                     }}>
                       {currentWeek === 'wildcard' && 'Week 1'}
-                      {currentWeek === 'divisional' && 'Wk 2'}
-                      {currentWeek === 'conference' && 'Wk 3'}
-                      {currentWeek === 'superbowl' && 'Wk 4'}
+                      {currentWeek === 'divisional' && 'Week 2'}
+                      {currentWeek === 'conference' && 'Week 3'}
+                      {currentWeek === 'superbowl' && 'Week 4'}
                     </span>
                   </h2>
                   {!isWeekLocked(currentWeek) && (
