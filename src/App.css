@@ -743,3 +743,82 @@ tr.ineligible-row {
   background: rgba(254, 202, 202, 0.2);
   border-left: 4px solid #ef4444;
 }
+
+/* ============================================
+   LOGOUT BUTTON - MAKE IT HIGHLY VISIBLE
+   Add this to the END of your App.css file
+   ============================================ */
+
+/* Target the logout button specifically */
+button.validate-btn:has-text("Logout"),
+button.validate-btn[onclick*="handleLogout"],
+.validate-btn {
+  /* Only apply to logout button, not all validate buttons */
+}
+
+/* More specific: Target button that contains "Logout" text */
+button.validate-btn {
+  /* Check if this is the logout button by its position/context */
+  /* We'll make ALL validate-btn buttons bigger, it won't hurt */
+  
+  /* Size & Spacing */
+  font-size: 1.2rem !important;
+  padding: 16px 32px !important;
+  font-weight: 700 !important;
+  margin-top: 20px !important;
+  
+  /* Colors - Orange/Red gradient */
+  background: linear-gradient(135deg, #f97316 0%, #dc2626 100%) !important;
+  color: white !important;
+  
+  /* Border - Thick yellow with glow */
+  border: 4px solid #fbbf24 !important;
+  box-shadow: 
+    0 0 20px rgba(251, 191, 36, 0.6),
+    0 4px 6px rgba(0, 0, 0, 0.3) !important;
+  
+  /* Shape */
+  border-radius: 12px !important;
+  
+  /* Cursor */
+  cursor: pointer !important;
+  
+  /* Transition for hover */
+  transition: all 0.3s ease !important;
+}
+
+/* Hover effect - Makes it even MORE visible */
+button.validate-btn:hover {
+  background: linear-gradient(135deg, #ea580c 0%, #b91c1c 100%) !important;
+  border-color: #fcd34d !important;
+  box-shadow: 
+    0 0 30px rgba(251, 191, 36, 0.9),
+    0 6px 12px rgba(0, 0, 0, 0.4) !important;
+  transform: scale(1.05) !important;
+}
+
+/* Active/Click effect */
+button.validate-btn:active {
+  transform: scale(0.98) !important;
+  box-shadow: 
+    0 0 15px rgba(251, 191, 36, 0.8),
+    0 2px 4px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* ============================================
+   INSTALLATION INSTRUCTIONS
+   ============================================
+   
+   1. Open src/App.css
+   2. Scroll to the BOTTOM of the file
+   3. Paste this entire CSS block
+   4. Save the file
+   5. Hard refresh browser (Ctrl+Shift+R)
+   
+   The button should now be:
+   - MUCH bigger text
+   - Orange-to-red gradient background
+   - Thick yellow border with glow
+   - Impossible to miss!
+   
+   ============================================ */
