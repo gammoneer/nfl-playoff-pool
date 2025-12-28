@@ -854,13 +854,3 @@ input[type="number"]:focus {
 .rng-pick-row { background-color: #d0d0d0 !important; }
 .rng-indicator { margin-left: 8px; font-size: 1.2em; cursor: help; filter: grayscale(0.3) contrast(1.5); }
 .rng-indicator:hover { transform: scale(1.3); filter: grayscale(0) contrast(2); }
-
-/* Hide number input spinners so 2 digits show */
-input[type="number"]::-webkit-inner-spin-button,
-input[type="number"]::-webkit-outer-spin-button {
-  -webkit-appearance: none !important;
-  margin: 0 !important;
-}
-input[type="number"] {
-  -moz-appearance: textfield !important;
-}
