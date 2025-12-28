@@ -5770,7 +5770,7 @@ const calculateAllPrizeWinners = () => {
                       };
                       
                       // Check if this pick was RNG generated
-                      const isRNGPick = pick.enteredBy === 'POOL_MANAGER_RNG';
+                      const isRNGPick = pick.submittedBy === 'POOL_MANAGER_RNG';
                       
                       return (
                         <tr key={idx} className={isRNGPick ? 'rng-pick-row' : ''}>
