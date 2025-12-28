@@ -850,25 +850,3 @@ input[type="number"]:focus {
   background: white !important;
   outline: none !important;
 }
-/* ============================================
-   RNG PICKS INDICATOR - GRAY BACKGROUND
-   Show when Pool Manager generated random picks
-   ============================================ */
-
-/* Gray background for RNG pick rows */
-.rng-pick-row {
-  background-color: #f5f5f5 !important;
-}
-
-/* RNG dice icon styling */
-.rng-indicator {
-  margin-left: 6px;
-  font-size: 0.9em;
-  opacity: 0.7;
-  cursor: help;
-  transition: opacity 0.2s;
-}
-
-.rng-indicator:hover {
-  opacity: 1;
-}
