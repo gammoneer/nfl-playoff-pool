@@ -839,7 +839,7 @@ input[type="number"] {
 /* Yellow glow when clicking/typing in the box */
 input[type="number"]:focus {
   border-color: #fbbf24 !important;
-  box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.3) !important;
+  box-shadow: 0 0 0 3px rgba(247, 182, 18, 0.495) !important;
   outline: none !important;
 }
 
