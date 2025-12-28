@@ -823,8 +823,8 @@ button.validate-btn:active {
    
    ============================================ */
 
-/* ============================================
-   SCORE INPUT BOXES - YELLOW GLOW ON HOVER
+   /* ============================================
+   SCORE INPUT BOXES - YELLOW GLOW ON FOCUS
    ============================================ */
 
 /* All score input boxes */
@@ -836,17 +836,14 @@ input[type="number"] {
   transition: all 0.3s ease !important;
 }
 
-/* Yellow glow when HOVERING over the box */
-input[type="number"]:hover {
+/* Yellow glow when clicking/typing in the box */
+input[type="number"]:focus {
   border-color: #fbbf24 !important;
-  box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.4) !important;
-  background: #fffbeb !important; /* Slight yellow tint */
+  box-shadow: 0 0 0 3px rgba(247, 182, 18, 0.495) !important;
+  outline: none !important;
 }
 
-/* Even BRIGHTER glow when clicking/typing in the box */
-input[type="number"]:focus {
-  border-color: #f59e0b !important;
-  box-shadow: 0 0 0 4px rgba(251, 191, 36, 0.6) !important;
-  background: white !important;
-  outline: none !important;
+/* Optional: Subtle hover effect */
+input[type="number"]:hover {
+  border-color: #cbd5e0 !important;
 }
