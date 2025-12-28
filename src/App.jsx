@@ -4731,7 +4731,7 @@ const calculateAllPrizeWinners = () => {
               </p>
               <div className="code-input-group">
                 <label htmlFor="playerCode">
-                  Player Code (6 characters)
+                  Player Code LOGIN ACCESS (6 characters)
                 </label>
                 <input
                   type="text"
