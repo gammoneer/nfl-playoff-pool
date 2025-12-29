@@ -2136,14 +2136,7 @@ const exportPlayersToExcel = async () => {
   const formatWeeklyDisplay = (playerCode, weekName, weekNumber) => {
     const predicted = calculatePredictedTotal(playerCode, weekName);
     const difference = calculateWeeklyTotal(playerCode, weekName);
-    
-    // ✅ FIXED: Check if actual scores have REAL values (not null/undefined/empty strings/zeros)
-    const weekActualScores = actualScores[weekName];
-    const hasActual = weekActualScores && Object.values(weekActualScores).some(game => {
-      return game && 
-             game.team1 !== null && game.team1 !== undefined && game.team1 !== '' && game.team1 !== 0 &&
-             game.team2 !== null && game.team2 !== undefined && game.team2 !== '' && game.team2 !== 0;
-    });
+    const hasActual = Object.keys(actualScores[weekName] || {}).length > 0;
     
     if (!predicted) {
       return { display: '-', tooltip: '', fontSize: '16px' };
@@ -2188,14 +2181,7 @@ const exportPlayersToExcel = async () => {
       const weekName = weekMap[weekNum];
       const pred = calculatePredictedTotal(playerCode, weekName);
       const diff = calculateWeeklyTotal(playerCode, weekName);
-      
-      // ✅ FIXED: Check if actual scores have REAL values (not null/undefined/empty strings/zeros)
-      const weekActualScores = actualScores[weekName];
-      const hasActual = weekActualScores && Object.values(weekActualScores).some(game => {
-        return game && 
-               game.team1 !== null && game.team1 !== undefined && game.team1 !== '' && game.team1 !== 0 &&
-               game.team2 !== null && game.team2 !== undefined && game.team2 !== '' && game.team2 !== 0;
-      });
+      const hasActual = Object.keys(actualScores[weekName] || {}).length > 0;
       
       // ONLY include weeks that have actual scores
       if (pred && hasActual) {

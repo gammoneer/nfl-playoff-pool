@@ -2145,25 +2145,36 @@ const exportPlayersToExcel = async () => {
              game.team2 !== null && game.team2 !== undefined && game.team2 !== '' && game.team2 !== 0;
     });
     
+    console.log(`📅 formatWeeklyDisplay for ${playerCode} Week ${weekNumber} (${weekName}):`, {
+      predicted,
+      difference,
+      hasActual,
+      willShowSlash: hasActual && difference !== 0
+    });
+    
     if (!predicted) {
       return { display: '-', tooltip: '', fontSize: '16px' };
     }
     
     // No actual scores yet - just show prediction
     if (!hasActual || difference === 0) {
-      return {
+      const result = {
         display: `${predicted}`,
         tooltip: `Predicted: ${predicted}`,
         fontSize: '16px'
       };
+      console.log(`  → Returning prediction only:`, result.display);
+      return result;
     }
     
     // Show prediction/difference
-    return {
+    const result = {
       display: `${predicted}/${difference}`,
       tooltip: `Predicted: ${predicted} | Off by: ${difference}`,
       fontSize: '16px'
     };
+    console.log(`  → Returning WITH SLASH:`, result.display);
+    return result;
   };
   
   /**
@@ -3115,7 +3126,7 @@ const exportPlayersToExcel = async () => {
         };
       }
       
-      // Calculate current week total with slash format when actuals exist
+      // Calculate current week total (sum of predicted scores)
       let currentTotal = 0;
       const weekGames = PLAYOFF_WEEKS[currentWeek].games;
       weekGames.forEach(game => {
@@ -3124,33 +3135,7 @@ const exportPlayersToExcel = async () => {
           currentTotal += (parseInt(pred.team1) || 0) + (parseInt(pred.team2) || 0);
         }
       });
-      
-      // Check if current week has actual scores
-      const weekActualScores = actualScores[currentWeek];
-      const hasActual = weekActualScores && Object.values(weekActualScores).some(game => {
-        return game && 
-               game.team1 !== null && game.team1 !== undefined && game.team1 !== '' && game.team1 !== 0 &&
-               game.team2 !== null && game.team2 !== undefined && game.team2 !== '' && game.team2 !== 0;
-      });
-      
-      // Calculate difference if actuals exist
-      let currentDisplay = currentTotal.toString();
-      if (hasActual) {
-        // Calculate actual total for this week
-        let actualTotal = 0;
-        weekGames.forEach(game => {
-          const actual = weekActualScores?.[game.id];
-          if (actual && actual.team1 && actual.team2) {
-            actualTotal += (parseInt(actual.team1) || 0) + (parseInt(actual.team2) || 0);
-          }
-        });
-        
-        // Calculate difference
-        const difference = Math.abs(currentTotal - actualTotal);
-        currentDisplay = `${currentTotal}/${difference}`;
-      }
-      
-      totals[pick.playerName].current = currentDisplay;
+      totals[pick.playerName].current = currentTotal;
       
       // For Super Bowl, calculate all weeks (PREDICTED TOTALS - sum of predicted scores)
       // CRITICAL: Player rows should ALWAYS calculate independently - NEVER use header overrides!
@@ -5877,6 +5862,16 @@ const calculateAllPrizeWinners = () => {
                                 const week1Display = formatWeeklyDisplay(pick.playerCode, 'wildcard', 1);
                                 const grandDisplay = formatGrandDisplay(pick.playerCode);
                                 
+                                // DEBUG: Log what we're about to render
+                                if (pick.playerCode === 'B8L9M2') {
+                                  console.log('🎨 RENDERING Richard Week 1:', {
+                                    playerCode: pick.playerCode,
+                                    playerName: pick.playerName,
+                                    week1Display: week1Display.display,
+                                    week1Object: week1Display
+                                  });
+                                }
+                                
                                 return (
                                   <>
                                     <td 
@@ -5916,7 +5911,7 @@ const calculateAllPrizeWinners = () => {
                             </>
                           ) : (
                             <td style={{backgroundColor: '#f8f9fa', fontWeight: 'bold', fontSize: '16px'}}>
-                              <span style={{color: '#000'}}>{playerTotals[pick.playerName]?.current || '0'}</span>
+                              <span style={{color: '#000'}}>{playerTotals[pick.playerName]?.current || 0}</span>
                             </td>
                           )}
                           
@@ -5938,14 +5933,6 @@ const calculateAllPrizeWinners = () => {
               <div style={{marginTop:'15px',padding:'12px 20px',background:'#f8f9fa',border:'2px solid #dee2e6',borderRadius:'8px',fontSize:'0.9rem',color:'#495057',display:'flex',alignItems:'center',gap:'8px'}}>
                 <span style={{fontSize:'1.2rem'}}>🎲</span>
                 <span style={{fontWeight:'600'}}>= Picks randomly generated by Pool Manager (player missed deadline)</span>
-              </div>
-              
-              {/* Official Total Format Guide */}
-              <div style={{marginTop:'10px',padding:'10px 15px',background:'#e8f5e9',border:'1px solid #81c784',borderRadius:'6px',fontSize:'0.85rem',color:'#2e7d32'}}>
-                <strong>Official Total Format:</strong> 
-                <span style={{marginLeft:'8px'}}><strong>333/14</strong> = Predicted 333 pts, Off by 14 pts</span>
-                <span style={{marginLeft:'15px',color:'#666'}}>|</span>
-                <span style={{marginLeft:'8px'}}><strong>333</strong> = Predicted 333 pts (week not played yet)</span>
               </div>
             </div>
           )}
