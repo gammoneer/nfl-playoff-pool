@@ -2094,22 +2094,21 @@ const exportPlayersToExcel = async () => {
     const weekActualScores = actualScores[week];
     if (!weekActualScores) return 0;
     
-    // Calculate total predicted and total actual for the ENTIRE WEEK
-    let totalPredicted = 0;
-    let totalActual = 0;
-    
+    // Calculate sum of point differences
+    let total = 0;
     Object.keys(playerPick.predictions).forEach(gameId => {
       const pred = playerPick.predictions[gameId];
       const actual = weekActualScores[gameId];
       
       if (pred && actual && pred.team1 && pred.team2 && actual.team1 && actual.team2) {
-        totalPredicted += parseInt(pred.team1) + parseInt(pred.team2);
-        totalActual += parseInt(actual.team1) + parseInt(actual.team2);
+        const predTotal = parseInt(pred.team1) + parseInt(pred.team2);
+        const actualTotal = parseInt(actual.team1) + parseInt(actual.team2);
+        const diff = Math.abs(predTotal - actualTotal);
+        total += diff;
       }
     });
     
-    // Return the absolute difference between total predicted and total actual
-    return Math.abs(totalPredicted - totalActual);
+    return total;
   };
   
   /**
@@ -2136,32 +2135,28 @@ const exportPlayersToExcel = async () => {
   const formatWeeklyDisplay = (playerCode, weekName, weekNumber) => {
     const predicted = calculatePredictedTotal(playerCode, weekName);
     const difference = calculateWeeklyTotal(playerCode, weekName);
-    
-    // ✅ FIXED: Check if actual scores have REAL values (not null/undefined/empty strings/zeros)
-    const weekActualScores = actualScores[weekName];
-    const hasActual = weekActualScores && Object.values(weekActualScores).some(game => {
-      return game && 
-             game.team1 !== null && game.team1 !== undefined && game.team1 !== '' && game.team1 !== 0 &&
-             game.team2 !== null && game.team2 !== undefined && game.team2 !== '' && game.team2 !== 0;
-    });
+    const isRNG = isRNGPick(playerCode, weekName);
+    const hasActual = Object.keys(actualScores[weekName] || {}).length > 0;
     
     if (!predicted) {
       return { display: '-', tooltip: '', fontSize: '16px' };
     }
     
-    // No actual scores yet - just show prediction
+    const asterisk = isRNG ? '*' : '';
+    
     if (!hasActual || difference === 0) {
       return {
-        display: `${predicted}`,
-        tooltip: `Predicted: ${predicted}`,
+        display: `${predicted}${asterisk}`,
+        tooltip: isRNG ? `Predicted: ${predicted} (RNG filled by Pool Manager)` : `Predicted: ${predicted}`,
         fontSize: '16px'
       };
     }
     
-    // Show prediction/difference
     return {
-      display: `${predicted}/${difference}`,
-      tooltip: `Predicted: ${predicted} | Off by: ${difference}`,
+      display: `${predicted}${asterisk}/${difference}`,
+      tooltip: isRNG 
+        ? `Predicted: ${predicted} (RNG) | Difference: ${difference}`
+        : `Predicted: ${predicted} | Difference: ${difference}`,
       fontSize: '16px'
     };
   };
@@ -2177,10 +2172,15 @@ const exportPlayersToExcel = async () => {
       return { display: '-', tooltip: '', fontSize: '16px' };
     }
     
-    // Calculate ONLY for completed weeks
+    const abnormal = isAbnormalPattern(weeks);
+    const prefix = abnormal ? formatPNotation(weeks) + '/' : '';
+    
+    // Calculate full predicted (all weeks player entered)
+    let fullPredicted = 0;
     let playedPredicted = 0;
     let totalDifference = 0;
     let hasAnyActual = false;
+    let allWeeksPlayed = true;
     
     const weekMap = { 1: 'wildcard', 2: 'divisional', 3: 'conference', 4: 'superbowl' };
     
@@ -2188,38 +2188,53 @@ const exportPlayersToExcel = async () => {
       const weekName = weekMap[weekNum];
       const pred = calculatePredictedTotal(playerCode, weekName);
       const diff = calculateWeeklyTotal(playerCode, weekName);
+      const hasActual = Object.keys(actualScores[weekName] || {}).length > 0;
       
-      // ✅ FIXED: Check if actual scores have REAL values (not null/undefined/empty strings/zeros)
-      const weekActualScores = actualScores[weekName];
-      const hasActual = weekActualScores && Object.values(weekActualScores).some(game => {
-        return game && 
-               game.team1 !== null && game.team1 !== undefined && game.team1 !== '' && game.team1 !== 0 &&
-               game.team2 !== null && game.team2 !== undefined && game.team2 !== '' && game.team2 !== 0;
-      });
-      
-      // ONLY include weeks that have actual scores
-      if (pred && hasActual) {
-        playedPredicted += pred;
-        totalDifference += diff;
-        hasAnyActual = true;
+      if (pred) {
+        fullPredicted += pred;
+        
+        if (hasActual && diff > 0) {
+          playedPredicted += pred;
+          totalDifference += diff;
+          hasAnyActual = true;
+        } else if (!hasActual) {
+          allWeeksPlayed = false;
+        }
       }
     });
     
+    // Tooltip text
+    let tooltip = '';
+    if (abnormal) {
+      tooltip = `Weeks Entered: ${weeks.join(', ')} | `;
+    }
+    
     // No games played yet
     if (!hasAnyActual) {
+      tooltip += `Full Prediction: ${fullPredicted}`;
       return {
-        display: '-',
-        tooltip: 'No completed weeks yet',
+        display: `${prefix}${fullPredicted}`,
+        tooltip,
         fontSize: '16px'
       };
     }
     
-    // Show only completed weeks total
-    const tooltip = `Predicted: ${playedPredicted} | Off by: ${totalDifference}`;
+    // All entered weeks are played
+    if (allWeeksPlayed) {
+      tooltip += `Full Prediction: ${fullPredicted} | Total Difference: ${totalDifference}`;
+      return {
+        display: `${prefix}${fullPredicted}/${totalDifference}`,
+        tooltip,
+        fontSize: '16px'
+      };
+    }
+    
+    // Some weeks played, some not
+    tooltip += `Full Prediction: ${fullPredicted} | Played Weeks: ${playedPredicted} | Difference So Far: ${totalDifference}`;
     return {
-      display: `${playedPredicted}/${totalDifference}`,
+      display: `${prefix}${fullPredicted}/${playedPredicted}/${totalDifference}`,
       tooltip,
-      fontSize: '16px'
+      fontSize: '14px' // Smaller font for 3 numbers
     };
   };
   
@@ -5947,52 +5962,6 @@ const calculateAllPrizeWinners = () => {
                     borderRadius: '10px',
                     color: '#333'
                   }}>
-                    {/* Weekly Totals Format */}
-                    <div style={{marginBottom: '25px'}}>
-                      <p style={{
-                        fontWeight: 'bold',
-                        color: '#5a67d8',
-                        marginBottom: '12px',
-                        fontSize: '1.1rem'
-                      }}>
-                        Weekly Totals Format:
-                      </p>
-                      <ul style={{
-                        listStyle: 'none',
-                        padding: 0,
-                        margin: 0,
-                        lineHeight: '2.2'
-                      }}>
-                        <li>
-                          <strong>Before Week is Played:</strong> <code style={{
-                            background: '#f0f4f8',
-                            padding: '4px 10px',
-                            borderRadius: '5px',
-                            fontWeight: 'bold',
-                            color: '#2d3748'
-                          }}>333</code> - Shows your predicted total
-                        </li>
-                        <li>
-                          <strong>After Week is Played:</strong> <code style={{
-                            background: '#f0f4f8',
-                            padding: '4px 10px',
-                            borderRadius: '5px',
-                            fontWeight: 'bold',
-                            color: '#2d3748'
-                          }}>333/14</code> - Prediction / How far off
-                        </li>
-                        <li>
-                          <strong>Week Not Entered:</strong> <code style={{
-                            background: '#f0f4f8',
-                            padding: '4px 10px',
-                            borderRadius: '5px',
-                            fontWeight: 'bold',
-                            color: '#2d3748'
-                          }}>-</code> - Dash means no picks made
-                        </li>
-                      </ul>
-                    </div>
-                    
                     {/* Grand Total Format */}
                     <div style={{marginBottom: '25px'}}>
                       <p style={{
@@ -6001,7 +5970,7 @@ const calculateAllPrizeWinners = () => {
                         marginBottom: '12px',
                         fontSize: '1.1rem'
                       }}>
-                        Grand Total Format (Shows ONLY Completed Weeks):
+                        Grand Total Format:
                       </p>
                       <ul style={{
                         listStyle: 'none',
@@ -6010,59 +5979,47 @@ const calculateAllPrizeWinners = () => {
                         lineHeight: '2.2'
                       }}>
                         <li>
-                          <code style={{
+                          <strong>Complete Entry:</strong> <code style={{
                             background: '#f0f4f8',
                             padding: '4px 10px',
                             borderRadius: '5px',
                             fontWeight: 'bold',
                             color: '#2d3748'
-                          }}>579/39</code>
+                          }}>784</code> - All 4 weeks entered
                         </li>
-                        <li style={{marginLeft: '20px', fontSize: '0.95rem'}}>
-                          • <strong>First Number (579):</strong> Sum of predictions for completed weeks
+                        <li>
+                          <strong>During Season:</strong> <code style={{
+                            background: '#f0f4f8',
+                            padding: '4px 10px',
+                            borderRadius: '5px',
+                            fontWeight: 'bold',
+                            color: '#2d3748'
+                          }}>784/598/35</code> - Full Pred / Played Weeks / Difference
                         </li>
-                        <li style={{marginLeft: '20px', fontSize: '0.95rem'}}>
-                          • <strong>Second Number (39):</strong> Sum of differences for completed weeks
+                        <li>
+                          <strong>After Season:</strong> <code style={{
+                            background: '#f0f4f8',
+                            padding: '4px 10px',
+                            borderRadius: '5px',
+                            fontWeight: 'bold',
+                            color: '#2d3748'
+                          }}>784/55</code> - Full Pred / Total Difference
+                        </li>
+                        <li>
+                          <strong>Abnormal Pattern:</strong> <code style={{
+                            background: '#fff3cd',
+                            padding: '4px 10px',
+                            borderRadius: '5px',
+                            fontWeight: 'bold',
+                            color: '#856404',
+                            border: '2px solid #ffc107'
+                          }}>P13/415</code> - P = Partial (weeks 1 & 3 only - unusual!)
                         </li>
                       </ul>
                     </div>
                     
-                    {/* Examples */}
-                    <div style={{marginBottom: '15px'}}>
-                      <p style={{
-                        fontWeight: 'bold',
-                        color: '#5a67d8',
-                        marginBottom: '12px',
-                        fontSize: '1.1rem'
-                      }}>
-                        Examples:
-                      </p>
-                      
-                      <div style={{marginBottom: '20px', padding: '15px', background: '#e6f7ff', borderRadius: '8px', border: '1px solid #91d5ff'}}>
-                        <p style={{fontWeight: 'bold', marginBottom: '8px', color: '#0050b3'}}>Richard - Only Week 1 Complete:</p>
-                        <ul style={{listStyle: 'none', padding: 0, margin: 0, lineHeight: '1.8'}}>
-                          <li>Week 1: <code style={{background: '#fff', padding: '2px 8px', borderRadius: '4px', fontWeight: 'bold'}}>333/14</code> ← Played</li>
-                          <li>Week 2: <code style={{background: '#fff', padding: '2px 8px', borderRadius: '4px', fontWeight: 'bold'}}>246</code> ← Not played (shows prediction)</li>
-                          <li>Week 3: <code style={{background: '#fff', padding: '2px 8px', borderRadius: '4px', fontWeight: 'bold'}}>108</code> ← Not played (shows prediction)</li>
-                          <li>Week 4: <code style={{background: '#fff', padding: '2px 8px', borderRadius: '4px', fontWeight: 'bold'}}>54</code> ← Not played (shows prediction)</li>
-                          <li style={{marginTop: '8px', fontWeight: 'bold'}}>GRAND: <code style={{background: '#52c41a', color: 'white', padding: '2px 8px', borderRadius: '4px', fontWeight: 'bold'}}>333/14</code> ← Only Week 1</li>
-                        </ul>
-                      </div>
-                      
-                      <div style={{marginBottom: '20px', padding: '15px', background: '#fff7e6', borderRadius: '8px', border: '1px solid #ffd591'}}>
-                        <p style={{fontWeight: 'bold', marginBottom: '8px', color: '#d46b08'}}>Richard - Weeks 1 & 2 Complete:</p>
-                        <ul style={{listStyle: 'none', padding: 0, margin: 0, lineHeight: '1.8'}}>
-                          <li>Week 1: <code style={{background: '#fff', padding: '2px 8px', borderRadius: '4px', fontWeight: 'bold'}}>333/14</code> ← Played</li>
-                          <li>Week 2: <code style={{background: '#fff', padding: '2px 8px', borderRadius: '4px', fontWeight: 'bold'}}>246/25</code> ← Played</li>
-                          <li>Week 3: <code style={{background: '#fff', padding: '2px 8px', borderRadius: '4px', fontWeight: 'bold'}}>108</code> ← Not played (shows prediction)</li>
-                          <li>Week 4: <code style={{background: '#fff', padding: '2px 8px', borderRadius: '4px', fontWeight: 'bold'}}>54</code> ← Not played (shows prediction)</li>
-                          <li style={{marginTop: '8px', fontWeight: 'bold'}}>GRAND: <code style={{background: '#52c41a', color: 'white', padding: '2px 8px', borderRadius: '4px', fontWeight: 'bold'}}>579/39</code> ← Week 1+2 (333+246=579, 14+25=39)</li>
-                        </ul>
-                      </div>
-                    </div>
-                    
                     {/* Special Indicators */}
-                    <div style={{marginBottom: '15px'}}>
+                    <div style={{marginBottom: '25px'}}>
                       <p style={{
                         fontWeight: 'bold',
                         color: '#5a67d8',
@@ -6078,7 +6035,50 @@ const calculateAllPrizeWinners = () => {
                         lineHeight: '2.2'
                       }}>
                         <li>
-                          <strong>🎲 Dice Icon:</strong> Picks randomly generated by Pool Manager (player missed deadline)
+                          <strong>Asterisk (*):</strong> <code style={{
+                            background: '#f0f4f8',
+                            padding: '4px 10px',
+                            borderRadius: '5px',
+                            fontWeight: 'bold',
+                            color: '#2d3748'
+                          }}>234*</code> - Pick filled by RNG/Pool Manager
+                        </li>
+                        <li>
+                          <strong>P Notation:</strong> Shows which weeks entered when pattern is unusual (e.g., P13 = weeks 1 & 3, skipped 2)
+                        </li>
+                        <li>
+                          <strong>Dash (-):</strong> Week not entered yet
+                        </li>
+                      </ul>
+                    </div>
+                    
+                    {/* Examples */}
+                    <div style={{marginBottom: '15px'}}>
+                      <p style={{
+                        fontWeight: 'bold',
+                        color: '#5a67d8',
+                        marginBottom: '12px',
+                        fontSize: '1.1rem'
+                      }}>
+                        Examples:
+                      </p>
+                      <ul style={{
+                        listStyle: 'none',
+                        padding: 0,
+                        margin: 0,
+                        lineHeight: '2.2'
+                      }}>
+                        <li>
+                          Richard: <code style={{background: '#f0f4f8', padding: '4px 10px', borderRadius: '5px', fontWeight: 'bold'}}>784</code> - Entered all 4 weeks normally
+                        </li>
+                        <li>
+                          Neema: <code style={{background: '#f0f4f8', padding: '4px 10px', borderRadius: '5px', fontWeight: 'bold'}}>533/287/22</code> - 2 weeks played so far, 22 points off
+                        </li>
+                        <li>
+                          Bob: <code style={{background: '#fff3cd', padding: '4px 10px', borderRadius: '5px', fontWeight: 'bold', border: '2px solid #ffc107'}}>P13/415</code> - Entered weeks 1 & 3 only (skipped 2) - unusual!
+                        </li>
+                        <li>
+                          After RNG fills Bob's week 2: <code style={{background: '#f0f4f8', padding: '4px 10px', borderRadius: '5px', fontWeight: 'bold'}}>649</code> - P notation drops (normalized)
                         </li>
                       </ul>
                     </div>
@@ -6095,7 +6095,7 @@ const calculateAllPrizeWinners = () => {
                         fontSize: '1rem',
                         margin: 0
                       }}>
-                        💡 <strong>Key Point:</strong> Grand Total only includes completed weeks! Your future week predictions are visible but don't affect Grand Total until those weeks are played.
+                        💡 <strong>Tip:</strong> Hover over any number for detailed breakdown! The P notation only appears for unusual entry patterns and disappears once normalized.
                       </p>
                     </div>
                   </div>
