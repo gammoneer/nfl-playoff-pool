@@ -4998,35 +4998,6 @@ const calculateAllPrizeWinners = () => {
               >
                 🚪 Logout / Switch Entry
               </button>
-              
-              {/* Pool Manager: Clear Login Logs Button */}
-              {isPoolManager() && (
-                <button 
-                  className="validate-btn" 
-                  style={{
-                    marginTop: '10px', 
-                    padding: '10px 20px', 
-                    fontSize: '0.9rem',
-                    background: '#e74c3c',
-                    border: 'none'
-                  }}
-                  onClick={async () => {
-                    if (window.confirm('⚠️ Are you sure you want to CLEAR ALL login logs?\n\nThis will permanently delete all login history from Firebase.\n\nThis action CANNOT be undone!')) {
-                      try {
-                        await set(ref(database, 'loginLogs'), null);
-                        alert('✅ All login logs have been cleared successfully!');
-                        console.log('🗑️ Login logs cleared by Pool Manager');
-                      } catch (error) {
-                        alert('❌ Error clearing login logs: ' + error.message);
-                        console.error('Error clearing login logs:', error);
-                      }
-                    }
-                  }}
-                >
-                  🗑️ Clear All Login Logs
-                </button>
-              )}
-              
               <p style={{
                 fontSize: '0.85rem',
                 color: '#666',
