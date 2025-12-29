@@ -5130,21 +5130,12 @@ const calculateAllPrizeWinners = () => {
                   <div key={game.id} className="game-prediction">
                     <h3>
                       Game {game.id}: {getTeamName(currentWeek, game.id, 'team1', playoffTeams)} @ {getTeamName(currentWeek, game.id, 'team2', playoffTeams)}
-                      {/* 
-                      ========================================
-                      TEAM CODES DISPLAY - TEMPORARILY HIDDEN
-                      ========================================
-                      To re-enable: Remove the comment tags around the code below
-                      This shows 3-letter team codes like (PIT @ NE) below the game heading
-                      ======================================== 
-                      */}
-                      {/* COMMENTED OUT - Remove this line and the closing comment below to re-enable */}
-                      {/* teamCodes[currentWeek]?.[game.id] && (
+                      {/* Show team codes if available */}
+                      {teamCodes[currentWeek]?.[game.id] && (
                         <span style={{fontSize: '0.9rem', color: '#666', marginLeft: '10px'}}>
                           ({teamCodes[currentWeek][game.id].team1 || '?'} @ {teamCodes[currentWeek][game.id].team2 || '?'})
                         </span>
-                      ) */}
-                      {/* END OF COMMENTED OUT SECTION */}
+                      )}
                     </h3>
                     
                     {/* Show actual scores if available */}
@@ -5405,21 +5396,12 @@ const calculateAllPrizeWinners = () => {
                             />
                           </div>
                         )}
-                        {/* 
-                        ========================================
-                        TEAM CODES DISPLAY - TEMPORARILY HIDDEN
-                        ========================================
-                        To re-enable: Remove the comment tags around the code below
-                        This shows 3-letter team codes like "PIT @ NE" in the table header
-                        ======================================== 
-                        */}
-                        {/* COMMENTED OUT - Remove this line and the closing comment below to re-enable */}
-                        {/* !isPoolManager() && teamCodes[currentWeek]?.[game.id] && (
+                        {/* Team codes display for players */}
+                        {!isPoolManager() && teamCodes[currentWeek]?.[game.id] && (
                           <div style={{fontSize: '0.8rem', color: '#ffffff', fontWeight: '700', marginTop: '3px'}}>
                             {teamCodes[currentWeek][game.id].team1 || '?'} @ {teamCodes[currentWeek][game.id].team2 || '?'}
                           </div>
-                        ) */}
-                        {/* END OF COMMENTED OUT SECTION */}
+                        )}
                       </th>
                     ))}
                     
