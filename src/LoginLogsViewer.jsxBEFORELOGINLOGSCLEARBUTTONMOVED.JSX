@@ -17,7 +17,7 @@ import { getDatabase, ref, onValue } from 'firebase/database';
  * Uses CARD LAYOUT instead of table for better visibility!
  */
 
-const LoginLogsViewer = ({ isPoolManager, playerCodes, onClearLogs }) => {
+const LoginLogsViewer = ({ isPoolManager, playerCodes }) => {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -229,48 +229,6 @@ const LoginLogsViewer = ({ isPoolManager, playerCodes, onClearLogs }) => {
           </span>
         </h1>
         <p style={{color: '#666', margin: 0}}>Monitor all login attempts to the NFL Playoff Pool</p>
-        
-        {/* Clear All Login Logs Button */}
-        {isPoolManager && onClearLogs && (
-          <div style={{ marginTop: '20px' }}>
-            <button 
-              onClick={onClearLogs}
-              style={{
-                padding: '12px 24px',
-                fontSize: '1rem',
-                background: '#e74c3c',
-                color: 'white',
-                border: 'none',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                fontWeight: 'bold',
-                boxShadow: '0 2px 8px rgba(231, 76, 60, 0.3)',
-                transition: 'all 0.3s ease'
-              }}
-              onMouseOver={(e) => {
-                e.target.style.background = '#c0392b';
-                e.target.style.transform = 'translateY(-2px)';
-                e.target.style.boxShadow = '0 4px 12px rgba(231, 76, 60, 0.4)';
-              }}
-              onMouseOut={(e) => {
-                e.target.style.background = '#e74c3c';
-                e.target.style.transform = 'translateY(0)';
-                e.target.style.boxShadow = '0 2px 8px rgba(231, 76, 60, 0.3)';
-              }}
-            >
-              🗑️ Clear All Login Logs
-            </button>
-            <p style={{ 
-              fontSize: '0.85rem', 
-              color: '#e74c3c', 
-              marginTop: '8px',
-              marginBottom: 0,
-              fontStyle: 'italic'
-            }}>
-              ⚠️ Warning: This will permanently delete all login history
-            </p>
-          </div>
-        )}
       </div>
 
       {/* Stats Cards */}
