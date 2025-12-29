@@ -351,10 +351,6 @@ function App() {
   // 📡 ESPN API states
   const [gameLocks, setGameLocks] = useState({});      // { wildcard: { 1: true }, ... }
   const [espnAutoRefresh, setEspnAutoRefresh] = useState(null);
-  
-  // Sorting state for player tables
-  const [sortColumn, setSortColumn] = useState(null); // 'correct' or 'difference'
-  const [sortDirection, setSortDirection] = useState('asc'); // 'asc' or 'desc'
   const [lastESPNFetch, setLastESPNFetch] = useState(null);
 
   // ============================================
@@ -2011,152 +2007,10 @@ const exportPlayersToExcel = async () => {
     set(ref(database, `manualWeekTotals/${weekKey}`), null);
   };
   
-  // ============================================
-  // 🔀 SORTING FUNCTIONS
-  // ============================================
-  
   /**
-   * Toggle sort for a column
+   * Calculate auto-calculated weekly total for a player
+   * Sum of point differences for all games in a specific week
    */
-  const handleSort = (column) => {
-    if (sortColumn === column) {
-      // Toggle direction if same column
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
-    } else {
-      // New column, default to ascending
-      setSortColumn(column);
-      setSortDirection('asc');
-    }
-  };
-  
-  /**
-   * Sort picks array based on current sort settings
-   */
-  const getSortedPicks = (picks) => {
-    if (!sortColumn) return picks;
-    
-    return [...picks].sort((a, b) => {
-      let aValue, bValue;
-      
-      if (sortColumn === 'correct') {
-        // Count correct picks
-        if (currentWeek === 'superbowl') {
-          // For Super Bowl table, count across ALL completed weeks
-          const countCorrectForPlayer = (playerPick) => {
-            let count = 0;
-            const weeks = ['wildcard', 'divisional', 'conference', 'superbowl'];
-            
-            weeks.forEach(weekName => {
-              const weekActualScores = actualScores[weekName];
-              const hasActual = weekActualScores && Object.values(weekActualScores).some(game => {
-                return game && 
-                       game.team1 !== null && game.team1 !== undefined && game.team1 !== '' && game.team1 !== 0 &&
-                       game.team2 !== null && game.team2 !== undefined && game.team2 !== '' && game.team2 !== 0;
-              });
-              
-              if (hasActual) {
-                const playerWeekPick = allPicks.find(p => p.playerCode === playerPick.playerCode && p.week === weekName);
-                if (playerWeekPick && playerWeekPick.predictions) {
-                  Object.keys(weekActualScores).forEach(gameId => {
-                    const actual = weekActualScores[gameId];
-                    const pred = playerWeekPick.predictions[gameId];
-                    
-                    if (pred && actual && actual.team1 && actual.team2 && pred.team1 && pred.team2) {
-                      const actualTeam1 = parseInt(actual.team1);
-                      const actualTeam2 = parseInt(actual.team2);
-                      const predTeam1 = parseInt(pred.team1);
-                      const predTeam2 = parseInt(pred.team2);
-                      
-                      if (!isNaN(actualTeam1) && !isNaN(actualTeam2)) {
-                        const actualWinner = actualTeam1 > actualTeam2 ? 'team1' : actualTeam2 > actualTeam1 ? 'team2' : 'tie';
-                        const predWinner = predTeam1 > predTeam2 ? 'team1' : predTeam2 > predTeam1 ? 'team2' : 'tie';
-                        
-                        if (actualWinner === predWinner && actualWinner !== 'tie') {
-                          count++;
-                        }
-                      }
-                    }
-                  });
-                }
-              }
-            });
-            
-            return count;
-          };
-          
-          aValue = countCorrectForPlayer(a);
-          bValue = countCorrectForPlayer(b);
-        } else {
-          // For individual week pages, only count current week
-          aValue = currentWeekData.games.filter(game => {
-            const aPred = a.predictions[game.id];
-            const actual = actualScores[currentWeek]?.[game.id];
-            if (!aPred || !actual || !actual.team1 || !actual.team2) return false;
-            const actualWinner = parseInt(actual.team1) > parseInt(actual.team2) ? 'team1' : 'team2';
-            const predWinner = parseInt(aPred.team1) > parseInt(aPred.team2) ? 'team1' : 'team2';
-            return actualWinner === predWinner;
-          }).length;
-          
-          bValue = currentWeekData.games.filter(game => {
-            const bPred = b.predictions[game.id];
-            const actual = actualScores[currentWeek]?.[game.id];
-            if (!bPred || !actual || !actual.team1 || !actual.team2) return false;
-            const actualWinner = parseInt(actual.team1) > parseInt(actual.team2) ? 'team1' : 'team2';
-            const predWinner = parseInt(bPred.team1) > parseInt(bPred.team2) ? 'team1' : 'team2';
-            return actualWinner === predWinner;
-          }).length;
-        }
-      } else if (sortColumn === 'difference') {
-        // Extract difference from current display (e.g., "333/14" -> 14)
-        const aDisplay = playerTotals[a.playerName]?.current || '0';
-        const bDisplay = playerTotals[b.playerName]?.current || '0';
-        
-        // If it has a slash, take the number after it; otherwise use 999999 (no actuals yet)
-        aValue = aDisplay.includes('/') ? parseInt(aDisplay.split('/')[1]) : 999999;
-        bValue = bDisplay.includes('/') ? parseInt(bDisplay.split('/')[1]) : 999999;
-      } else if (sortColumn === 'week1' || sortColumn === 'week2' || sortColumn === 'week3' || sortColumn === 'week4') {
-        // Sort by specific week's difference (for Super Bowl table)
-        const weekMap = { week1: 'wildcard', week2: 'divisional', week3: 'conference', week4: 'superbowl' };
-        const weekName = weekMap[sortColumn];
-        
-        const aDisplay = formatWeeklyDisplay(a.playerCode, weekName, parseInt(sortColumn.replace('week', ''))).display;
-        const bDisplay = formatWeeklyDisplay(b.playerCode, weekName, parseInt(sortColumn.replace('week', ''))).display;
-        
-        aValue = aDisplay.includes('/') ? parseInt(aDisplay.split('/')[1]) : 999999;
-        bValue = bDisplay.includes('/') ? parseInt(bDisplay.split('/')[1]) : 999999;
-      } else if (sortColumn === 'grand') {
-        // Sort by Grand Total difference
-        const aDisplay = formatGrandDisplay(a.playerCode).display;
-        const bDisplay = formatGrandDisplay(b.playerCode).display;
-        
-        aValue = aDisplay.includes('/') ? parseInt(aDisplay.split('/')[1]) : 999999;
-        bValue = bDisplay.includes('/') ? parseInt(bDisplay.split('/')[1]) : 999999;
-      } else if (sortColumn === 'timestamp') {
-        // Sort by submission timestamp
-        aValue = a.lastUpdated || a.timestamp || 0;
-        bValue = b.lastUpdated || b.timestamp || 0;
-      } else if (sortColumn === 'name') {
-        // Sort by first name alphabetically
-        const aFirstName = a.playerName.split(' ')[0].toLowerCase();
-        const bFirstName = b.playerName.split(' ')[0].toLowerCase();
-        
-        // Use string comparison for alphabetical sorting
-        if (sortDirection === 'asc') {
-          return aFirstName.localeCompare(bFirstName);
-        } else {
-          return bFirstName.localeCompare(aFirstName);
-        }
-      }
-      
-      // Apply sort direction (for numeric values)
-      if (sortDirection === 'asc') {
-        return aValue - bValue;
-      } else {
-        return bValue - aValue;
-      }
-    });
-  };
-  
   // ============================================
   // 🎯 SMART P NOTATION HELPER FUNCTIONS
   // ============================================
@@ -5334,26 +5188,7 @@ const calculateAllPrizeWinners = () => {
               <table className="picks-table">
                 <thead>
                   <tr>
-                    <th rowSpan="2">
-                      Player
-                      <div style={{marginTop: '4px'}}>
-                        <button
-                          onClick={() => handleSort('name')}
-                          style={{
-                            padding: '4px 8px',
-                            fontSize: '0.7rem',
-                            background: sortColumn === 'name' ? '#4caf50' : '#f0f0f0',
-                            color: sortColumn === 'name' ? '#fff' : '#000',
-                            border: '1px solid #ddd',
-                            borderRadius: '4px',
-                            cursor: 'pointer'
-                          }}
-                          title={`Sort by first name ${sortColumn === 'name' && sortDirection === 'asc' ? '(A-Z)' : '(Z-A)'}`}
-                        >
-                          {sortColumn === 'name' ? (sortDirection === 'asc' ? '↑' : '↓') : '⇅'}
-                        </button>
-                      </div>
-                    </th>
+                    <th rowSpan="2">Player</th>
                     {currentWeekData.games.map(game => (
                       <th key={game.id} colSpan="2">
                         Game {game.id}<br/>
@@ -5408,23 +5243,7 @@ const calculateAllPrizeWinners = () => {
                     {/* CORRECT PICKS COLUMN */}
                     <th rowSpan="2" style={{backgroundColor: '#e8f5e9', fontWeight: 'bold', color: '#090909ff', minWidth: '60px', fontSize: '0.75rem', padding: '8px 4px'}}>
                       <div style={{marginBottom: '2px'}}>Correct</div>
-                      <div style={{marginBottom: '4px'}}>Picks</div>
-                      <button
-                        onClick={() => handleSort('correct')}
-                        style={{
-                          padding: '4px 8px',
-                          fontSize: '0.7rem',
-                          background: sortColumn === 'correct' ? '#4caf50' : '#f0f0f0',
-                          color: sortColumn === 'correct' ? '#fff' : '#000',
-                          border: '1px solid #ddd',
-                          borderRadius: '4px',
-                          cursor: 'pointer',
-                          marginTop: '2px'
-                        }}
-                        title={`Sort by correct picks ${sortColumn === 'correct' && sortDirection === 'asc' ? '(Low to High)' : '(High to Low)'}`}
-                      >
-                        {sortColumn === 'correct' ? (sortDirection === 'asc' ? '↑' : '↓') : '⇅'}
-                      </button>
+                      <div>Picks</div>
                     </th>
                     
                     {currentWeek === 'superbowl' ? (
@@ -5484,23 +5303,6 @@ const calculateAllPrizeWinners = () => {
                             </div>
                           )}
                           Week 4<br/>Total
-                          <div style={{marginTop: '6px'}}>
-                            <button
-                              onClick={() => handleSort('week4')}
-                              style={{
-                                padding: '4px 8px',
-                                fontSize: '0.7rem',
-                                background: sortColumn === 'week4' ? '#4caf50' : '#f0f0f0',
-                                color: sortColumn === 'week4' ? '#fff' : '#000',
-                                border: '1px solid #ddd',
-                                borderRadius: '4px',
-                                cursor: 'pointer'
-                              }}
-                              title={`Sort by Week 4 difference ${sortColumn === 'week4' && sortDirection === 'asc' ? '(Low to High)' : '(High to Low)'}`}
-                            >
-                              {sortColumn === 'week4' ? (sortDirection === 'asc' ? '↑' : '↓') : '⇅'}
-                            </button>
-                          </div>
                         </th>
                         <th rowSpan="2" style={{backgroundColor: '#d1ecf1', fontWeight: 'bold', color: '#000'}}>
                           {/* Official Total Input at top */}
@@ -5557,23 +5359,6 @@ const calculateAllPrizeWinners = () => {
                             </div>
                           )}
                           Week 3<br/>Total
-                          <div style={{marginTop: '6px'}}>
-                            <button
-                              onClick={() => handleSort('week3')}
-                              style={{
-                                padding: '4px 8px',
-                                fontSize: '0.7rem',
-                                background: sortColumn === 'week3' ? '#4caf50' : '#f0f0f0',
-                                color: sortColumn === 'week3' ? '#fff' : '#000',
-                                border: '1px solid #ddd',
-                                borderRadius: '4px',
-                                cursor: 'pointer'
-                              }}
-                              title={`Sort by Week 3 difference ${sortColumn === 'week3' && sortDirection === 'asc' ? '(Low to High)' : '(High to Low)'}`}
-                            >
-                              {sortColumn === 'week3' ? (sortDirection === 'asc' ? '↑' : '↓') : '⇅'}
-                            </button>
-                          </div>
                         </th>
                         <th rowSpan="2" style={{backgroundColor: '#d4edda', fontWeight: 'bold', color: '#000'}}>
                           {/* Official Total Input at top */}
@@ -5630,23 +5415,6 @@ const calculateAllPrizeWinners = () => {
                             </div>
                           )}
                           Week 2<br/>Total
-                          <div style={{marginTop: '6px'}}>
-                            <button
-                              onClick={() => handleSort('week2')}
-                              style={{
-                                padding: '4px 8px',
-                                fontSize: '0.7rem',
-                                background: sortColumn === 'week2' ? '#4caf50' : '#f0f0f0',
-                                color: sortColumn === 'week2' ? '#fff' : '#000',
-                                border: '1px solid #ddd',
-                                borderRadius: '4px',
-                                cursor: 'pointer'
-                              }}
-                              title={`Sort by Week 2 difference ${sortColumn === 'week2' && sortDirection === 'asc' ? '(Low to High)' : '(High to Low)'}`}
-                            >
-                              {sortColumn === 'week2' ? (sortDirection === 'asc' ? '↑' : '↓') : '⇅'}
-                            </button>
-                          </div>
                         </th>
                         <th rowSpan="2" style={{backgroundColor: '#f8d7da', fontWeight: 'bold', color: '#000'}}>
                           {/* Official Total Input at top */}
@@ -5703,23 +5471,6 @@ const calculateAllPrizeWinners = () => {
                             </div>
                           )}
                           Week 1<br/>Total
-                          <div style={{marginTop: '6px'}}>
-                            <button
-                              onClick={() => handleSort('week1')}
-                              style={{
-                                padding: '4px 8px',
-                                fontSize: '0.7rem',
-                                background: sortColumn === 'week1' ? '#4caf50' : '#f0f0f0',
-                                color: sortColumn === 'week1' ? '#fff' : '#000',
-                                border: '1px solid #ddd',
-                                borderRadius: '4px',
-                                cursor: 'pointer'
-                              }}
-                              title={`Sort by Week 1 difference ${sortColumn === 'week1' && sortDirection === 'asc' ? '(Low to High)' : '(High to Low)'}`}
-                            >
-                              {sortColumn === 'week1' ? (sortDirection === 'asc' ? '↑' : '↓') : '⇅'}
-                            </button>
-                          </div>
                         </th>
                         <th rowSpan="2" className="grand-total">
                           {/* Official Total Input */}
@@ -5777,23 +5528,6 @@ const calculateAllPrizeWinners = () => {
                           )}
                           
                           GRAND<br/>TOTAL
-                          <div style={{marginTop: '6px'}}>
-                            <button
-                              onClick={() => handleSort('grand')}
-                              style={{
-                                padding: '4px 8px',
-                                fontSize: '0.7rem',
-                                background: sortColumn === 'grand' ? '#4caf50' : '#f0f0f0',
-                                color: sortColumn === 'grand' ? '#fff' : '#000',
-                                border: '1px solid #ddd',
-                                borderRadius: '4px',
-                                cursor: 'pointer'
-                              }}
-                              title={`Sort by Grand Total difference ${sortColumn === 'grand' && sortDirection === 'asc' ? '(Low to High)' : '(High to Low)'}`}
-                            >
-                              {sortColumn === 'grand' ? (sortDirection === 'asc' ? '↑' : '↓') : '⇅'}
-                            </button>
-                          </div>
                         </th>
                       </>
                     ) : (
@@ -5847,45 +5581,9 @@ const calculateAllPrizeWinners = () => {
                         )}
                         
                         Official<br/>Total
-                        <div style={{marginTop: '6px'}}>
-                          <button
-                            onClick={() => handleSort('difference')}
-                            style={{
-                              padding: '4px 8px',
-                              fontSize: '0.7rem',
-                              background: sortColumn === 'difference' ? '#4caf50' : '#f0f0f0',
-                              color: sortColumn === 'difference' ? '#fff' : '#000',
-                              border: '1px solid #ddd',
-                              borderRadius: '4px',
-                              cursor: 'pointer'
-                            }}
-                            title={`Sort by difference ${sortColumn === 'difference' && sortDirection === 'asc' ? '(Low to High)' : '(High to Low)'}`}
-                          >
-                            {sortColumn === 'difference' ? (sortDirection === 'asc' ? '↑' : '↓') : '⇅'}
-                          </button>
-                        </div>
                       </th>
                     )}
-                    <th rowSpan="2">
-                      Submitted
-                      <div style={{marginTop: '4px'}}>
-                        <button
-                          onClick={() => handleSort('timestamp')}
-                          style={{
-                            padding: '4px 8px',
-                            fontSize: '0.7rem',
-                            background: sortColumn === 'timestamp' ? '#4caf50' : '#f0f0f0',
-                            color: sortColumn === 'timestamp' ? '#fff' : '#000',
-                            border: '1px solid #ddd',
-                            borderRadius: '4px',
-                            cursor: 'pointer'
-                          }}
-                          title={`Sort by submission time ${sortColumn === 'timestamp' && sortDirection === 'asc' ? '(Oldest First)' : '(Newest First)'}`}
-                        >
-                          {sortColumn === 'timestamp' ? (sortDirection === 'asc' ? '↑' : '↓') : '⇅'}
-                        </button>
-                      </div>
-                    </th>
+                    <th rowSpan="2">Submitted</th>
                   </tr>
                   
                   {/* ACTUAL SCORES ROW - Enhanced visibility */}
@@ -6066,12 +5764,8 @@ const calculateAllPrizeWinners = () => {
                       }
                     })();
                     
-                    // Apply custom sorting if set, otherwise sort by timestamp
-                    const sortedPicks = sortColumn 
-                      ? getSortedPicks(displayPicks)
-                      : displayPicks.sort((a, b) => (b.lastUpdated || b.timestamp) - (a.lastUpdated || a.timestamp));
-                    
-                    return sortedPicks
+                    return displayPicks
+                      .sort((a, b) => (b.lastUpdated || b.timestamp) - (a.lastUpdated || a.timestamp))
                       .map((pick, idx) => {
                       // Check if any prediction matches actual score (winner)
                       const hasCorrectPrediction = (gameId) => {
@@ -6154,54 +5848,11 @@ const calculateAllPrizeWinners = () => {
                           {/* CORRECT PICKS CELL */}
                           {(() => {
                             let correctCount = 0;
-                            
-                            // For Super Bowl table, count correct picks across ALL completed weeks
-                            if (currentWeek === 'superbowl') {
-                              const weeks = ['wildcard', 'divisional', 'conference', 'superbowl'];
-                              weeks.forEach(weekName => {
-                                const weekActualScores = actualScores[weekName];
-                                // Only count if week has actual scores
-                                const hasActual = weekActualScores && Object.values(weekActualScores).some(game => {
-                                  return game && 
-                                         game.team1 !== null && game.team1 !== undefined && game.team1 !== '' && game.team1 !== 0 &&
-                                         game.team2 !== null && game.team2 !== undefined && game.team2 !== '' && game.team2 !== 0;
-                                });
-                                
-                                if (hasActual) {
-                                  const playerPick = allPicks.find(p => p.playerCode === pick.playerCode && p.week === weekName);
-                                  if (playerPick && playerPick.predictions) {
-                                    Object.keys(weekActualScores).forEach(gameId => {
-                                      const actual = weekActualScores[gameId];
-                                      const pred = playerPick.predictions[gameId];
-                                      
-                                      if (pred && actual && actual.team1 && actual.team2 && pred.team1 && pred.team2) {
-                                        const actualTeam1 = parseInt(actual.team1);
-                                        const actualTeam2 = parseInt(actual.team2);
-                                        const predTeam1 = parseInt(pred.team1);
-                                        const predTeam2 = parseInt(pred.team2);
-                                        
-                                        if (!isNaN(actualTeam1) && !isNaN(actualTeam2)) {
-                                          const actualWinner = actualTeam1 > actualTeam2 ? 'team1' : actualTeam2 > actualTeam1 ? 'team2' : 'tie';
-                                          const predWinner = predTeam1 > predTeam2 ? 'team1' : predTeam2 > predTeam1 ? 'team2' : 'tie';
-                                          
-                                          if (actualWinner === predWinner && actualWinner !== 'tie') {
-                                            correctCount++;
-                                          }
-                                        }
-                                      }
-                                    });
-                                  }
-                                }
-                              });
-                            } else {
-                              // For individual week pages, only count current week
-                              currentWeekData.games.forEach(game => {
-                                if (hasCorrectPrediction(game.id)) {
-                                  correctCount++;
-                                }
-                              });
-                            }
-                            
+                            currentWeekData.games.forEach(game => {
+                              if (hasCorrectPrediction(game.id)) {
+                                correctCount++;
+                              }
+                            });
                             return (
                               <td style={{
                                 backgroundColor: '#f1f8f4',

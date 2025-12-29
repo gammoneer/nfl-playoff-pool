@@ -2039,73 +2039,24 @@ const exportPlayersToExcel = async () => {
       let aValue, bValue;
       
       if (sortColumn === 'correct') {
-        // Count correct picks
-        if (currentWeek === 'superbowl') {
-          // For Super Bowl table, count across ALL completed weeks
-          const countCorrectForPlayer = (playerPick) => {
-            let count = 0;
-            const weeks = ['wildcard', 'divisional', 'conference', 'superbowl'];
-            
-            weeks.forEach(weekName => {
-              const weekActualScores = actualScores[weekName];
-              const hasActual = weekActualScores && Object.values(weekActualScores).some(game => {
-                return game && 
-                       game.team1 !== null && game.team1 !== undefined && game.team1 !== '' && game.team1 !== 0 &&
-                       game.team2 !== null && game.team2 !== undefined && game.team2 !== '' && game.team2 !== 0;
-              });
-              
-              if (hasActual) {
-                const playerWeekPick = allPicks.find(p => p.playerCode === playerPick.playerCode && p.week === weekName);
-                if (playerWeekPick && playerWeekPick.predictions) {
-                  Object.keys(weekActualScores).forEach(gameId => {
-                    const actual = weekActualScores[gameId];
-                    const pred = playerWeekPick.predictions[gameId];
-                    
-                    if (pred && actual && actual.team1 && actual.team2 && pred.team1 && pred.team2) {
-                      const actualTeam1 = parseInt(actual.team1);
-                      const actualTeam2 = parseInt(actual.team2);
-                      const predTeam1 = parseInt(pred.team1);
-                      const predTeam2 = parseInt(pred.team2);
-                      
-                      if (!isNaN(actualTeam1) && !isNaN(actualTeam2)) {
-                        const actualWinner = actualTeam1 > actualTeam2 ? 'team1' : actualTeam2 > actualTeam1 ? 'team2' : 'tie';
-                        const predWinner = predTeam1 > predTeam2 ? 'team1' : predTeam2 > predTeam1 ? 'team2' : 'tie';
-                        
-                        if (actualWinner === predWinner && actualWinner !== 'tie') {
-                          count++;
-                        }
-                      }
-                    }
-                  });
-                }
-              }
-            });
-            
-            return count;
-          };
-          
-          aValue = countCorrectForPlayer(a);
-          bValue = countCorrectForPlayer(b);
-        } else {
-          // For individual week pages, only count current week
-          aValue = currentWeekData.games.filter(game => {
-            const aPred = a.predictions[game.id];
-            const actual = actualScores[currentWeek]?.[game.id];
-            if (!aPred || !actual || !actual.team1 || !actual.team2) return false;
-            const actualWinner = parseInt(actual.team1) > parseInt(actual.team2) ? 'team1' : 'team2';
-            const predWinner = parseInt(aPred.team1) > parseInt(aPred.team2) ? 'team1' : 'team2';
-            return actualWinner === predWinner;
-          }).length;
-          
-          bValue = currentWeekData.games.filter(game => {
-            const bPred = b.predictions[game.id];
-            const actual = actualScores[currentWeek]?.[game.id];
-            if (!bPred || !actual || !actual.team1 || !actual.team2) return false;
-            const actualWinner = parseInt(actual.team1) > parseInt(actual.team2) ? 'team1' : 'team2';
-            const predWinner = parseInt(bPred.team1) > parseInt(bPred.team2) ? 'team1' : 'team2';
-            return actualWinner === predWinner;
-          }).length;
-        }
+        // Count correct picks for current week
+        aValue = currentWeekData.games.filter(game => {
+          const aPred = a.predictions[game.id];
+          const actual = actualScores[currentWeek]?.[game.id];
+          if (!aPred || !actual || !actual.team1 || !actual.team2) return false;
+          const actualWinner = parseInt(actual.team1) > parseInt(actual.team2) ? 'team1' : 'team2';
+          const predWinner = parseInt(aPred.team1) > parseInt(aPred.team2) ? 'team1' : 'team2';
+          return actualWinner === predWinner;
+        }).length;
+        
+        bValue = currentWeekData.games.filter(game => {
+          const bPred = b.predictions[game.id];
+          const actual = actualScores[currentWeek]?.[game.id];
+          if (!bPred || !actual || !actual.team1 || !actual.team2) return false;
+          const actualWinner = parseInt(actual.team1) > parseInt(actual.team2) ? 'team1' : 'team2';
+          const predWinner = parseInt(bPred.team1) > parseInt(bPred.team2) ? 'team1' : 'team2';
+          return actualWinner === predWinner;
+        }).length;
       } else if (sortColumn === 'difference') {
         // Extract difference from current display (e.g., "333/14" -> 14)
         const aDisplay = playerTotals[a.playerName]?.current || '0';
@@ -6154,54 +6105,11 @@ const calculateAllPrizeWinners = () => {
                           {/* CORRECT PICKS CELL */}
                           {(() => {
                             let correctCount = 0;
-                            
-                            // For Super Bowl table, count correct picks across ALL completed weeks
-                            if (currentWeek === 'superbowl') {
-                              const weeks = ['wildcard', 'divisional', 'conference', 'superbowl'];
-                              weeks.forEach(weekName => {
-                                const weekActualScores = actualScores[weekName];
-                                // Only count if week has actual scores
-                                const hasActual = weekActualScores && Object.values(weekActualScores).some(game => {
-                                  return game && 
-                                         game.team1 !== null && game.team1 !== undefined && game.team1 !== '' && game.team1 !== 0 &&
-                                         game.team2 !== null && game.team2 !== undefined && game.team2 !== '' && game.team2 !== 0;
-                                });
-                                
-                                if (hasActual) {
-                                  const playerPick = allPicks.find(p => p.playerCode === pick.playerCode && p.week === weekName);
-                                  if (playerPick && playerPick.predictions) {
-                                    Object.keys(weekActualScores).forEach(gameId => {
-                                      const actual = weekActualScores[gameId];
-                                      const pred = playerPick.predictions[gameId];
-                                      
-                                      if (pred && actual && actual.team1 && actual.team2 && pred.team1 && pred.team2) {
-                                        const actualTeam1 = parseInt(actual.team1);
-                                        const actualTeam2 = parseInt(actual.team2);
-                                        const predTeam1 = parseInt(pred.team1);
-                                        const predTeam2 = parseInt(pred.team2);
-                                        
-                                        if (!isNaN(actualTeam1) && !isNaN(actualTeam2)) {
-                                          const actualWinner = actualTeam1 > actualTeam2 ? 'team1' : actualTeam2 > actualTeam1 ? 'team2' : 'tie';
-                                          const predWinner = predTeam1 > predTeam2 ? 'team1' : predTeam2 > predTeam1 ? 'team2' : 'tie';
-                                          
-                                          if (actualWinner === predWinner && actualWinner !== 'tie') {
-                                            correctCount++;
-                                          }
-                                        }
-                                      }
-                                    });
-                                  }
-                                }
-                              });
-                            } else {
-                              // For individual week pages, only count current week
-                              currentWeekData.games.forEach(game => {
-                                if (hasCorrectPrediction(game.id)) {
-                                  correctCount++;
-                                }
-                              });
-                            }
-                            
+                            currentWeekData.games.forEach(game => {
+                              if (hasCorrectPrediction(game.id)) {
+                                correctCount++;
+                              }
+                            });
                             return (
                               <td style={{
                                 backgroundColor: '#f1f8f4',
