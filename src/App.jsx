@@ -7472,21 +7472,21 @@ const calculateAllPrizeWinners = () => {
                 flexWrap: 'wrap',
                 fontSize: '0.9rem'
               }}>
-              <div style={{display: 'flex', alignItems: 'center', gap: '6px'}}>
-                <div style={{width: '24px', height: '24px', background: '#a5d6a7', borderRadius: '4px', border: '2px solid #2e7d32'}}></div>
-                <span><strong>Very Common</strong> (30+ times)</span>
+              <div style={{display: 'flex', alignItems: 'center', gap: '8px', minWidth: '200px', marginBottom: '8px'}}>
+                <div style={{width: '28px', height: '28px', background: '#a5d6a7', borderRadius: '4px', border: '2px solid #2e7d32', flexShrink: 0}}></div>
+                <span style={{color: '#000', fontSize: '0.9rem'}}><strong>Very Common</strong> (30+ times)</span>
               </div>
-              <div style={{display: 'flex', alignItems: 'center', gap: '6px'}}>
-                <div style={{width: '24px', height: '24px', background: '#fff59d', borderRadius: '4px', border: '2px solid #f9a825'}}></div>
-                <span><strong>Common</strong> (15-29 times)</span>
+              <div style={{display: 'flex', alignItems: 'center', gap: '8px', minWidth: '200px', marginBottom: '8px'}}>
+                <div style={{width: '28px', height: '28px', background: '#fff59d', borderRadius: '4px', border: '2px solid #f9a825', flexShrink: 0}}></div>
+                <span style={{color: '#000', fontSize: '0.9rem'}}><strong>Common</strong> (15-29 times)</span>
               </div>
-              <div style={{display: 'flex', alignItems: 'center', gap: '6px'}}>
-                <div style={{width: '24px', height: '24px', background: '#ffcc80', borderRadius: '4px', border: '2px solid #ef6c00'}}></div>
-                <span><strong>Less Common</strong> (5-14 times)</span>
+              <div style={{display: 'flex', alignItems: 'center', gap: '8px', minWidth: '200px', marginBottom: '8px'}}>
+                <div style={{width: '28px', height: '28px', background: '#ffcc80', borderRadius: '4px', border: '2px solid #ef6c00', flexShrink: 0}}></div>
+                <span style={{color: '#000', fontSize: '0.9rem'}}><strong>Less Common</strong> (5-14 times)</span>
               </div>
-              <div style={{display: 'flex', alignItems: 'center', gap: '6px'}}>
-                <div style={{width: '24px', height: '24px', background: '#ef9a9a', borderRadius: '4px', border: '2px solid #c62828'}}></div>
-                <span><strong>Rare</strong> (0-4 times)</span>
+              <div style={{display: 'flex', alignItems: 'center', gap: '8px', minWidth: '200px', marginBottom: '8px'}}>
+                <div style={{width: '28px', height: '28px', background: '#ef9a9a', borderRadius: '4px', border: '2px solid #c62828', flexShrink: 0}}></div>
+                <span style={{color: '#000', fontSize: '0.9rem'}}><strong>Rare</strong> (0-4 times)</span>
               </div>
               </div>
             </div>
