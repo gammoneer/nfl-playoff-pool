@@ -2172,30 +2172,69 @@ const exportPlayersToExcel = async () => {
           }).length;
         }
       } else if (sortColumn === 'difference') {
-        // Extract difference from current display (e.g., "333/14" -> 14)
+        // Smart sorting: 
+        // - If has slash (e.g., "333/14"): sort by difference (14)
+        // - If no slash (e.g., "333"): sort by predicted total (333)
         const aDisplay = playerTotals[a.playerName]?.current || '0';
         const bDisplay = playerTotals[b.playerName]?.current || '0';
         
-        // If it has a slash, take the number after it; otherwise use 999999 (no actuals yet)
-        aValue = aDisplay.includes('/') ? parseInt(aDisplay.split('/')[1]) : 999999;
-        bValue = bDisplay.includes('/') ? parseInt(bDisplay.split('/')[1]) : 999999;
+        // Check if has slash - if yes, sort by difference; if no, sort by predicted total
+        if (aDisplay.includes('/')) {
+          aValue = parseInt(aDisplay.split('/')[1]); // Get difference (number after slash)
+        } else {
+          aValue = parseInt(aDisplay); // Get predicted total (whole number)
+        }
+        
+        if (bDisplay.includes('/')) {
+          bValue = parseInt(bDisplay.split('/')[1]); // Get difference (number after slash)
+        } else {
+          bValue = parseInt(bDisplay); // Get predicted total (whole number)
+        }
       } else if (sortColumn === 'week1' || sortColumn === 'week2' || sortColumn === 'week3' || sortColumn === 'week4') {
-        // Sort by specific week's difference (for Super Bowl table)
+        // Smart sorting for specific weeks
         const weekMap = { week1: 'wildcard', week2: 'divisional', week3: 'conference', week4: 'superbowl' };
         const weekName = weekMap[sortColumn];
         
         const aDisplay = formatWeeklyDisplay(a.playerCode, weekName, parseInt(sortColumn.replace('week', ''))).display;
         const bDisplay = formatWeeklyDisplay(b.playerCode, weekName, parseInt(sortColumn.replace('week', ''))).display;
         
-        aValue = aDisplay.includes('/') ? parseInt(aDisplay.split('/')[1]) : 999999;
-        bValue = bDisplay.includes('/') ? parseInt(bDisplay.split('/')[1]) : 999999;
+        // Smart sorting: sort by difference if has slash, by predicted total if no slash
+        if (aDisplay.includes('/')) {
+          aValue = parseInt(aDisplay.split('/')[1]);
+        } else if (aDisplay === '-') {
+          aValue = 999999; // Put dashes at end
+        } else {
+          aValue = parseInt(aDisplay);
+        }
+        
+        if (bDisplay.includes('/')) {
+          bValue = parseInt(bDisplay.split('/')[1]);
+        } else if (bDisplay === '-') {
+          bValue = 999999; // Put dashes at end
+        } else {
+          bValue = parseInt(bDisplay);
+        }
       } else if (sortColumn === 'grand') {
-        // Sort by Grand Total difference
+        // Smart sorting for Grand Total
         const aDisplay = formatGrandDisplay(a.playerCode).display;
         const bDisplay = formatGrandDisplay(b.playerCode).display;
         
-        aValue = aDisplay.includes('/') ? parseInt(aDisplay.split('/')[1]) : 999999;
-        bValue = bDisplay.includes('/') ? parseInt(bDisplay.split('/')[1]) : 999999;
+        // Smart sorting: sort by difference if has slash, by predicted total if no slash
+        if (aDisplay.includes('/')) {
+          aValue = parseInt(aDisplay.split('/')[1]);
+        } else if (aDisplay === '-') {
+          aValue = 999999; // Put dashes at end
+        } else {
+          aValue = parseInt(aDisplay);
+        }
+        
+        if (bDisplay.includes('/')) {
+          bValue = parseInt(bDisplay.split('/')[1]);
+        } else if (bDisplay === '-') {
+          bValue = 999999; // Put dashes at end
+        } else {
+          bValue = parseInt(bDisplay);
+        }
       } else if (sortColumn === 'timestamp') {
         // Sort by submission timestamp
         aValue = a.lastUpdated || a.timestamp || 0;
