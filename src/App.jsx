@@ -7362,29 +7362,54 @@ const calculateAllPrizeWinners = () => {
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
+            {/* Header with Close Button */}
             <div style={{marginBottom: '25px'}}>
-              <h2 style={{
-                fontSize: '1.8rem',
-                margin: '0 0 10px 0',
-                color: '#000',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px'
-              }}>
-                📊 NFL Scoring Guide
-                <span style={{
-                  fontSize: '0.6rem',
-                  padding: '4px 12px',
-                  background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-                  color: 'white',
-                  borderRadius: '20px',
-                  fontWeight: '500'
+              <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px'}}>
+                <h2 style={{
+                  fontSize: '1.8rem',
+                  margin: 0,
+                  color: '#000',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px'
                 }}>
-                  2025 Regular Season Data
-                </span>
-              </h2>
-              <p style={{color: '#666', margin: 0, fontSize: '0.95rem'}}>
+                  📊 NFL Scoring Guide
+                  <span style={{
+                    fontSize: '0.6rem',
+                    padding: '4px 12px',
+                    background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                    color: 'white',
+                    borderRadius: '20px',
+                    fontWeight: '500'
+                  }}>
+                    2025 Regular Season Data
+                  </span>
+                </h2>
+                {/* Close button at top */}
+                <button
+                  onClick={() => setShowScoringGuide(false)}
+                  style={{
+                    padding: '8px 16px',
+                    fontSize: '1rem',
+                    fontWeight: 'bold',
+                    color: 'white',
+                    background: '#e74c3c',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    minWidth: '80px'
+                  }}
+                  onMouseOver={(e) => e.target.style.background = '#c0392b'}
+                  onMouseOut={(e) => e.target.style.background = '#e74c3c'}
+                >
+                  ✕ Close
+                </button>
+              </div>
+              <p style={{color: '#666', margin: '0 0 10px 0', fontSize: '0.95rem'}}>
                 Actual scores from the 2025 NFL Regular Season to help you make smarter predictions
+              </p>
+              <p style={{color: '#444', margin: 0, fontSize: '0.9rem', fontStyle: 'italic'}}>
+                📌 <strong>Visitor</strong> = Away team scores | <strong>Home</strong> = Home team scores | <strong>Total</strong> = How many times that score occurred
               </p>
             </div>
 
@@ -7410,14 +7435,17 @@ const calculateAllPrizeWinners = () => {
               </div>
             </div>
 
-            {/* Legend */}
-            <div style={{
-              display: 'flex',
-              gap: '15px',
-              marginBottom: '20px',
-              flexWrap: 'wrap',
-              fontSize: '0.9rem'
-            }}>
+            {/* Legend with Title */}
+            <div style={{marginBottom: '20px'}}>
+              <h4 style={{margin: '0 0 10px 0', fontSize: '1rem', color: '#333'}}>
+                📋 Color Guide - How Often Each Score Occurred:
+              </h4>
+              <div style={{
+                display: 'flex',
+                gap: '15px',
+                flexWrap: 'wrap',
+                fontSize: '0.9rem'
+              }}>
               <div style={{display: 'flex', alignItems: 'center', gap: '6px'}}>
                 <div style={{width: '24px', height: '24px', background: '#a5d6a7', borderRadius: '4px', border: '2px solid #2e7d32'}}></div>
                 <span><strong>Very Common</strong> (30+)</span>
@@ -7433,6 +7461,7 @@ const calculateAllPrizeWinners = () => {
               <div style={{display: 'flex', alignItems: 'center', gap: '6px'}}>
                 <div style={{width: '24px', height: '24px', background: '#ef9a9a', borderRadius: '4px', border: '2px solid #c62828'}}></div>
                 <span><strong>Rare</strong> (0-4)</span>
+              </div>
               </div>
             </div>
 
