@@ -7406,11 +7406,34 @@ const calculateAllPrizeWinners = () => {
                 </button>
               </div>
               <p style={{color: '#666', margin: '0 0 10px 0', fontSize: '0.95rem'}}>
-                Actual scores from the 2025 NFL Regular Season to help you make smarter predictions
+                <strong>Real data from actual 2025 NFL Regular Season games played</strong> - Use this to help you make smarter predictions!
               </p>
-              <p style={{color: '#444', margin: 0, fontSize: '0.9rem', fontStyle: 'italic'}}>
-                📌 <strong>Visitor</strong> = Away team scores | <strong>Home</strong> = Home team scores | <strong>Total</strong> = How many times that score occurred
-              </p>
+              <div style={{
+                background: '#fff3cd',
+                border: '2px solid #ffc107',
+                borderRadius: '8px',
+                padding: '12px',
+                marginBottom: '10px'
+              }}>
+                <p style={{color: '#856404', margin: '0 0 8px 0', fontSize: '0.9rem', fontWeight: 'bold'}}>
+                  📖 How to Read This Table:
+                </p>
+                <p style={{color: '#856404', margin: '0 0 6px 0', fontSize: '0.85rem'}}>
+                  • <strong>Score</strong> = Final points scored by ONE team in a game
+                </p>
+                <p style={{color: '#856404', margin: '0 0 6px 0', fontSize: '0.85rem'}}>
+                  • <strong>Visitor</strong> = How many times a visiting team finished with that score
+                </p>
+                <p style={{color: '#856404', margin: '0 0 6px 0', fontSize: '0.85rem'}}>
+                  • <strong>Home</strong> = How many times a home team finished with that score
+                </p>
+                <p style={{color: '#856404', margin: '0 0 6px 0', fontSize: '0.85rem'}}>
+                  • <strong>Total</strong> = Total times ANY team scored that many points
+                </p>
+                <p style={{color: '#856404', margin: 0, fontSize: '0.85rem', fontStyle: 'italic'}}>
+                  📱 <strong>Mobile users:</strong> Rotate to landscape for best viewing
+                </p>
+              </div>
             </div>
 
             {/* Quick Summary */}
@@ -7437,9 +7460,12 @@ const calculateAllPrizeWinners = () => {
 
             {/* Legend with Title */}
             <div style={{marginBottom: '20px'}}>
-              <h4 style={{margin: '0 0 10px 0', fontSize: '1rem', color: '#333'}}>
-                📋 Color Guide - How Often Each Score Occurred:
+              <h4 style={{margin: '0 0 8px 0', fontSize: '1rem', color: '#333'}}>
+                🎨 Row Color Guide - These colored boxes match the table row backgrounds below:
               </h4>
+              <p style={{color: '#666', fontSize: '0.85rem', margin: '0 0 10px 0', fontStyle: 'italic'}}>
+                Each row in the table is colored based on how frequently that score occurred in 2025 games
+              </p>
               <div style={{
                 display: 'flex',
                 gap: '15px',
@@ -7448,19 +7474,19 @@ const calculateAllPrizeWinners = () => {
               }}>
               <div style={{display: 'flex', alignItems: 'center', gap: '6px'}}>
                 <div style={{width: '24px', height: '24px', background: '#a5d6a7', borderRadius: '4px', border: '2px solid #2e7d32'}}></div>
-                <span><strong>Very Common</strong> (30+)</span>
+                <span><strong>Very Common</strong> (30+ times)</span>
               </div>
               <div style={{display: 'flex', alignItems: 'center', gap: '6px'}}>
                 <div style={{width: '24px', height: '24px', background: '#fff59d', borderRadius: '4px', border: '2px solid #f9a825'}}></div>
-                <span><strong>Common</strong> (15-29)</span>
+                <span><strong>Common</strong> (15-29 times)</span>
               </div>
               <div style={{display: 'flex', alignItems: 'center', gap: '6px'}}>
                 <div style={{width: '24px', height: '24px', background: '#ffcc80', borderRadius: '4px', border: '2px solid #ef6c00'}}></div>
-                <span><strong>Less Common</strong> (5-14)</span>
+                <span><strong>Less Common</strong> (5-14 times)</span>
               </div>
               <div style={{display: 'flex', alignItems: 'center', gap: '6px'}}>
                 <div style={{width: '24px', height: '24px', background: '#ef9a9a', borderRadius: '4px', border: '2px solid #c62828'}}></div>
-                <span><strong>Rare</strong> (0-4)</span>
+                <span><strong>Rare</strong> (0-4 times)</span>
               </div>
               </div>
             </div>
