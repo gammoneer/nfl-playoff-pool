@@ -117,15 +117,13 @@ const POOL_MANAGER_CODES = ["76BB89", "Z9Y8X7"];  // Add more codes here as need
 // Codes are now 6-character alphanumeric (A-Z, 2-9)
 // Avoid confusing characters: 0, O, I, 1, l
 const PLAYER_CODES = {
-  "76BB89": "POOL MANAGER - Richard",
-  "Z9Y8X7": "POOL MANAGER - Dennis",
+  "76BB89": "POOL MANAGER - Richard",  // Pool Manager #1  //Paid202512051130 sent code to him
+  "Z9Y8X7": "POOL MANAGER - Dennis",   // Pool Manager #2
   "J239W4": "Bob Casson",
   "B7Y4X3": "Bob Desrosiers",
-  "PG3MR8": "Bob Pich",
   "D4F7G5": "Bonnie Biletski",
   "536EE2": "Brian Colburg",
-  "X8HH67": "Chris Neufeld",
-  "W2FD56": "Colin Pich",
+  "X8HH67": "Chris Neufeld", //Paid 20251214008  Did SEND code to him and link 202512141140
   "4HX33H": "Corey Denham",
   "G7R3P5": "Curtis Braun",
   "A4LJC9": "Curtis Palidwor",
@@ -136,9 +134,7 @@ const PLAYER_CODES = {
   "K2P9W5": "Dave Desrosiers",
   "A5K4T7": "Dennis Biletski",
   "6WRUJR": "Emily Chadwick",
-  "AB6C89": "Gareth Reeve",
-  "6FSH6G": "Harold Braun",
-  "XX87CW": "Ian Pich",
+  "AB6C89": "Gareth Reeve", //Paid202512051130 sent code to him and link
   "D3F6G9": "Jarrod Reimer",
   "T42B67": "Jo Behr",
   "PUEFKF": "Joshua Biletski",
@@ -146,27 +142,24 @@ const PLAYER_CODES = {
   "K9R3N6": "Kevin Pich",
   "H7P3N5": "Larry Bretecher",
   "B5R4T6": "Larry Strand",
-  "BSSWRR": "Marcus Degenhardt",
-  "72GG3D": "Mark Lang TSBC?",
   "2Q93DB": "Michael Pilato",
   "L2W9X2": "Michelle Desrosiers",
   "5GGPL3": "Mike Brkich",
   "PC12L3": "Natasha Biletski",
-  "T4M8Z8": "Neema Dadmand",
-  "9CD72G": "Neil Banman",
+  "T4M8Z8": "Neema Dadmand", //Paid202512051700 sent code to him and link
+  "9CD72G": "Neil Banman", //Paid202512051605 sent code to him and link
   "T7Y4R8": "Neil Foster",
   "KWBZ86": "Nick Melanidis",
   "2WQA9X": "Nima Ahmadi",
   "E4T6J7": "Orest Pich",
   "N4M8Q2": "Randy Moffatt",
-  "B8L9M2": "Richard Biletski",
+  "B8L9M2": "Richard Biletski", //Paid202512051130 sent code to him
   "62R92L": "Rob Crowe",
   "H8M3N7": "Rob Kost",
   "WW3F44": "Ryan Moffatt",
-  "MX8A7H": "Tim Gunness",
+  "MX8A7H": "Tim Gunness",  
   "E5G7G8": "Tony Creta",
   "WXY324": "Travis Biletski",
-  "KD2RD2": "Travis McKillop",
   // Add more players here...
   // Example: "Z8X5C3": "New Player",
 };
