@@ -296,6 +296,9 @@ header p {
   text-align: center;
   font-weight: bold;
   transition: border-color 0.3s ease;
+  color: #000000 !important;
+  -webkit-text-fill-color: #000000 !important;
+  background-color: #ffffff !important;
 }
 
 .team-score input:focus {
