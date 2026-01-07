@@ -178,12 +178,12 @@ const PLAYOFF_WEEKS = {
     name: "Wild Card Round (Jan 10-12, 2026)",
     deadline: "Friday, January 9, 2026 at 11:59 PM PST",
     games: [
-      { id: 5, team1: "AFC #7", team2: "AFC #2" },
-      { id: 3, team1: "AFC #6", team2: "AFC #3" },
-      { id: 6, team1: "AFC #5", team2: "AFC #4" },
-      { id: 2, team1: "NFC #7", team2: "NFC #2" },
-      { id: 4, team1: "NFC #6", team2: "NFC #3" },
-      { id: 1, team1: "NFC #5", team2: "NFC #4" }
+      { id: 1, team1: "AFC #7", team2: "AFC #2" },
+      { id: 2, team1: "AFC #6", team2: "AFC #3" },
+      { id: 3, team1: "AFC #5", team2: "AFC #4" },
+      { id: 4, team1: "NFC #7", team2: "NFC #2" },
+      { id: 5, team1: "NFC #6", team2: "NFC #3" },
+      { id: 6, team1: "NFC #5", team2: "NFC #4" }
     ]
   },
   divisional: {
@@ -3000,259 +3000,17 @@ const exportPlayersToExcel = async () => {
     setPlayerCode(code); // Store uppercase version
     setCodeValidated(true);
   };
-// Download picks as CSV spreadsheet - COMPLETE VERSION (Pool Manager Only - ALL PLAYERS)
-const downloadCompletePicksAsCSV = () => {
-  const weekPicks = allPicks.filter(pick => pick.week === currentWeek);
-  const currentWeekData = PLAYOFF_WEEKS[currentWeek];
+// Download picks as CSV spreadsheet - COMPLETE VERSION (Pool Manager Only)
+// const downloadCompletePicksAsCSV = () => {
+  // ... (keep all the code I just gave you, just change the function name at the top)
+// Download picks as CSV spreadsheet - ENHANCED with Pool Manager data + ALL PLAYERS
+// const downloadPicksAsCSV = () => {
 
-  // ===== ENHANCED: Add Pool Manager data at the top =====
-  let csv = '';
-  
-  // Row 1: Team Codes
-  csv += 'TEAM CODES:,';
-  currentWeekData.games.forEach(game => {
-    const team1Code = teamCodes[currentWeek]?.[game.id]?.team1 || '-';
-    const team2Code = teamCodes[currentWeek]?.[game.id]?.team2 || '-';
-    csv += `${team1Code},${team2Code},`;
-  });
-  if (currentWeek === 'superbowl') {
-    csv += ',,,,'; // Empty cells for week totals columns
-  }
-  csv += '\n';
-  
-  // Row 2: Team Names
-  csv += 'TEAM NAMES:,';
-  currentWeekData.games.forEach(game => {
-    const team1Name = getTeamName(currentWeek, game.id, 'team1', playoffTeams);
-    const team2Name = getTeamName(currentWeek, game.id, 'team2', playoffTeams);
-    csv += `${team1Name},${team2Name},`;
-  });
-  if (currentWeek === 'superbowl') {
-    csv += ',,,,'; // Empty cells for week totals columns
-  }
-  csv += '\n';
-  
-  // Row 3: Actual Scores
-  csv += 'ACTUAL SCORES:,';
-  currentWeekData.games.forEach(game => {
-    const actualTeam1 = actualScores[currentWeek]?.[game.id]?.team1 || '-';
-    const actualTeam2 = actualScores[currentWeek]?.[game.id]?.team2 || '-';
-    csv += `${actualTeam1},${actualTeam2},`;
-  });
-  if (currentWeek === 'superbowl') {
-    csv += ',,,,'; // Empty cells for week totals columns
-  }
-  csv += '\n';
-  
-  // Row 4: Combined Game Totals (Team1 + Team2)
-  csv += 'GAME TOTALS:,';
-  currentWeekData.games.forEach(game => {
-    const actualTeam1 = parseInt(actualScores[currentWeek]?.[game.id]?.team1) || 0;
-    const actualTeam2 = parseInt(actualScores[currentWeek]?.[game.id]?.team2) || 0;
-    const gameTotal = actualTeam1 + actualTeam2;
-    const gameTotalDisplay = (actualTeam1 > 0 || actualTeam2 > 0) ? gameTotal : '-';
-    csv += `${gameTotalDisplay},,`; // Combined total spans both team columns
-  });
-  if (currentWeek === 'superbowl') {
-    csv += ',,,,'; // Empty cells for week totals columns
-  }
-  csv += '\n';
-  
-  // Row 5: Game Status
-  csv += 'GAME STATUS:,';
-  currentWeekData.games.forEach(game => {
-    const status = gameStatus[currentWeek]?.[game.id] || '-';
-    const statusText = status === 'final' ? 'FINAL' : (status === 'live' ? 'LIVE' : '-');
-    csv += `${statusText},,`; // Span two columns
-  });
-  if (currentWeek === 'superbowl') {
-    csv += ',,,,'; // Empty cells for week totals columns
-  }
-  csv += '\n';
-  
-  // Row 6: Official/Manual Week Totals
-  csv += 'OFFICIAL TOTALS:,';
-  currentWeekData.games.forEach(() => {
-    csv += ',,'; // Empty cells for game columns
-  });
-  if (currentWeek === 'superbowl') {
-    csv += `${manualWeekTotals.superbowl_week4 || '-'},`;
-    csv += `${manualWeekTotals.superbowl_week3 || '-'},`;
-    csv += `${manualWeekTotals.superbowl_week2 || '-'},`;
-    csv += `${manualWeekTotals.superbowl_week1 || '-'},`;
-    csv += `${manualWeekTotals.superbowl_grand || '-'},`;
-  } else {
-    csv += `${manualWeekTotals[currentWeek] || '-'},`;
-  }
-  csv += '\n';
-  
-  // Row 7: Blank separator row
-  csv += '\n';
-  // ===== END ENHANCED SECTION =====
-
-  // Create CSV header - First row with game numbers
-  csv += ','; // Empty cell for player name column
-  currentWeekData.games.forEach(game => {
-    csv += `Game ${game.id},Game ${game.id},`;
-  });
-  csv += '\n';
-
-  // Second header row with team names
-  csv += 'Player Name,';
-  currentWeekData.games.forEach(game => {
-    const team1Name = getTeamName(currentWeek, game.id, 'team1', playoffTeams);
-    const team2Name = getTeamName(currentWeek, game.id, 'team2', playoffTeams);
-    csv += `${team1Name},${team2Name},`;
-  });
-  
-  // Add week breakdown columns for Super Bowl
-  if (currentWeek === 'superbowl') {
-    csv += 'Week 4 Total,Week 3 Total,Week 2 Total,Week 1 Total,GRAND TOTAL,';
-  } else {
-    csv += 'Total Points,';
-  }
-  csv += 'Submitted At\n';
-
-  // NEW: Create array of ALL players (from PLAYER_CODES), not just those with picks
-  const allPlayersList = Object.entries(PLAYER_CODES).map(([code, name]) => {
-    const existingPick = weekPicks.find(p => p.playerCode === code);
-    return {
-      playerName: name,
-      playerCode: code,
-      predictions: existingPick?.predictions || {},
-      timestamp: existingPick?.timestamp || null,
-      lastUpdated: existingPick?.lastUpdated || null
-    };
-  });
-
-  // Add data rows for ALL players
-  allPlayersList
-    .sort((a, b) => {
-      // Sort by: 1) Has picks (yes first), 2) Timestamp (newest first), 3) Name (alphabetical)
-      const aHasPicks = Object.keys(a.predictions).length > 0;
-      const bHasPicks = Object.keys(b.predictions).length > 0;
-      
-      if (aHasPicks && !bHasPicks) return -1;
-      if (!aHasPicks && bHasPicks) return 1;
-      
-      if (aHasPicks && bHasPicks) {
-        return (b.lastUpdated || b.timestamp || 0) - (a.lastUpdated || a.timestamp || 0);
-      }
-      
-      return a.playerName.localeCompare(b.playerName);
-    })
-    .forEach(pick => {
-      csv += `"${pick.playerName}",`;
-      
-      // Add scores for each game (or dashes if no picks)
-      currentWeekData.games.forEach(game => {
-        const team1Score = pick.predictions[game.id]?.team1 || '--';
-        const team2Score = pick.predictions[game.id]?.team2 || '--';
-        csv += `${team1Score},${team2Score},`;
-      });
-      
-      // Calculate totals
-      const hasPicks = Object.keys(pick.predictions).length > 0;
-      
-      if (currentWeek === 'superbowl') {
-        // Calculate each week's total
-        const week4Total = (() => {
-          const w4Pick = allPicks.find(p => p.playerCode === pick.playerCode && p.week === 'superbowl');
-          if (!w4Pick) return '--';
-          let sum = 0;
-          PLAYOFF_WEEKS.superbowl.games.forEach(game => {
-            const pred = w4Pick.predictions[game.id];
-            if (pred) sum += (Number(pred.team1) || 0) + (Number(pred.team2) || 0);
-          });
-          return sum > 0 ? sum : '--';
-        })();
-
-        const week3Total = (() => {
-          const w3Pick = allPicks.find(p => p.playerCode === pick.playerCode && p.week === 'conference');
-          if (!w3Pick) return '--';
-          let sum = 0;
-          PLAYOFF_WEEKS.conference.games.forEach(game => {
-            const pred = w3Pick.predictions[game.id];
-            if (pred) sum += (Number(pred.team1) || 0) + (Number(pred.team2) || 0);
-          });
-          return sum > 0 ? sum : '--';
-        })();
-
-        const week2Total = (() => {
-          const w2Pick = allPicks.find(p => p.playerCode === pick.playerCode && p.week === 'divisional');
-          if (!w2Pick) return '--';
-          let sum = 0;
-          PLAYOFF_WEEKS.divisional.games.forEach(game => {
-            const pred = w2Pick.predictions[game.id];
-            if (pred) sum += (Number(pred.team1) || 0) + (Number(pred.team2) || 0);
-          });
-          return sum > 0 ? sum : '--';
-        })();
-
-        const week1Total = (() => {
-          const w1Pick = allPicks.find(p => p.playerCode === pick.playerCode && p.week === 'wildcard');
-          if (!w1Pick) return '--';
-          let sum = 0;
-          PLAYOFF_WEEKS.wildcard.games.forEach(game => {
-            const pred = w1Pick.predictions[game.id];
-            if (pred) sum += (Number(pred.team1) || 0) + (Number(pred.team2) || 0);
-          });
-          return sum > 0 ? sum : '--';
-        })();
-
-        const grandTotal = [week4Total, week3Total, week2Total, week1Total]
-          .filter(t => t !== '--')
-          .reduce((sum, t) => sum + t, 0);
-        
-        csv += `${week4Total},${week3Total},${week2Total},${week1Total},${grandTotal || '--'},`;
-      } else {
-        // Single total for non-Super Bowl weeks
-        if (!hasPicks) {
-          csv += '--,';
-        } else {
-          const totalPoints = currentWeekData.games.reduce((total, game) => {
-            const team1Score = parseInt(pick.predictions[game.id]?.team1) || 0;
-            const team2Score = parseInt(pick.predictions[game.id]?.team2) || 0;
-            return total + team1Score + team2Score;
-          }, 0);
-          csv += `${totalPoints},`;
-        }
-      }
-      
-      // Timestamp
-      if (!hasPicks || !pick.timestamp) {
-        csv += `"--"\n`;
-      } else {
-        const date = new Date(pick.lastUpdated || pick.timestamp).toLocaleString('en-US', {
-          month: '2-digit',
-          day: '2-digit',
-          year: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit',
-          hour12: true
-        });
-        csv += `"${date}"\n`;
-      }
-    });
-
-  // Download the CSV
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const link = document.createElement('a');
-  const url = URL.createObjectURL(blob);
-  link.setAttribute('href', url);
-  link.setAttribute('download', `nfl_playoff_picks_${currentWeek}_${Date.now()}.csv`);
-  link.style.visibility = 'hidden';
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-};
-
-// Download picks as CSV spreadsheet - REGULAR VERSION (visible players only - INCLUDING DASH ROWS)
+// Download picks as CSV spreadsheet - REGULAR VERSION (visible players only)
 const downloadPicksAsCSV = () => {
   const currentWeekData = PLAYOFF_WEEKS[currentWeek];
 
-  // ===== Get the SAME players shown in the visible table (with picks AND dashes) =====
+  // ===== Get the SAME players shown in the visible table =====
   const displayPicks = (() => {
     if (currentWeek === 'superbowl') {
       // For Super Bowl, show ALL unique players
@@ -3291,7 +3049,7 @@ const downloadPicksAsCSV = () => {
       const picksForWeek = allPicks.filter(pick => pick.week === currentWeek);
       const displayedCodes = new Set(picksForWeek.map(p => p.playerCode));
       
-      // Add players marked to show in table (even without picks) - THIS IS THE KEY FIX!
+      // Add players marked to show in table (even without picks)
       allPlayers.forEach(player => {
         if (player.showInPicksTable === true && !displayedCodes.has(player.playerCode)) {
           picksForWeek.push({

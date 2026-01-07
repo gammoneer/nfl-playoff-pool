@@ -178,12 +178,12 @@ const PLAYOFF_WEEKS = {
     name: "Wild Card Round (Jan 10-12, 2026)",
     deadline: "Friday, January 9, 2026 at 11:59 PM PST",
     games: [
-      { id: 5, team1: "AFC #7", team2: "AFC #2" },
-      { id: 3, team1: "AFC #6", team2: "AFC #3" },
-      { id: 6, team1: "AFC #5", team2: "AFC #4" },
-      { id: 2, team1: "NFC #7", team2: "NFC #2" },
-      { id: 4, team1: "NFC #6", team2: "NFC #3" },
-      { id: 1, team1: "NFC #5", team2: "NFC #4" }
+      { id: 1, team1: "AFC #7", team2: "AFC #2" },
+      { id: 2, team1: "AFC #6", team2: "AFC #3" },
+      { id: 3, team1: "AFC #5", team2: "AFC #4" },
+      { id: 4, team1: "NFC #7", team2: "NFC #2" },
+      { id: 5, team1: "NFC #6", team2: "NFC #3" },
+      { id: 6, team1: "NFC #5", team2: "NFC #4" }
     ]
   },
   divisional: {
