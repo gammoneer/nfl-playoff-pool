@@ -2178,68 +2178,6 @@ const exportPlayersToExcel = async () => {
             return actualWinner === predWinner;
           }).length;
         }
-      } else if (sortColumn === 'perfect') {
-        // Count perfect scores (exact score matches)
-        if (currentWeek === 'superbowl') {
-          // For Super Bowl table, count across ALL completed weeks
-          const countPerfectForPlayer = (playerPick) => {
-            let count = 0;
-            const weeks = ['wildcard', 'divisional', 'conference', 'superbowl'];
-            
-            weeks.forEach(weekName => {
-              const weekActualScores = actualScores[weekName];
-              const hasActual = weekActualScores && Object.values(weekActualScores).some(game => {
-                return game && 
-                       game.team1 !== null && game.team1 !== undefined && game.team1 !== '' && game.team1 !== 0 &&
-                       game.team2 !== null && game.team2 !== undefined && game.team2 !== '' && game.team2 !== 0;
-              });
-              
-              if (hasActual) {
-                const playerWeekPick = allPicks.find(p => p.playerCode === playerPick.playerCode && p.week === weekName);
-                if (playerWeekPick && playerWeekPick.predictions) {
-                  Object.keys(weekActualScores).forEach(gameId => {
-                    const actual = weekActualScores[gameId];
-                    const pred = playerWeekPick.predictions[gameId];
-                    
-                    if (pred && actual && actual.team1 && actual.team2 && pred.team1 && pred.team2) {
-                      const actualTeam1 = parseInt(actual.team1);
-                      const actualTeam2 = parseInt(actual.team2);
-                      const predTeam1 = parseInt(pred.team1);
-                      const predTeam2 = parseInt(pred.team2);
-                      
-                      // PERFECT SCORE: Both teams exactly correct
-                      if (actualTeam1 === predTeam1 && actualTeam2 === predTeam2) {
-                        count++;
-                      }
-                    }
-                  });
-                }
-              }
-            });
-            
-            return count;
-          };
-          
-          aValue = countPerfectForPlayer(a);
-          bValue = countPerfectForPlayer(b);
-        } else {
-          // For individual week pages, only count current week
-          aValue = currentWeekData.games.filter(game => {
-            const aPred = a.predictions[game.id];
-            const actual = actualScores[currentWeek]?.[game.id];
-            if (!aPred || !actual || !actual.team1 || !actual.team2) return false;
-            return parseInt(actual.team1) === parseInt(aPred.team1) && 
-                   parseInt(actual.team2) === parseInt(aPred.team2);
-          }).length;
-          
-          bValue = currentWeekData.games.filter(game => {
-            const bPred = b.predictions[game.id];
-            const actual = actualScores[currentWeek]?.[game.id];
-            if (!bPred || !actual || !actual.team1 || !actual.team2) return false;
-            return parseInt(actual.team1) === parseInt(bPred.team1) && 
-                   parseInt(actual.team2) === parseInt(bPred.team2);
-          }).length;
-        }  
       } else if (sortColumn === 'difference') {
         // Smart sorting: 
         // - If has slash (e.g., "333/14"): sort by difference (14)
@@ -3507,7 +3445,6 @@ if (currentWeek === 'superbowl') {
   csv += 'Total Points,';
 }
 csv += 'Correct Picks,';  // <--- NEW COLUMN ADDED HERE
-csv += 'Perfect Scores,';  // <--- ADD THIS LINE
 csv += 'Submitted At\n';
 
   // Data rows - Sort by picks first, then alphabetically
@@ -3623,37 +3560,9 @@ csv += 'Submitted At\n';
         });
       }
       
-      // csv += `${correctCount},`;  // Add correct picks count
+      csv += `${correctCount},`;  // Add correct picks count
       
       // Now add timestamp (AFTER correct picks)
-      // if (!hasPicks || !pick.timestamp) {
-
-      csv += `${correctCount},`;  // Add correct picks count
-
-      // Calculate perfect scores
-      let perfectCount = 0;
-      if (hasPicks) {
-        currentWeekData.games.forEach(game => {
-          const pred = pick.predictions[game.id];
-          const actual = actualScores[currentWeek]?.[game.id];
-          
-          if (pred && actual && pred.team1 && pred.team2 && actual.team1 && actual.team2) {
-            const actualTeam1 = parseInt(actual.team1);
-            const actualTeam2 = parseInt(actual.team2);
-            const predTeam1 = parseInt(pred.team1);
-            const predTeam2 = parseInt(pred.team2);
-            
-            // PERFECT SCORE: Both teams exactly correct
-            if (actualTeam1 === predTeam1 && actualTeam2 === predTeam2) {
-              perfectCount++;
-            }
-          }
-        });
-      }
-
-      csv += `${perfectCount},`;  // Add perfect scores count
-
-      // Now add timestamp (AFTER perfect scores)
       if (!hasPicks || !pick.timestamp) {
         csv += `"-"\n`;
       } else {
@@ -3816,92 +3725,112 @@ csv += 'Submitted At\n';
 
   const currentWeekData = PLAYOFF_WEEKS[currentWeek];
 
-// Calculate all player totals BEFORE rendering (pre-calculation)
-const playerTotals = useMemo(() => {
-  const totals = {};
-  
-  // For Super Bowl, get ALL unique players from ANY week
-  // For other weeks, only show players who entered picks for that specific week
-  const weekPicks = currentWeek === 'superbowl' 
-    ? (() => {
-        // Get all unique players from all weeks
-        const uniquePlayers = new Map();
-        allPicks.forEach(pick => {
-          if (!uniquePlayers.has(pick.playerName)) {
-            uniquePlayers.set(pick.playerName, {
-              playerName: pick.playerName,
-              playerCode: pick.playerCode,
-              week: currentWeek,
-              predictions: allPicks.find(p => p.playerCode === pick.playerCode && p.week === 'superbowl')?.predictions || {}
-            });
-          }
-        });
-        return Array.from(uniquePlayers.values());
-      })()
-    : allPicks.filter(pick => pick.week === currentWeek);
-  
-  weekPicks.forEach(pick => {
-    if (!totals[pick.playerName]) {
-      totals[pick.playerName] = {
-        week4: 0,
-        week3: 0,
-        week2: 0,
-        week1: 0,
-        grand: 0,
-        current: 0
-      };
-    }
+  // Calculate all player totals BEFORE rendering (pre-calculation)
+  const playerTotals = useMemo(() => {
+    const totals = {};
     
-    // Calculate current week total with slash format when actuals exist
-    let currentTotal = 0;
-    const weekGames = PLAYOFF_WEEKS[currentWeek].games;
-    weekGames.forEach(game => {
-      const pred = pick.predictions[game.id];
-      if (pred && pred.team1 && pred.team2) {
-        currentTotal += (parseInt(pred.team1) || 0) + (parseInt(pred.team2) || 0);
+    // For Super Bowl, get ALL unique players from ANY week (so we show everyone's totals even if they haven't entered Week 4)
+    // For other weeks, only show players who entered picks for that specific week
+    const weekPicks = currentWeek === 'superbowl' 
+      ? (() => {
+          // Get all unique players from all weeks
+          const uniquePlayers = new Map();
+          allPicks.forEach(pick => {
+            if (!uniquePlayers.has(pick.playerName)) {
+              uniquePlayers.set(pick.playerName, {
+                playerName: pick.playerName,
+                playerCode: pick.playerCode,
+                week: currentWeek, // Set to superbowl
+                predictions: allPicks.find(p => p.playerCode === pick.playerCode && p.week === 'superbowl')?.predictions || {}
+              });
+            }
+          });
+          return Array.from(uniquePlayers.values());
+        })()
+      : allPicks.filter(pick => pick.week === currentWeek);
+    
+    weekPicks.forEach(pick => {
+      if (!totals[pick.playerName]) {
+        totals[pick.playerName] = {
+          week4: 0,
+          week3: 0,
+          week2: 0,
+          week1: 0,
+          grand: 0,
+          current: 0
+        };
       }
-    });
-    
-    // Check if current week has actual scores
-    const weekActualScores = actualScores[currentWeek];
-    const hasActual = weekActualScores && Object.values(weekActualScores).some(game => {
-      return game && 
-             game.team1 !== null && game.team1 !== undefined && game.team1 !== '' && game.team1 !== 0 &&
-             game.team2 !== null && game.team2 !== undefined && game.team2 !== '' && game.team2 !== 0;
-    });
-    
-    // Calculate difference if actuals exist
-    let currentDisplay = currentTotal.toString();
-    if (hasActual) {
-      let actualTotal = 0;
+      
+      // Calculate current week total with slash format when actuals exist
+      let currentTotal = 0;
+      const weekGames = PLAYOFF_WEEKS[currentWeek].games;
       weekGames.forEach(game => {
-        const actual = weekActualScores?.[game.id];
-        if (actual && actual.team1 && actual.team2) {
-          actualTotal += (parseInt(actual.team1) || 0) + (parseInt(actual.team2) || 0);
+        const pred = pick.predictions[game.id];
+        if (pred && pred.team1 && pred.team2) {
+          currentTotal += (parseInt(pred.team1) || 0) + (parseInt(pred.team2) || 0);
         }
       });
       
-      const difference = Math.abs(currentTotal - actualTotal);
-      currentDisplay = `${currentTotal}/${difference}`;
-    }
-    
-    totals[pick.playerName].current = currentDisplay;
-    
-    // ✅ FIX: For Super Bowl week, calculate grand total using formatGrandDisplay
-    if (currentWeek === 'superbowl') {
-      const grandDisplay = formatGrandDisplay(pick.playerCode);
-      totals[pick.playerName].grand = grandDisplay.display;
+      // Check if current week has actual scores
+      const weekActualScores = actualScores[currentWeek];
+      const hasActual = weekActualScores && Object.values(weekActualScores).some(game => {
+        return game && 
+               game.team1 !== null && game.team1 !== undefined && game.team1 !== '' && game.team1 !== 0 &&
+               game.team2 !== null && game.team2 !== undefined && game.team2 !== '' && game.team2 !== 0;
+      });
       
-      // Also calculate individual week displays for the table
-      totals[pick.playerName].week4Display = formatWeeklyDisplay(pick.playerCode, 'superbowl', 4).display;
-      totals[pick.playerName].week3Display = formatWeeklyDisplay(pick.playerCode, 'conference', 3).display;
-      totals[pick.playerName].week2Display = formatWeeklyDisplay(pick.playerCode, 'divisional', 2).display;
-      totals[pick.playerName].week1Display = formatWeeklyDisplay(pick.playerCode, 'wildcard', 1).display;
-    }
-  });
-  
-  return totals;
-}, [allPicks, currentWeek, actualScores]);
+      // Calculate difference if actuals exist
+      let currentDisplay = currentTotal.toString();
+      if (hasActual) {
+        // Calculate actual total for this week
+        let actualTotal = 0;
+        weekGames.forEach(game => {
+          const actual = weekActualScores?.[game.id];
+          if (actual && actual.team1 && actual.team2) {
+            actualTotal += (parseInt(actual.team1) || 0) + (parseInt(actual.team2) || 0);
+          }
+        });
+        
+        // Calculate difference
+        const difference = Math.abs(currentTotal - actualTotal);
+        currentDisplay = `${currentTotal}/${difference}`;
+      }
+      
+      totals[pick.playerName].current = currentDisplay;
+      
+      // For Super Bowl, calculate all weeks (PREDICTED TOTALS - sum of predicted scores)
+      // CRITICAL: Player rows should ALWAYS calculate independently - NEVER use header overrides!
+      if (currentWeek === 'superbowl') {
+        // Helper function to calculate predicted total for any week
+        const calculatePredictedTotal = (playerCode, weekName) => {
+          const playerPick = allPicks.find(p => p.playerCode === playerCode && p.week === weekName);
+          if (!playerPick || !playerPick.predictions) return 0;
+          
+          let total = 0;
+          Object.values(playerPick.predictions).forEach(pred => {
+            if (pred && pred.team1 && pred.team2) {
+              total += (parseInt(pred.team1) || 0) + (parseInt(pred.team2) || 0);
+            }
+          });
+          return total;
+        };
+        
+        totals[pick.playerName].week4 = calculatePredictedTotal(pick.playerCode, 'superbowl');
+        totals[pick.playerName].week3 = calculatePredictedTotal(pick.playerCode, 'conference');
+        totals[pick.playerName].week2 = calculatePredictedTotal(pick.playerCode, 'divisional');
+        totals[pick.playerName].week1 = calculatePredictedTotal(pick.playerCode, 'wildcard');
+        
+        // Grand Total (sum of all 4 weeks for this player)
+        totals[pick.playerName].grand = 
+          totals[pick.playerName].week1 + 
+          totals[pick.playerName].week2 + 
+          totals[pick.playerName].week3 + 
+          totals[pick.playerName].week4;
+      }
+    });
+    
+    return totals;
+  }, [allPicks, currentWeek, actualScores]);
 
 const calculateAllPrizeWinners = () => {
   console.log('🏆 Starting winner calculations...');
@@ -6082,27 +6011,7 @@ const calculateAllPrizeWinners = () => {
                         {sortColumn === 'correct' ? (sortDirection === 'asc' ? '↑' : '↓') : '⇅'}
                       </button>
                     </th>
-                    {/* PERFECT SCORES COLUMN - NEW */}
-                    <th rowSpan="2" style={{backgroundColor: '#fff9c4', fontWeight: 'bold', color: '#000', minWidth: '60px', fontSize: '0.75rem', padding: '8px 4px'}}>
-                      <div style={{marginBottom: '2px'}}>Perfect</div>
-                      <div style={{marginBottom: '4px'}}>Scores</div>
-                      <button
-                        onClick={() => handleSort('perfect')}
-                        style={{
-                          padding: '4px 8px',
-                          fontSize: '0.7rem',
-                          background: sortColumn === 'perfect' ? '#4caf50' : '#f0f0f0',
-                          color: sortColumn === 'perfect' ? '#fff' : '#000',
-                          border: '1px solid #ddd',
-                          borderRadius: '4px',
-                          cursor: 'pointer',
-                          marginTop: '2px'
-                        }}
-                        title={`Sort by perfect scores ${sortColumn === 'perfect' && sortDirection === 'asc' ? '(Low to High)' : '(High to Low)'}`}
-                      >
-                        {sortColumn === 'perfect' ? (sortDirection === 'asc' ? '↑' : '↓') : '⇅'}
-                      </button>
-                    </th>
+                    
                     {currentWeek === 'superbowl' ? (
                       <>
                         <th rowSpan="2" style={{backgroundColor: '#fff3cd', fontWeight: 'bold', color: '#000'}}>
@@ -6898,112 +6807,60 @@ const calculateAllPrizeWinners = () => {
                               </td>
                             );
                           })()}
-                          {/* PERFECT SCORES CELL */}
-                          {(() => {
-                            let perfectCount = 0;
-                            
-                            if (currentWeek === 'superbowl') {
-                              // For Super Bowl, count across ALL completed weeks
-                              const weeks = ['wildcard', 'divisional', 'conference', 'superbowl'];
-                              weeks.forEach(weekName => {
-                                const weekActualScores = actualScores[weekName];
-                                const hasActual = weekActualScores && Object.values(weekActualScores).some(game => {
-                                  return game && 
-                                        game.team1 !== null && game.team1 !== undefined && game.team1 !== '' && game.team1 !== 0 &&
-                                        game.team2 !== null && game.team2 !== undefined && game.team2 !== '' && game.team2 !== 0;
-                                });
-                                
-                                if (hasActual) {
-                                  const playerWeekPick = allPicks.find(p => p.playerCode === pick.playerCode && p.week === weekName);
-                                  if (playerWeekPick && playerWeekPick.predictions) {
-                                    Object.keys(weekActualScores).forEach(gameId => {
-                                      const actual = weekActualScores[gameId];
-                                      const pred = playerWeekPick.predictions[gameId];
-                                      
-                                      if (pred && actual && actual.team1 && actual.team2 && pred.team1 && pred.team2) {
-                                        const actualTeam1 = parseInt(actual.team1);
-                                        const actualTeam2 = parseInt(actual.team2);
-                                        const predTeam1 = parseInt(pred.team1);
-                                        const predTeam2 = parseInt(pred.team2);
-                                        
-                                        // PERFECT SCORE: Both teams exactly correct
-                                        if (actualTeam1 === predTeam1 && actualTeam2 === predTeam2) {
-                                          perfectCount++;
-                                        }
-                                      }
-                                    });
-                                  }
-                                }
-                              });
-                            } else {
-                              // For individual week, only count current week
-                              currentWeekData.games.forEach(game => {
-                                const pred = pick.predictions[game.id];
-                                const actual = actualScores[currentWeek]?.[game.id];
-                                
-                                if (pred && actual && actual.team1 && actual.team2 && pred.team1 && pred.team2) {
-                                  const actualTeam1 = parseInt(actual.team1);
-                                  const actualTeam2 = parseInt(actual.team2);
-                                  const predTeam1 = parseInt(pred.team1);
-                                  const predTeam2 = parseInt(pred.team2);
-                                  
-                                  // PERFECT SCORE: Both teams exactly correct
-                                  if (actualTeam1 === predTeam1 && actualTeam2 === predTeam2) {
-                                    perfectCount++;
-                                  }
-                                }
-                              });
-                            }
-                            
-                            return (
-                              <td style={{
-                                backgroundColor: '#fffbea',
-                                fontWeight: 'bold',
-                                fontSize: '1rem',
-                                color: perfectCount > 0 ? '#f57c00' : '#999',
-                                textAlign: 'center',
-                                padding: '8px 4px'
-                              }}>
-                                {perfectCount}
-                              </td>
-                            );
-                          })()}
+                          
                           {/* Total Points Columns */}
                           {currentWeek === 'superbowl' ? (
                             <>
-                              <td 
-                                style={{backgroundColor: '#fff3cd', fontWeight: 'bold', fontSize: '16px'}}
-                              >
-                                <span style={{color: '#000'}}>{playerTotals[pick.playerName]?.week4Display || '-'}</span>
-                              </td>
-                              <td 
-                                style={{backgroundColor: '#d1ecf1', fontWeight: 'bold', fontSize: '16px'}}
-                              >
-                                <span style={{color: '#000'}}>{playerTotals[pick.playerName]?.week3Display || '-'}</span>
-                              </td>
-                              <td 
-                                style={{backgroundColor: '#d4edda', fontWeight: 'bold', fontSize: '16px'}}
-                              >
-                                <span style={{color: '#000'}}>{playerTotals[pick.playerName]?.week2Display || '-'}</span>
-                              </td>
-                              <td 
-                                style={{backgroundColor: '#f8d7da', fontWeight: 'bold', fontSize: '16px'}}
-                              >
-                                <span style={{color: '#000'}}>{playerTotals[pick.playerName]?.week1Display || '-'}</span>
-                              </td>
-                              <td 
-                                className="grand-total"
-                                style={{fontSize: '16px'}}
-                              >
-                                {playerTotals[pick.playerName]?.grand || '-'}
-                              </td>
+                              {(() => {
+                                const week4Display = formatWeeklyDisplay(pick.playerCode, 'superbowl', 4);
+                                const week3Display = formatWeeklyDisplay(pick.playerCode, 'conference', 3);
+                                const week2Display = formatWeeklyDisplay(pick.playerCode, 'divisional', 2);
+                                const week1Display = formatWeeklyDisplay(pick.playerCode, 'wildcard', 1);
+                                const grandDisplay = formatGrandDisplay(pick.playerCode);
+                                
+                                return (
+                                  <>
+                                    <td 
+                                      style={{backgroundColor: '#fff3cd', fontWeight: 'bold', fontSize: week4Display.fontSize}}
+                                      title={week4Display.tooltip}
+                                    >
+                                      <span style={{color: '#000'}}>{week4Display.display}</span>
+                                    </td>
+                                    <td 
+                                      style={{backgroundColor: '#d1ecf1', fontWeight: 'bold', fontSize: week3Display.fontSize}}
+                                      title={week3Display.tooltip}
+                                    >
+                                      <span style={{color: '#000'}}>{week3Display.display}</span>
+                                    </td>
+                                    <td 
+                                      style={{backgroundColor: '#d4edda', fontWeight: 'bold', fontSize: week2Display.fontSize}}
+                                      title={week2Display.tooltip}
+                                    >
+                                      <span style={{color: '#000'}}>{week2Display.display}</span>
+                                    </td>
+                                    <td 
+                                      style={{backgroundColor: '#f8d7da', fontWeight: 'bold', fontSize: week1Display.fontSize}}
+                                      title={week1Display.tooltip}
+                                    >
+                                      <span style={{color: '#000'}}>{week1Display.display}</span>
+                                    </td>
+                                    <td 
+                                      className="grand-total"
+                                      style={{fontSize: grandDisplay.fontSize}}
+                                      title={grandDisplay.tooltip}
+                                    >
+                                      {grandDisplay.display}
+                                    </td>
+                                  </>
+                                );
+                              })()}
                             </>
                           ) : (
                             <td style={{backgroundColor: '#f8f9fa', fontWeight: 'bold', fontSize: '16px'}}>
                               <span style={{color: '#000'}}>{playerTotals[pick.playerName]?.current || '0'}</span>
                             </td>
                           )}
-
+                          
                           <td className="timestamp">
                             {new Date(pick.lastUpdated || pick.timestamp).toLocaleString('en-US', {
                               month: '2-digit',
