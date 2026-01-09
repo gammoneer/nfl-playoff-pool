@@ -6995,7 +6995,10 @@ const calculateAllPrizeWinners = () => {
                                 className="grand-total"
                                 style={{fontSize: '16px'}}
                               >
-                                {playerTotals[pick.playerName]?.grand || '-'}
+                                {(() => {
+                                  const grandDisplay = formatGrandDisplay(pick.playerCode);
+                                  return grandDisplay.display;
+                                })()}
                               </td>
                             </>
                           ) : (
