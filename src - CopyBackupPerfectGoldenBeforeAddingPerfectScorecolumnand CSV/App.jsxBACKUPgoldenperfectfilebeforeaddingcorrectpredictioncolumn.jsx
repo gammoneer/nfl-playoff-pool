@@ -2178,68 +2178,6 @@ const exportPlayersToExcel = async () => {
             return actualWinner === predWinner;
           }).length;
         }
-      } else if (sortColumn === 'perfect') {
-        // Count perfect scores (exact score matches)
-        if (currentWeek === 'superbowl') {
-          // For Super Bowl table, count across ALL completed weeks
-          const countPerfectForPlayer = (playerPick) => {
-            let count = 0;
-            const weeks = ['wildcard', 'divisional', 'conference', 'superbowl'];
-            
-            weeks.forEach(weekName => {
-              const weekActualScores = actualScores[weekName];
-              const hasActual = weekActualScores && Object.values(weekActualScores).some(game => {
-                return game && 
-                       game.team1 !== null && game.team1 !== undefined && game.team1 !== '' && game.team1 !== 0 &&
-                       game.team2 !== null && game.team2 !== undefined && game.team2 !== '' && game.team2 !== 0;
-              });
-              
-              if (hasActual) {
-                const playerWeekPick = allPicks.find(p => p.playerCode === playerPick.playerCode && p.week === weekName);
-                if (playerWeekPick && playerWeekPick.predictions) {
-                  Object.keys(weekActualScores).forEach(gameId => {
-                    const actual = weekActualScores[gameId];
-                    const pred = playerWeekPick.predictions[gameId];
-                    
-                    if (pred && actual && actual.team1 && actual.team2 && pred.team1 && pred.team2) {
-                      const actualTeam1 = parseInt(actual.team1);
-                      const actualTeam2 = parseInt(actual.team2);
-                      const predTeam1 = parseInt(pred.team1);
-                      const predTeam2 = parseInt(pred.team2);
-                      
-                      // PERFECT SCORE: Both teams exactly correct
-                      if (actualTeam1 === predTeam1 && actualTeam2 === predTeam2) {
-                        count++;
-                      }
-                    }
-                  });
-                }
-              }
-            });
-            
-            return count;
-          };
-          
-          aValue = countPerfectForPlayer(a);
-          bValue = countPerfectForPlayer(b);
-        } else {
-          // For individual week pages, only count current week
-          aValue = currentWeekData.games.filter(game => {
-            const aPred = a.predictions[game.id];
-            const actual = actualScores[currentWeek]?.[game.id];
-            if (!aPred || !actual || !actual.team1 || !actual.team2) return false;
-            return parseInt(actual.team1) === parseInt(aPred.team1) && 
-                   parseInt(actual.team2) === parseInt(aPred.team2);
-          }).length;
-          
-          bValue = currentWeekData.games.filter(game => {
-            const bPred = b.predictions[game.id];
-            const actual = actualScores[currentWeek]?.[game.id];
-            if (!bPred || !actual || !actual.team1 || !actual.team2) return false;
-            return parseInt(actual.team1) === parseInt(bPred.team1) && 
-                   parseInt(actual.team2) === parseInt(bPred.team2);
-          }).length;
-        }  
       } else if (sortColumn === 'difference') {
         // Smart sorting: 
         // - If has slash (e.g., "333/14"): sort by difference (14)
@@ -3282,35 +3220,8 @@ const downloadCompletePicksAsCSV = () => {
       }
       
       // Timestamp
-      // Calculate correct picks for this player
-      let correctCount = 0;
-      if (hasPicks) {
-        currentWeekData.games.forEach(game => {
-          const pred = pick.predictions[game.id];
-          const actual = actualScores[currentWeek]?.[game.id];
-          
-          if (pred && actual && pred.team1 && pred.team2 && actual.team1 && actual.team2) {
-            const actualTeam1 = parseInt(actual.team1);
-            const actualTeam2 = parseInt(actual.team2);
-            const predTeam1 = parseInt(pred.team1);
-            const predTeam2 = parseInt(pred.team2);
-            
-            if (!isNaN(actualTeam1) && !isNaN(actualTeam2)) {
-              const actualWinner = actualTeam1 > actualTeam2 ? 'team1' : actualTeam2 > actualTeam1 ? 'team2' : 'tie';
-              const predWinner = predTeam1 > predTeam2 ? 'team1' : predTeam2 > predTeam1 ? 'team2' : 'tie';
-              
-              if (actualWinner === predWinner && actualWinner !== 'tie') {
-                correctCount++;
-              }
-            }
-          }
-        });
-      }
-      
-      csv += `${correctCount},`;  // <--- ADD CORRECT PICKS COUNT
-      
       if (!hasPicks || !pick.timestamp) {
-        csv += `"-"\n`;
+        csv += `"--"\n`;
       } else {
         const date = new Date(pick.lastUpdated || pick.timestamp).toLocaleString('en-US', {
           month: '2-digit',
@@ -3501,14 +3412,12 @@ const downloadPicksAsCSV = () => {
     csv += `${team1Name},${team2Name},`;
   });
   
-if (currentWeek === 'superbowl') {
-  csv += 'Week 4 Total,Week 3 Total,Week 2 Total,Week 1 Total,GRAND TOTAL,';
-} else {
-  csv += 'Total Points,';
-}
-csv += 'Correct Picks,';  // <--- NEW COLUMN ADDED HERE
-csv += 'Perfect Scores,';  // <--- ADD THIS LINE
-csv += 'Submitted At\n';
+  if (currentWeek === 'superbowl') {
+    csv += 'Week 4 Total,Week 3 Total,Week 2 Total,Week 1 Total,GRAND TOTAL,';
+  } else {
+    csv += 'Total Points,';
+  }
+  csv += 'Submitted At\n';
 
   // Data rows - Sort by picks first, then alphabetically
   displayPicks
@@ -3598,62 +3507,6 @@ csv += 'Submitted At\n';
         }
       }
       
-      // Calculate correct picks for this player (BEFORE timestamp)
-      let correctCount = 0;
-      if (hasPicks) {
-        currentWeekData.games.forEach(game => {
-          const pred = pick.predictions[game.id];
-          const actual = actualScores[currentWeek]?.[game.id];
-          
-          if (pred && actual && pred.team1 && pred.team2 && actual.team1 && actual.team2) {
-            const actualTeam1 = parseInt(actual.team1);
-            const actualTeam2 = parseInt(actual.team2);
-            const predTeam1 = parseInt(pred.team1);
-            const predTeam2 = parseInt(pred.team2);
-            
-            if (!isNaN(actualTeam1) && !isNaN(actualTeam2)) {
-              const actualWinner = actualTeam1 > actualTeam2 ? 'team1' : actualTeam2 > actualTeam1 ? 'team2' : 'tie';
-              const predWinner = predTeam1 > predTeam2 ? 'team1' : predTeam2 > predTeam1 ? 'team2' : 'tie';
-              
-              if (actualWinner === predWinner && actualWinner !== 'tie') {
-                correctCount++;
-              }
-            }
-          }
-        });
-      }
-      
-      // csv += `${correctCount},`;  // Add correct picks count
-      
-      // Now add timestamp (AFTER correct picks)
-      // if (!hasPicks || !pick.timestamp) {
-
-      csv += `${correctCount},`;  // Add correct picks count
-
-      // Calculate perfect scores
-      let perfectCount = 0;
-      if (hasPicks) {
-        currentWeekData.games.forEach(game => {
-          const pred = pick.predictions[game.id];
-          const actual = actualScores[currentWeek]?.[game.id];
-          
-          if (pred && actual && pred.team1 && pred.team2 && actual.team1 && actual.team2) {
-            const actualTeam1 = parseInt(actual.team1);
-            const actualTeam2 = parseInt(actual.team2);
-            const predTeam1 = parseInt(pred.team1);
-            const predTeam2 = parseInt(pred.team2);
-            
-            // PERFECT SCORE: Both teams exactly correct
-            if (actualTeam1 === predTeam1 && actualTeam2 === predTeam2) {
-              perfectCount++;
-            }
-          }
-        });
-      }
-
-      csv += `${perfectCount},`;  // Add perfect scores count
-
-      // Now add timestamp (AFTER perfect scores)
       if (!hasPicks || !pick.timestamp) {
         csv += `"-"\n`;
       } else {
@@ -6102,27 +5955,7 @@ const calculateAllPrizeWinners = () => {
                         {sortColumn === 'correct' ? (sortDirection === 'asc' ? '↑' : '↓') : '⇅'}
                       </button>
                     </th>
-                    {/* PERFECT SCORES COLUMN - NEW */}
-                    <th rowSpan="2" style={{backgroundColor: '#fff9c4', fontWeight: 'bold', color: '#000', minWidth: '60px', fontSize: '0.75rem', padding: '8px 4px'}}>
-                      <div style={{marginBottom: '2px'}}>Perfect</div>
-                      <div style={{marginBottom: '4px'}}>Scores</div>
-                      <button
-                        onClick={() => handleSort('perfect')}
-                        style={{
-                          padding: '4px 8px',
-                          fontSize: '0.7rem',
-                          background: sortColumn === 'perfect' ? '#4caf50' : '#f0f0f0',
-                          color: sortColumn === 'perfect' ? '#fff' : '#000',
-                          border: '1px solid #ddd',
-                          borderRadius: '4px',
-                          cursor: 'pointer',
-                          marginTop: '2px'
-                        }}
-                        title={`Sort by perfect scores ${sortColumn === 'perfect' && sortDirection === 'asc' ? '(Low to High)' : '(High to Low)'}`}
-                      >
-                        {sortColumn === 'perfect' ? (sortDirection === 'asc' ? '↑' : '↓') : '⇅'}
-                      </button>
-                    </th>
+                    
                     {currentWeek === 'superbowl' ? (
                       <>
                         <th rowSpan="2" style={{backgroundColor: '#fff3cd', fontWeight: 'bold', color: '#000'}}>
@@ -6918,76 +6751,7 @@ const calculateAllPrizeWinners = () => {
                               </td>
                             );
                           })()}
-                          {/* PERFECT SCORES CELL */}
-                          {(() => {
-                            let perfectCount = 0;
-                            
-                            if (currentWeek === 'superbowl') {
-                              // For Super Bowl, count across ALL completed weeks
-                              const weeks = ['wildcard', 'divisional', 'conference', 'superbowl'];
-                              weeks.forEach(weekName => {
-                                const weekActualScores = actualScores[weekName];
-                                const hasActual = weekActualScores && Object.values(weekActualScores).some(game => {
-                                  return game && 
-                                        game.team1 !== null && game.team1 !== undefined && game.team1 !== '' && game.team1 !== 0 &&
-                                        game.team2 !== null && game.team2 !== undefined && game.team2 !== '' && game.team2 !== 0;
-                                });
-                                
-                                if (hasActual) {
-                                  const playerWeekPick = allPicks.find(p => p.playerCode === pick.playerCode && p.week === weekName);
-                                  if (playerWeekPick && playerWeekPick.predictions) {
-                                    Object.keys(weekActualScores).forEach(gameId => {
-                                      const actual = weekActualScores[gameId];
-                                      const pred = playerWeekPick.predictions[gameId];
-                                      
-                                      if (pred && actual && actual.team1 && actual.team2 && pred.team1 && pred.team2) {
-                                        const actualTeam1 = parseInt(actual.team1);
-                                        const actualTeam2 = parseInt(actual.team2);
-                                        const predTeam1 = parseInt(pred.team1);
-                                        const predTeam2 = parseInt(pred.team2);
-                                        
-                                        // PERFECT SCORE: Both teams exactly correct
-                                        if (actualTeam1 === predTeam1 && actualTeam2 === predTeam2) {
-                                          perfectCount++;
-                                        }
-                                      }
-                                    });
-                                  }
-                                }
-                              });
-                            } else {
-                              // For individual week, only count current week
-                              currentWeekData.games.forEach(game => {
-                                const pred = pick.predictions[game.id];
-                                const actual = actualScores[currentWeek]?.[game.id];
-                                
-                                if (pred && actual && actual.team1 && actual.team2 && pred.team1 && pred.team2) {
-                                  const actualTeam1 = parseInt(actual.team1);
-                                  const actualTeam2 = parseInt(actual.team2);
-                                  const predTeam1 = parseInt(pred.team1);
-                                  const predTeam2 = parseInt(pred.team2);
-                                  
-                                  // PERFECT SCORE: Both teams exactly correct
-                                  if (actualTeam1 === predTeam1 && actualTeam2 === predTeam2) {
-                                    perfectCount++;
-                                  }
-                                }
-                              });
-                            }
-                            
-                            return (
-                              <td style={{
-                                backgroundColor: '#fffbea',
-                                fontWeight: 'bold',
-                                fontSize: '1rem',
-                                color: perfectCount > 0 ? '#f57c00' : '#999',
-                                textAlign: 'center',
-                                padding: '8px 4px'
-                              }}>
-                                {perfectCount}
-                              </td>
-                            );
-                          })()}
+                          
                           {/* Total Points Columns */}
                           {currentWeek === 'superbowl' ? (
                             <>
