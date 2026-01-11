@@ -6840,7 +6840,8 @@ const calculateAllPrizeWinners = () => {
                                   style={{
                                     background: team1Style.background,
                                     color: team1Style.color,
-                                    fontWeight: team1Style.background !== 'transparent' ? 'bold' : 'normal',
+                                    // fontWeight: team1Style.background !== 'transparent' ? 'bold' : 'normal',
+                                    fontWeight: team1Style.background !== 'transparent' && team1Style.background !== '#b3e5fc' ? 'bold' : 'normal'
                                     borderLeft: gameIdx > 0 ? '4px solid #2c3e50' : 'none',
                                     paddingLeft: gameIdx > 0 ? '12px' : '8px'
                                   }}
