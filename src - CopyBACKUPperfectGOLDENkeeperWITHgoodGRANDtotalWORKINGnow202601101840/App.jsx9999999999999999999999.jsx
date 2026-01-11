@@ -2416,35 +2416,15 @@ const exportPlayersToExcel = async () => {
     let totalPredicted = 0;
     let totalActual = 0;
     
-    // Handle both array and object prediction formats
-    if (Array.isArray(playerPick.predictions)) {
-      // Array format (old picks)
-      playerPick.predictions.forEach((pred, gameId) => {
-        if (gameId === 0 || !pred) return; // Skip index 0
-        
-        const actual = weekActualScores[gameId];
-        
-        // if (pred && actual && pred.team1 && pred.team2 && actual.team1 && actual.team2) {
-        if (pred && actual && pred.team1 && pred.team2 && actual.team1 !== "" && actual.team2 !== "") {
-          totalPredicted += parseInt(pred.team1) + parseInt(pred.team2);
-          totalActual += parseInt(actual.team1) + parseInt(actual.team2);
-        }
-      });
-    } else {
-      // Object format (new picks)
-      Object.keys(playerPick.predictions).forEach(gameId => {
-        const pred = playerPick.predictions[gameId];
-        const actual = weekActualScores[gameId];
-
-        console.log(`🔍 GameId ${gameId}: pred=${JSON.stringify(pred)}, actual=${JSON.stringify(actual)}`);
-        
-        // if (pred && actual && pred.team1 && pred.team2 && actual.team1 && actual.team2) {
-        if (pred && actual && pred.team1 && pred.team2 && actual.team1 !== "" && actual.team2 !== "") {
-          totalPredicted += parseInt(pred.team1) + parseInt(pred.team2);
-          totalActual += parseInt(actual.team1) + parseInt(actual.team2);
-        }
-      });
-    }
+    Object.keys(playerPick.predictions).forEach(gameId => {
+      const pred = playerPick.predictions[gameId];
+      const actual = weekActualScores[gameId];
+      
+      if (pred && actual && pred.team1 && pred.team2 && actual.team1 && actual.team2) {
+        totalPredicted += parseInt(pred.team1) + parseInt(pred.team2);
+        totalActual += parseInt(actual.team1) + parseInt(actual.team2);
+      }
+    });
     
     // Return the absolute difference between total predicted and total actual
     return Math.abs(totalPredicted - totalActual);

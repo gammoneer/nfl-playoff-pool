@@ -2120,7 +2120,11 @@ const exportPlayersToExcel = async () => {
             
             weeks.forEach(weekName => {
               const weekActualScores = actualScores[weekName];
-              const hasActual = weekActualScores && Object.keys(weekActualScores).length > 0;
+              const hasActual = weekActualScores && Object.values(weekActualScores).some(game => {
+                return game && 
+                       game.team1 !== null && game.team1 !== undefined && game.team1 !== '' && game.team1 !== 0 &&
+                       game.team2 !== null && game.team2 !== undefined && game.team2 !== '' && game.team2 !== 0;
+              });
               
               if (hasActual) {
                 const playerWeekPick = allPicks.find(p => p.playerCode === playerPick.playerCode && p.week === weekName);
@@ -2401,50 +2405,27 @@ const exportPlayersToExcel = async () => {
   };
 
   const calculateWeeklyTotal = (playerCode, week) => {
-    console.log(`🔍 calculateWeeklyTotal for ${playerCode}, week ${week}`);
     // Find player's picks for this week
     const playerPick = allPicks.find(p => p.playerCode === playerCode && p.week === week);
-    console.log('🔍 Found playerPick:', !!playerPick);
     if (!playerPick || !playerPick.predictions) return 0;
     
     // Get actual scores for this week
     const weekActualScores = actualScores[week];
-    console.log('🔍 weekActualScores:', weekActualScores);
     if (!weekActualScores) return 0;
     
     // Calculate total predicted and total actual for the ENTIRE WEEK
     let totalPredicted = 0;
     let totalActual = 0;
     
-    // Handle both array and object prediction formats
-    if (Array.isArray(playerPick.predictions)) {
-      // Array format (old picks)
-      playerPick.predictions.forEach((pred, gameId) => {
-        if (gameId === 0 || !pred) return; // Skip index 0
-        
-        const actual = weekActualScores[gameId];
-        
-        // if (pred && actual && pred.team1 && pred.team2 && actual.team1 && actual.team2) {
-        if (pred && actual && pred.team1 && pred.team2 && actual.team1 !== "" && actual.team2 !== "") {
-          totalPredicted += parseInt(pred.team1) + parseInt(pred.team2);
-          totalActual += parseInt(actual.team1) + parseInt(actual.team2);
-        }
-      });
-    } else {
-      // Object format (new picks)
-      Object.keys(playerPick.predictions).forEach(gameId => {
-        const pred = playerPick.predictions[gameId];
-        const actual = weekActualScores[gameId];
-
-        console.log(`🔍 GameId ${gameId}: pred=${JSON.stringify(pred)}, actual=${JSON.stringify(actual)}`);
-        
-        // if (pred && actual && pred.team1 && pred.team2 && actual.team1 && actual.team2) {
-        if (pred && actual && pred.team1 && pred.team2 && actual.team1 !== "" && actual.team2 !== "") {
-          totalPredicted += parseInt(pred.team1) + parseInt(pred.team2);
-          totalActual += parseInt(actual.team1) + parseInt(actual.team2);
-        }
-      });
-    }
+    Object.keys(playerPick.predictions).forEach(gameId => {
+      const pred = playerPick.predictions[gameId];
+      const actual = weekActualScores[gameId];
+      
+      if (pred && actual && pred.team1 && pred.team2 && actual.team1 && actual.team2) {
+        totalPredicted += parseInt(pred.team1) + parseInt(pred.team2);
+        totalActual += parseInt(actual.team1) + parseInt(actual.team2);
+      }
+    });
     
     // Return the absolute difference between total predicted and total actual
     return Math.abs(totalPredicted - totalActual);
@@ -2508,12 +2489,8 @@ const exportPlayersToExcel = async () => {
    * Format grand total with smart P notation
    * Returns object: { display: string, tooltip: string, fontSize: string }
    */
-//  const formatGrandDisplay = (playerCode) => {
-//    const weeks = getPlayerWeeks(playerCode);
   const formatGrandDisplay = (playerCode) => {
-    console.log('🔍 formatGrandDisplay called for:', playerCode);
     const weeks = getPlayerWeeks(playerCode);
-    console.log('🔍 Player weeks:', weeks);
     
     if (weeks.length === 0) {
       return { display: '-', tooltip: '', fontSize: '16px' };
@@ -2530,10 +2507,6 @@ const exportPlayersToExcel = async () => {
       const weekName = weekMap[weekNum];
       const pred = calculatePredictedTotal(playerCode, weekName);
       const diff = calculateWeeklyTotal(playerCode, weekName);
-      console.log(`🔍 Week ${weekNum} (${weekName}): pred=${pred}, diff=${diff}`);
-  
-//      if (pred) {
-//        fullPredicted += pred;
       
       // ✅ FIXED: Check if actual scores have REAL values (not null/undefined/empty strings/zeros)
       const weekActualScores = actualScores[weekName];
@@ -3916,18 +3889,18 @@ const playerTotals = useMemo(() => {
     
     // ✅ FIX: For Super Bowl week, calculate grand total using formatGrandDisplay
     if (currentWeek === 'superbowl') {
-    // Also calculate individual week displays for the table
-    totals[pick.playerName].week4Display = formatWeeklyDisplay(pick.playerCode, 'superbowl', 4).display;
-    totals[pick.playerName].week3Display = formatWeeklyDisplay(pick.playerCode, 'conference', 3).display;
-    totals[pick.playerName].week2Display = formatWeeklyDisplay(pick.playerCode, 'divisional', 2).display;
-    totals[pick.playerName].week1Display = formatWeeklyDisplay(pick.playerCode, 'wildcard', 1).display;
-    const gd = formatGrandDisplay(pick.playerCode);
-    totals[pick.playerName].grand = gd.display;
-    totals[pick.playerName].grandTooltip = gd.tooltip;
-    totals[pick.playerName].grandFontSize = gd.fontSize;
+      const grandDisplay = formatGrandDisplay(pick.playerCode);
+      totals[pick.playerName].grand = grandDisplay.display;
+      
+      // Also calculate individual week displays for the table
+      totals[pick.playerName].week4Display = formatWeeklyDisplay(pick.playerCode, 'superbowl', 4).display;
+      totals[pick.playerName].week3Display = formatWeeklyDisplay(pick.playerCode, 'conference', 3).display;
+      totals[pick.playerName].week2Display = formatWeeklyDisplay(pick.playerCode, 'divisional', 2).display;
+      totals[pick.playerName].week1Display = formatWeeklyDisplay(pick.playerCode, 'wildcard', 1).display;
     }
   });
-    return totals;
+  
+  return totals;
 }, [allPicks, currentWeek, actualScores]);
 
 const calculateAllPrizeWinners = () => {
@@ -6998,33 +6971,35 @@ const calculateAllPrizeWinners = () => {
                           {/* Total Points Columns */}
                           {currentWeek === 'superbowl' ? (
                             <>
-                              {(() => {
-                                const week4Display = formatWeeklyDisplay(pick.playerCode, 'superbowl', 4);
-                                const week3Display = formatWeeklyDisplay(pick.playerCode, 'conference', 3);
-                                const week2Display = formatWeeklyDisplay(pick.playerCode, 'divisional', 2);
-                                const week1Display = formatWeeklyDisplay(pick.playerCode, 'wildcard', 1);
-                                const grandDisplay = formatGrandDisplay(pick.playerCode);
-                                
-                                return (
-                                  <>
-                                    <td style={{backgroundColor: '#fff3cd', fontWeight: 'bold', fontSize: week4Display.fontSize}} title={week4Display.tooltip}>
-                                      <span style={{color: '#000'}}>{week4Display.display}</span>
-                                    </td>
-                                    <td style={{backgroundColor: '#d1ecf1', fontWeight: 'bold', fontSize: week3Display.fontSize}} title={week3Display.tooltip}>
-                                      <span style={{color: '#000'}}>{week3Display.display}</span>
-                                    </td>
-                                    <td style={{backgroundColor: '#d4edda', fontWeight: 'bold', fontSize: week2Display.fontSize}} title={week2Display.tooltip}>
-                                      <span style={{color: '#000'}}>{week2Display.display}</span>
-                                    </td>
-                                    <td style={{backgroundColor: '#f8d7da', fontWeight: 'bold', fontSize: week1Display.fontSize}} title={week1Display.tooltip}>
-                                      <span style={{color: '#000'}}>{week1Display.display}</span>
-                                    </td>
-                                    <td className="grand-total" style={{fontSize: grandDisplay.fontSize}} title={grandDisplay.tooltip}>
-                                    {grandDisplay.display}
-                                  </td>
-                                  </>
-                                );
-                              })()}
+                              <td 
+                                style={{backgroundColor: '#fff3cd', fontWeight: 'bold', fontSize: '16px'}}
+                              >
+                                <span style={{color: '#000'}}>{playerTotals[pick.playerName]?.week4Display || '-'}</span>
+                              </td>
+                              <td 
+                                style={{backgroundColor: '#d1ecf1', fontWeight: 'bold', fontSize: '16px'}}
+                              >
+                                <span style={{color: '#000'}}>{playerTotals[pick.playerName]?.week3Display || '-'}</span>
+                              </td>
+                              <td 
+                                style={{backgroundColor: '#d4edda', fontWeight: 'bold', fontSize: '16px'}}
+                              >
+                                <span style={{color: '#000'}}>{playerTotals[pick.playerName]?.week2Display || '-'}</span>
+                              </td>
+                              <td 
+                                style={{backgroundColor: '#f8d7da', fontWeight: 'bold', fontSize: '16px'}}
+                              >
+                                <span style={{color: '#000'}}>{playerTotals[pick.playerName]?.week1Display || '-'}</span>
+                              </td>
+                              <td 
+                                className="grand-total"
+                                style={{fontSize: '16px'}}
+                              >
+                                {(() => {
+                                  const grandDisplay = formatGrandDisplay(pick.playerCode);
+                                  return grandDisplay.display;
+                                })()}
+                              </td>
                             </>
                           ) : (
                             <td style={{backgroundColor: '#f8f9fa', fontWeight: 'bold', fontSize: '16px'}}>

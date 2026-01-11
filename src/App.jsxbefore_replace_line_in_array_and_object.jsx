@@ -2424,8 +2424,7 @@ const exportPlayersToExcel = async () => {
         
         const actual = weekActualScores[gameId];
         
-        // if (pred && actual && pred.team1 && pred.team2 && actual.team1 && actual.team2) {
-        if (pred && actual && pred.team1 && pred.team2 && actual.team1 !== "" && actual.team2 !== "") {
+        if (pred && actual && pred.team1 && pred.team2 && actual.team1 && actual.team2) {
           totalPredicted += parseInt(pred.team1) + parseInt(pred.team2);
           totalActual += parseInt(actual.team1) + parseInt(actual.team2);
         }
@@ -2438,8 +2437,7 @@ const exportPlayersToExcel = async () => {
 
         console.log(`🔍 GameId ${gameId}: pred=${JSON.stringify(pred)}, actual=${JSON.stringify(actual)}`);
         
-        // if (pred && actual && pred.team1 && pred.team2 && actual.team1 && actual.team2) {
-        if (pred && actual && pred.team1 && pred.team2 && actual.team1 !== "" && actual.team2 !== "") {
+        if (pred && actual && pred.team1 && pred.team2 && actual.team1 && actual.team2) {
           totalPredicted += parseInt(pred.team1) + parseInt(pred.team2);
           totalActual += parseInt(actual.team1) + parseInt(actual.team2);
         }
