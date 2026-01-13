@@ -4,7 +4,7 @@ import './StandingsPage.css';
 // Import scoring functions (we'll integrate these)
 // For now, we'll include the logic directly
 
-function StandingsPage({ allPicks, actualScores, currentWeek, playerName, playerCode, isPoolManager, prizePool, officialWinners, onLogout }) {
+function StandingsPage({ allPicks, actualScores, gameStatus, currentWeek, playerName, playerCode, isPoolManager, prizePool, officialWinners, onLogout }) {
   
   // Track which prize week sections are expanded
   const [expandedPrizeWeeks, setExpandedPrizeWeeks] = useState({
@@ -143,6 +143,25 @@ function StandingsPage({ allPicks, actualScores, currentWeek, playerName, player
       correctWinners: totalCorrectWinners,
       pointsDifference: totalPointsDifference
     };
+  };
+
+  // ============================================
+  // CHECK IF ALL GAMES ARE FINAL
+  // ============================================
+  
+  /**
+   * Check if all games for a specific week are final
+   */
+  const areAllGamesFinal = (week) => {
+    if (!gameStatus || !gameStatus[week]) {
+      return false;
+    }
+    
+    const weekStatuses = gameStatus[week];
+    const statusValues = Object.values(weekStatuses);
+    
+    // Return true only if ALL games have status 'final'
+    return statusValues.length > 0 && statusValues.every(status => status === 'final');
   };
 
   // ============================================
@@ -698,13 +717,13 @@ function StandingsPage({ allPicks, actualScores, currentWeek, playerName, player
                                       <span style={{
                                         marginLeft: '8px',
                                         fontSize: '0.7rem',
-                                        background: '#4facfe',
+                                        background: areAllGamesFinal(prize.week) ? '#28a745' : '#4facfe',
                                         color: 'white',
                                         padding: '2px 6px',
                                         borderRadius: '4px',
                                         fontWeight: '600'
                                       }}>
-                                        LEADING
+                                        {areAllGamesFinal(prize.week) ? 'WINNER' : 'LEADING'}
                                       </span>
                                     )}
                                   </td>
@@ -830,13 +849,13 @@ function StandingsPage({ allPicks, actualScores, currentWeek, playerName, player
                                       <span style={{
                                         marginLeft: '8px',
                                         fontSize: '0.7rem',
-                                        background: '#4facfe',
+                                        background: areAllGamesFinal('superbowl') ? '#28a745' : '#4facfe',
                                         color: 'white',
                                         padding: '2px 6px',
                                         borderRadius: '4px',
                                         fontWeight: '600'
                                       }}>
-                                        LEADING
+                                        {areAllGamesFinal('superbowl') ? 'WINNER' : 'LEADING'}
                                       </span>
                                     )}
                                   </td>
@@ -962,13 +981,13 @@ function StandingsPage({ allPicks, actualScores, currentWeek, playerName, player
                                       <span style={{
                                         marginLeft: '8px',
                                         fontSize: '0.7rem',
-                                        background: '#4facfe',
+                                        background: (areAllGamesFinal('wildcard') && areAllGamesFinal('divisional') && areAllGamesFinal('conference') && areAllGamesFinal('superbowl')) ? '#28a745' : '#4facfe',
                                         color: 'white',
                                         padding: '2px 6px',
                                         borderRadius: '4px',
                                         fontWeight: '600'
                                       }}>
-                                        LEADING
+                                        {(areAllGamesFinal('wildcard') && areAllGamesFinal('divisional') && areAllGamesFinal('conference') && areAllGamesFinal('superbowl')) ? 'WINNER' : 'LEADING'}
                                       </span>
                                     )}
                                   </td>

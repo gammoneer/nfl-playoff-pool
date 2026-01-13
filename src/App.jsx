@@ -5447,6 +5447,7 @@ const calculateAllPrizeWinners = () => {
           <StandingsPage 
             allPicks={allPicks} 
             actualScores={actualScores}
+            gameStatus={gameStatus}
             currentWeek={currentWeek}
             playerName={playerName}
             playerCode={playerCode}
