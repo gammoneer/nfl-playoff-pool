@@ -49,8 +49,7 @@ function PlayoffTeamsSetup({
   actualScores,
   onSavePlayoffTeams,
   isPoolManager,
-  database,
-  weekCompletionStatus = {}
+  database
 }) {
   // Week 1 Manual Setup State
   const [week1Teams, setWeek1Teams] = useState({
@@ -441,17 +440,9 @@ function PlayoffTeamsSetup({
       </div>
 
       {/* WEEK 2 - MANUAL SETUP */}
-      {/* WEEK 2 - Only shows after Week 1 is closed OR Week 2 is already configured */}
-      {(isWeek1Configured() && (weekCompletionStatus.wildcard || isWeek2Configured())) && (
+      {isWeek1Configured() && (
         <div className="setup-section">
           <h3>🏈 WEEK 2 - Divisional Round (Manual Setup)</h3>
-
-          {!weekCompletionStatus.wildcard && (
-            <p style={{color: '#ff9800', fontWeight: 'bold', marginBottom: '10px',backgroundColor: '#fff3cd', padding: '10px', borderRadius: '4px'}}>
-              ⏳ Week 1 must be closed before you can configure Week 2 teams.<br/>
-              (Pool Manager: Use "Close Week 1" button after all games are FINAL)
-            </p>
-          )}
           <p style={{color: '#d63031', fontWeight: 'bold', marginBottom: '20px'}}>
             ⚠️ Blue box = AWAY team (visiting) | Green box = HOME team
           </p>
@@ -506,16 +497,9 @@ function PlayoffTeamsSetup({
       )}
 
       {/* WEEK 3 - MANUAL SETUP */}
-      {/* WEEK 3 - Only shows after Week 2 is closed OR Week 3 is already configured */}
-      {(isWeek2Configured() && (weekCompletionStatus.divisional || isWeek3Configured())) && (
+      {isWeek2Configured() && (
         <div className="setup-section">
           <h3>🏈 WEEK 3 - Conference Championships (Manual Setup)</h3>
-          {!weekCompletionStatus.divisional && (
-            <p style={{color: '#ff9800', fontWeight: 'bold', marginBottom: '10px',backgroundColor: '#fff3cd', padding: '10px', borderRadius: '4px'}}>
-              ⏳ Week 2 must be closed before you can configure Week 3 teams.<br/>
-              (Pool Manager: Use "Close Week 2" button after all games are FINAL)
-            </p>
-          )}
           <p style={{color: '#d63031', fontWeight: 'bold', marginBottom: '20px'}}>
             ⚠️ Blue box = AWAY team (visiting) | Green box = HOME team
           </p>
@@ -552,16 +536,9 @@ function PlayoffTeamsSetup({
       )}
 
       {/* WEEK 4 - MANUAL SETUP */}
-      {/* WEEK 4 - Only shows after Week 3 is closed OR Week 4 is already configured */}
-      {(isWeek3Configured() && (weekCompletionStatus.conference || isWeek4Configured())) && (
+      {isWeek3Configured() && (
         <div className="setup-section">
           <h3>🏆 WEEK 4 - Super Bowl (Manual Setup)</h3>
-          {!weekCompletionStatus.conference && (
-            <p style={{color: '#ff9800', fontWeight: 'bold', marginBottom: '10px',backgroundColor: '#fff3cd', padding: '10px', borderRadius: '4px'}}>
-              ⏳ Week 3 must be closed before you can configure Week 4 teams.<br/>
-              (Pool Manager: Use "Close Week 3" button after all games are FINAL)
-            </p>
-          )}
           <p style={{color: '#d63031', fontWeight: 'bold', marginBottom: '20px'}}>
             ⚠️ Blue box = Team 1 (listed first) | Green box = Team 2 (listed second)
           </p>

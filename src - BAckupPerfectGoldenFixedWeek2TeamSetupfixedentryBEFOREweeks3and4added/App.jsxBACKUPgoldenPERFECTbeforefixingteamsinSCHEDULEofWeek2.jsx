@@ -190,10 +190,10 @@ const PLAYOFF_WEEKS = {
     name: "Divisional Round (Jan 17-18, 2026)",
     deadline: "Friday, January 16, 2026 at 11:59 PM PST",
     games: [
-      { id: 7, team1: "BUF", team2: "DEN" },  // BUF @ DEN - Saturday 1:30 PM PST
-      { id: 8, team1: "SF", team2: "SEA" },   // SF @ SEA - Saturday 5:00 PM PST
-      { id: 9, team1: "HOU", team2: "NE" },   // HOU @ NE - Sunday 12:00 PM PST
-      { id: 10, team1: "LAR", team2: "CHI" }  // LAR @ CHI - Sunday 3:30 PM PST
+      { id: 7, team1: "AFC Winner 1", team2: "AFC #1" }, // BUF at DEN
+      { id: 9, team1: "AFC Winner 2", team2: "AFC Winner 3" }, // HOU at NE
+      { id: 8, team1: "NFC Winner 1", team2: "NFC #1" }, // SF at SEA
+      { id: 10, team1: "NFC Winner 2", team2: "NFC Winner 3" } // LAR at CHI
     ]
   },
   conference: {
@@ -443,13 +443,6 @@ function App() {
   
   // Official Winners (Pool Manager only)
   const [officialWinners, setOfficialWinners] = useState({});
-  // ✅ NEW: Track which weeks are manually completed by Pool Manager
-  const [weekCompletionStatus, setWeekCompletionStatus] = useState({
-    wildcard: false,
-    divisional: false,
-    conference: false,
-    superbowl: false
-  });
   
   // 💰 PRIZE POOL SETUP (Phase 2)
   const [prizePool, setPrizePool] = useState({
@@ -1494,23 +1487,16 @@ const exportPlayersToExcel = async () => {
     }
   };
 
-  // 🔒 Check if a week should be automatically locked based on date
-  // Locks at Friday 11:59 PM (before the games start on Saturday)
+  // 🔒 NEW: Check if a week should be automatically locked based on date
   const shouldAutoLock = (weekKey) => {
     const autoLockDate = AUTO_LOCK_DATES[weekKey];
     if (!autoLockDate) return false;
     
     const now = new Date();
     const pstTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
+    const lockDate = new Date(autoLockDate + 'T00:00:00');
     
-    // Auto-lock date is Saturday (game day)
-    // We want to lock on FRIDAY at 11:59 PM (day before)
-    const gameDayDate = new Date(autoLockDate + 'T00:00:00');
-    const lockDateTime = new Date(gameDayDate);
-    lockDateTime.setDate(lockDateTime.getDate() - 1); // Go back 1 day (Friday)
-    lockDateTime.setHours(23, 59, 59, 999); // Set to 11:59:59.999 PM
-    
-    return pstTime >= lockDateTime;
+    return pstTime >= lockDate;
   };
 
   // 🔒 NEW: Check if a week is locked (manual lock OR auto lock)
@@ -1520,18 +1506,12 @@ const exportPlayersToExcel = async () => {
       return false;
     }
     
-    // ✅ NEW: Only lock the CURRENT week being played
-    // Future weeks are always editable
-    if (weekKey !== currentWeek) {
-      return false; // Future weeks are never locked!
-    }
-    
-    // For current week: Check manual lock
+    // Check manual lock
     if (weekLockStatus[weekKey]?.locked) {
       return true;
     }
     
-    // For current week: Check automatic lock based on date
+    // Check automatic lock based on date
     return shouldAutoLock(weekKey);
   };
 
@@ -1641,17 +1621,6 @@ const exportPlayersToExcel = async () => {
       const data = snapshot.val();
       if (data) {
         setOfficialWinners(data);
-      }
-    });
-  }, []);
-
-  // ✅ NEW: Load week completion status from Firebase
-  useEffect(() => {
-    const completionRef = ref(database, 'weekCompletionStatus');
-    onValue(completionRef, (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        setWeekCompletionStatus(data);
       }
     });
   }, []);
@@ -2066,7 +2035,7 @@ const exportPlayersToExcel = async () => {
     if (!confirmed) return;
     
     console.log('Unpublishing prize:', prizeKey);
-
+    
     // Update state
     setPublishedWinners(prev => ({
       ...prev,
@@ -2077,81 +2046,6 @@ const exportPlayersToExcel = async () => {
     set(ref(database, `publishedWinners/${prizeKey}`), false);
     
     alert('✅ Prize unpublished successfully!');
-  };
-
-  // ✅ NEW: Check if all games for a week are marked FINAL
-  const areAllGamesFinal = (weekKey) => {
-    if (!gameStatus || !gameStatus[weekKey]) {
-      return false;
-    }
-    
-    const weekStatuses = gameStatus[weekKey];
-    const weekGames = PLAYOFF_WEEKS[weekKey]?.games || [];
-    
-    // Check that we have status for all games in this week
-    if (Object.keys(weekStatuses).length < weekGames.length) {
-      return false;
-    }
-    
-    // Check that ALL games are marked as 'final'
-    return weekGames.every(game => weekStatuses[game.id] === 'final');
-  };
-  
-  // ✅ NEW: Pool Manager closes a week and opens next week for team configuration
-  const handleCloseWeekAndConfigureNext = async (weekKey) => {
-    const weekNames = {
-      wildcard: 'Week 1',
-      divisional: 'Week 2',
-      conference: 'Week 3',
-      superbowl: 'Week 4'
-    };
-    
-    const nextWeekMap = {
-      wildcard: 'divisional',
-      divisional: 'conference',
-      conference: 'superbowl',
-      superbowl: null
-    };
-    
-    const currentWeekName = weekNames[weekKey];
-    const nextWeek = nextWeekMap[weekKey];
-    const nextWeekName = nextWeek ? weekNames[nextWeek] : null;
-    
-    const confirmed = window.confirm(
-      `🔒 CLOSE ${currentWeekName.toUpperCase()} & CONFIGURE ${nextWeekName ? nextWeekName.toUpperCase() : 'NONE'}?\n\n` +
-      `This will:\n` +
-      `✓ Mark ${currentWeekName} as completed\n` +
-      `✓ ${nextWeek ? `Allow you to configure ${nextWeekName} teams immediately` : 'Complete the playoffs'}\n` +
-      `✓ ${currentWeekName} results are finalized\n\n` +
-      `Continue?`
-    );
-    
-    if (!confirmed) return;
-    
-    try {
-      // Mark this week as completed
-      const updatedStatus = {
-        ...weekCompletionStatus,
-        [weekKey]: true
-      };
-      
-      setWeekCompletionStatus(updatedStatus);
-      
-      // Save to Firebase
-      await set(ref(database, `weekCompletionStatus/${weekKey}`), true);
-      
-      if (nextWeek) {
-        alert(
-          `✅ ${currentWeekName} closed successfully!\n\n` +
-          `You can now configure ${nextWeekName} teams in the "Setup Playoff Teams" page.`
-        );
-      } else {
-        alert(`✅ ${currentWeekName} closed successfully!\n\nAll playoffs complete!`);
-      }
-    } catch (error) {
-      console.error('Error closing week:', error);
-      alert('❌ Error closing week. Check console for details.');
-    }
   };
 
   /**
@@ -4316,173 +4210,6 @@ const calculateAllPrizeWinners = () => {
           </div>
         )}
 
-        {/* ✅ NEW: POOL MANAGER OVERRIDE - CLOSE WEEK & CONFIGURE NEXT */}
-        {isPoolManager() && (
-          <div style={{
-            background: 'linear-gradient(135deg, #4caf50 0%, #45a049 100%)',
-            color: 'white',
-            padding: '20px',
-            borderRadius: '8px',
-            marginBottom: '20px',
-            boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
-          }}>
-            <h3 style={{margin: '0 0 10px 0'}}>🔒 Close Completed Weeks & Configure Next Week</h3>
-            <p style={{fontSize: '0.9rem', margin: '0 0 15px 0', opacity: 0.9}}>
-              After all games for a week are FINAL, close that week to configure the next week's teams immediately.
-            </p>
-            
-            <div style={{display: 'flex', gap: '15px', flexWrap: 'wrap'}}>
-              {/* Week 1 Close Button */}
-              <div style={{
-                flex: '1 1 200px',
-                padding: '15px',
-                border: '2px solid rgba(255,255,255,0.3)',
-                borderRadius: '8px',
-                backgroundColor: weekCompletionStatus.wildcard ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.1)'
-              }}>
-                <div style={{fontWeight: 'bold', marginBottom: '10px'}}>
-                  Week 1 (Wildcard)
-                </div>
-                {weekCompletionStatus.wildcard ? (
-                  <div style={{color: '#fff', fontWeight: 'bold'}}>
-                    ✅ Completed
-                  </div>
-                ) : areAllGamesFinal('wildcard') ? (
-                  <button
-                    onClick={() => handleCloseWeekAndConfigureNext('wildcard')}
-                    style={{
-                      padding: '10px 15px',
-                      backgroundColor: '#fff',
-                      color: '#4caf50',
-                      border: 'none',
-                      borderRadius: '4px',
-                      cursor: 'pointer',
-                      fontWeight: 'bold'
-                    }}
-                  >
-                    🔒 Close Week 1 & Configure Week 2
-                  </button>
-                ) : (
-                  <div style={{fontSize: '0.9rem', opacity: 0.8}}>
-                    ⏳ Waiting for all games to be FINAL
-                  </div>
-                )}
-              </div>
-
-              {/* Week 2 Close Button */}
-              <div style={{
-                flex: '1 1 200px',
-                padding: '15px',
-                border: '2px solid rgba(255,255,255,0.3)',
-                borderRadius: '8px',
-                backgroundColor: weekCompletionStatus.divisional ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.1)'
-              }}>
-                <div style={{fontWeight: 'bold', marginBottom: '10px'}}>
-                  Week 2 (Divisional)
-                </div>
-                {weekCompletionStatus.divisional ? (
-                  <div style={{color: '#fff', fontWeight: 'bold'}}>
-                    ✅ Completed
-                  </div>
-                ) : areAllGamesFinal('divisional') ? (
-                  <button
-                    onClick={() => handleCloseWeekAndConfigureNext('divisional')}
-                    style={{
-                      padding: '10px 15px',
-                      backgroundColor: '#fff',
-                      color: '#4caf50',
-                      border: 'none',
-                      borderRadius: '4px',
-                      cursor: 'pointer',
-                      fontWeight: 'bold'
-                    }}
-                  >
-                    🔒 Close Week 2 & Configure Week 3
-                  </button>
-                ) : (
-                  <div style={{fontSize: '0.9rem', opacity: 0.8}}>
-                    ⏳ Waiting for all games to be FINAL
-                  </div>
-                )}
-              </div>
-
-              {/* Week 3 Close Button */}
-              <div style={{
-                flex: '1 1 200px',
-                padding: '15px',
-                border: '2px solid rgba(255,255,255,0.3)',
-                borderRadius: '8px',
-                backgroundColor: weekCompletionStatus.conference ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.1)'
-              }}>
-                <div style={{fontWeight: 'bold', marginBottom: '10px'}}>
-                  Week 3 (Conference)
-                </div>
-                {weekCompletionStatus.conference ? (
-                  <div style={{color: '#fff', fontWeight: 'bold'}}>
-                    ✅ Completed
-                  </div>
-                ) : areAllGamesFinal('conference') ? (
-                  <button
-                    onClick={() => handleCloseWeekAndConfigureNext('conference')}
-                    style={{
-                      padding: '10px 15px',
-                      backgroundColor: '#fff',
-                      color: '#4caf50',
-                      border: 'none',
-                      borderRadius: '4px',
-                      cursor: 'pointer',
-                      fontWeight: 'bold'
-                    }}
-                  >
-                    🔒 Close Week 3 & Configure Week 4
-                  </button>
-                ) : (
-                  <div style={{fontSize: '0.9rem', opacity: 0.8}}>
-                    ⏳ Waiting for all games to be FINAL
-                  </div>
-                )}
-              </div>
-
-              {/* Week 4 Close Button */}
-              <div style={{
-                flex: '1 1 200px',
-                padding: '15px',
-                border: '2px solid rgba(255,255,255,0.3)',
-                borderRadius: '8px',
-                backgroundColor: weekCompletionStatus.superbowl ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.1)'
-              }}>
-                <div style={{fontWeight: 'bold', marginBottom: '10px'}}>
-                  Week 4 (Super Bowl)
-                </div>
-                {weekCompletionStatus.superbowl ? (
-                  <div style={{color: '#fff', fontWeight: 'bold'}}>
-                    ✅ Completed - Playoffs Over!
-                  </div>
-                ) : areAllGamesFinal('superbowl') ? (
-                  <button
-                    onClick={() => handleCloseWeekAndConfigureNext('superbowl')}
-                    style={{
-                      padding: '10px 15px',
-                      backgroundColor: '#fff',
-                      color: '#4caf50',
-                      border: 'none',
-                      borderRadius: '4px',
-                      cursor: 'pointer',
-                      fontWeight: 'bold'
-                    }}
-                  >
-                    🔒 Close Week 4 - Playoffs Complete!
-                  </button>
-                ) : (
-                  <div style={{fontSize: '0.9rem', opacity: 0.8}}>
-                    ⏳ Waiting for Super Bowl to be FINAL
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* 👑 POOL MANAGER OVERRIDE - ENTER PICKS FOR ANY PLAYER */}
         {isPoolManager() && codeValidated && (
           <div style={{
@@ -5769,14 +5496,11 @@ const calculateAllPrizeWinners = () => {
             onUpdatePlayerCode={updatePlayerCode}
           />
         ) : currentView === 'playoffSetup' && codeValidated ? (
-
           <PlayoffTeamsSetup
             playoffTeams={playoffTeams}
             actualScores={actualScores}
             onSavePlayoffTeams={handleSavePlayoffTeams}
             isPoolManager={isPoolManager()}
-            database={database}
-            weekCompletionStatus={weekCompletionStatus}
           />
         ) : (
           <>
