@@ -1774,20 +1774,13 @@ const exportPlayersToExcel = async () => {
           };
 
           // Update game status
-          const newStatus = matchedGame.isFinal ? 'final' : matchedGame.isLive ? 'live' : '';
-          
           setGameStatus(prev => ({
             ...prev,
             [currentWeek]: {
               ...prev[currentWeek],
-              [gameId]: newStatus
+              [gameId]: matchedGame.isFinal ? 'final' : matchedGame.isLive ? 'live' : ''
             }
           }));
-          
-          // Save game status to Firebase
-          if (newStatus) {
-            set(ref(database, `gameStatus/${currentWeek}/${gameId}`), newStatus);
-          }
         }
       });
 
