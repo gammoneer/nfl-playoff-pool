@@ -5,8 +5,7 @@ import './PlayoffTeamsSetup.css';
  * Playoff Teams Setup Component
  * 
  * Week 1: Manual selection of 14 playoff teams with seeding
- * Week 2: MANUAL selection of 4 matchups (FIXED!)
- * Weeks 3-4: Auto-generate matchups based on winners
+ * Weeks 2-4: Auto-generate matchups based on winners, with Pool Manager confirmation
  */
 
 // All 32 NFL Teams (using 2-3 character abbreviations)
@@ -49,8 +48,7 @@ function PlayoffTeamsSetup({
   playoffTeams, 
   actualScores,
   onSavePlayoffTeams,
-  isPoolManager,
-  database
+  isPoolManager 
 }) {
   // Week 1 Manual Setup State
   const [week1Teams, setWeek1Teams] = useState({
@@ -74,28 +72,22 @@ function PlayoffTeamsSetup({
     }
   });
 
-  // ✅ NEW: Week 2 Manual Setup State
-  const [week2Games, setWeek2Games] = useState({
-    game7: { away: null, home: null },  // BUF @ DEN
-    game8: { away: null, home: null },  // SF @ SEA
-    game9: { away: null, home: null },  // HOU @ NE
-    game10: { away: null, home: null }  // LAR @ CHI
-  });
-
   // Week 2-4 proposed matchups
   const [proposedWeek2, setProposedWeek2] = useState(null);
   const [proposedWeek3, setProposedWeek3] = useState(null);
   const [proposedWeek4, setProposedWeek4] = useState(null);
 
+  // Manual override mode
+  const [overrideMode, setOverrideMode] = useState({
+    week2: false,
+    week3: false,
+    week4: false
+  });
+
   // Load existing playoff teams from Firebase
   useEffect(() => {
     if (playoffTeams?.week1) {
       setWeek1Teams(playoffTeams.week1);
-    }
-    
-    // ✅ NEW: Load Week 2 manual teams if they exist
-    if (playoffTeams?.week2Manual) {
-      setWeek2Games(playoffTeams.week2Manual);
     }
   }, [playoffTeams]);
 
@@ -107,23 +99,9 @@ function PlayoffTeamsSetup({
     
     // Check if all 14 seeds are filled
     for (let i = 1; i <= 7; i++) {
-      if (!afc[`seed${i}`] || !nfc[`seed${i}`]) {
-        return false;
-      }
+      if (!afc[`seed${i}`] || !nfc[`seed${i}`]) return false;
     }
     return true;
-  };
-
-  // ✅ NEW: Check if Week 2 is configured
-  const isWeek2Configured = () => {
-    if (!playoffTeams?.week2Manual) return false;
-    const games = playoffTeams.week2Manual;
-    
-    // Check if all 4 games have both teams
-    return games.game7?.away && games.game7?.home &&
-           games.game8?.away && games.game8?.home &&
-           games.game9?.away && games.game9?.home &&
-           games.game10?.away && games.game10?.home;
   };
 
   // Handle Week 1 team selection
@@ -133,134 +111,91 @@ function PlayoffTeamsSetup({
       ...prev,
       [conference]: {
         ...prev[conference],
-        [seed]: selectedTeam || null
+        [seed]: selectedTeam
       }
     }));
   };
 
-  // ✅ NEW: Handle Week 2 team selection
-  const handleWeek2TeamSelect = (gameId, position, teamCode) => {
-    const selectedTeam = NFL_TEAMS.find(t => t.name === teamCode);
-    setWeek2Games(prev => ({
-      ...prev,
-      [gameId]: {
-        ...prev[gameId],
-        [position]: selectedTeam || null
-      }
-    }));
-  };
-
-  // Save Week 1 configuration
+  // Save Week 1 teams
   const handleSaveWeek1 = () => {
+    // Validate all teams selected
+    for (let i = 1; i <= 7; i++) {
+      if (!week1Teams.afc[`seed${i}`] || !week1Teams.nfc[`seed${i}`]) {
+        alert('Please select all 14 teams before saving!');
+        return;
+      }
+    }
+
     const data = {
-      week1: week1Teams
+      week1: {
+        ...week1Teams,
+        configured: true
+      }
     };
+
     onSavePlayoffTeams(data);
-    alert('✅ Week 1 playoff teams saved!');
+    alert('✅ Week 1 playoff teams saved successfully!');
   };
 
-  // ✅ NEW: Save Week 2 Manual Configuration
-  const handleSaveWeek2Manual = async () => {
-    // Validate all games have both teams
-    if (!week2Games.game7.away || !week2Games.game7.home ||
-        !week2Games.game8.away || !week2Games.game8.home ||
-        !week2Games.game9.away || !week2Games.game9.home ||
-        !week2Games.game10.away || !week2Games.game10.home) {
-      alert('⚠️ Please select both teams for all 4 games!');
-      return;
-    }
-
-    // Import Firebase functions
-    const { ref, set } = await import('firebase/database');
-
-    // Save to playoffTeams (for UI display)
-    const playoffData = {
-      week2Manual: week2Games
-    };
-    
-    onSavePlayoffTeams(playoffData);
-
-    // Save team codes to Firebase (for game display)
-    try {
-      await set(ref(database, 'teamCodes/divisional'), {
-        7: {
-          team1: week2Games.game7.away.name,
-          team2: week2Games.game7.home.name
-        },
-        8: {
-          team1: week2Games.game8.away.name,
-          team2: week2Games.game8.home.name
-        },
-        9: {
-          team1: week2Games.game9.away.name,
-          team2: week2Games.game9.home.name
-        },
-        10: {
-          team1: week2Games.game10.away.name,
-          team2: week2Games.game10.home.name
-        }
-      });
-      
-      alert('✅ Week 2 teams saved successfully!\n\nPlease refresh your browser (Ctrl+Shift+R) to see the changes.');
-    } catch (error) {
-      console.error('Error saving team codes:', error);
-      alert('⚠️ Error saving to database. Check console.');
-    }
-  };
-
-  // Original Week 2 auto-generation (keep for reference)
+  // Generate Week 2 matchups based on Week 1 results
   const generateWeek2Matchups = () => {
     if (!actualScores?.wildcard) {
-      alert('⚠️ Week 1 scores not yet entered.');
+      alert('⚠️ Week 1 scores not yet entered. Cannot generate Week 2 matchups.');
       return;
     }
 
-    const scores = actualScores.wildcard;
-    const week1Winners = determineWeek1Winners(scores);
-    
-    if (!week1Winners) {
-      alert('⚠️ Not all Week 1 games are scored yet.');
+    // Determine Week 1 winners
+    const week1Results = determineWeek1Winners();
+    if (!week1Results) {
+      alert('⚠️ Not all Week 1 games have been scored. Cannot generate Week 2 matchups.');
       return;
     }
 
-    const matchups = applyReseeding(week1Winners);
-    setProposedWeek2(matchups);
+    // Apply reseeding logic
+    const week2Matchups = applyReseeding(week1Results);
+    setProposedWeek2(week2Matchups);
   };
 
-  const determineWeek1Winners = (scores) => {
-    const winners = { afc: [], nfc: [] };
+  // Determine Week 1 winners from actual scores
+  const determineWeek1Winners = () => {
+    const scores = actualScores.wildcard;
+    if (!scores) return null;
 
-    // Determine winners for all 6 games
+    const winners = {
+      afc: [],
+      nfc: []
+    };
+
     // Game 1: AFC #2 vs #7
     if (scores[1]) {
-      const game1Winner = parseInt(scores[1].team2) > parseInt(scores[1].team1)
-        ? week1Teams.afc.seed2
+      const game1Winner = parseInt(scores[1].team2) > parseInt(scores[1].team1) 
+        ? week1Teams.afc.seed2 
         : week1Teams.afc.seed7;
       if (game1Winner) winners.afc.push({ ...game1Winner, originalSeed: parseInt(scores[1].team2) > parseInt(scores[1].team1) ? 2 : 7 });
     }
 
-    // Game 2: NFC #2 vs #7
+    // Game 2: AFC #3 vs #6
     if (scores[2]) {
       const game2Winner = parseInt(scores[2].team2) > parseInt(scores[2].team1)
-        ? week1Teams.nfc.seed2
-        : week1Teams.nfc.seed7;
-      if (game2Winner) winners.nfc.push({ ...game2Winner, originalSeed: parseInt(scores[2].team2) > parseInt(scores[2].team1) ? 2 : 7 });
-    }
-
-    // Game 3: AFC #3 vs #6
-    if (scores[3]) {
-      const game3Winner = parseInt(scores[3].team2) > parseInt(scores[3].team1)
         ? week1Teams.afc.seed3
         : week1Teams.afc.seed6;
-      if (game3Winner) winners.afc.push({ ...game3Winner, originalSeed: parseInt(scores[3].team2) > parseInt(scores[3].team1) ? 3 : 6 });
+      if (game2Winner) winners.afc.push({ ...game2Winner, originalSeed: parseInt(scores[2].team2) > parseInt(scores[2].team1) ? 3 : 6 });
     }
 
-    // Game 4: AFC #4 vs #5
-    if (scores[4]) {
-      const game4Winner = parseInt(scores[4].team2) > parseInt(scores[4].team1)
+    // Game 3: AFC #4 vs #5
+    if (scores[3]) {
+      const game3Winner = parseInt(scores[3].team2) > parseInt(scores[3].team1)
         ? week1Teams.afc.seed4
         : week1Teams.afc.seed5;
-      if (game4Winner) winners.afc.push({ ...game4Winner, originalSeed: parseInt(scores[4].team2) > parseInt(scores[4].team1) ? 4 : 5 });
+      if (game3Winner) winners.afc.push({ ...game3Winner, originalSeed: parseInt(scores[3].team2) > parseInt(scores[3].team1) ? 4 : 5 });
+    }
+
+    // Game 4: NFC #2 vs #7
+    if (scores[4]) {
+      const game4Winner = parseInt(scores[4].team2) > parseInt(scores[4].team1)
+        ? week1Teams.nfc.seed2
+        : week1Teams.nfc.seed7;
+      if (game4Winner) winners.nfc.push({ ...game4Winner, originalSeed: parseInt(scores[4].team2) > parseInt(scores[4].team1) ? 2 : 7 });
     }
 
     // Game 5: NFC #3 vs #6
@@ -287,6 +222,7 @@ function PlayoffTeamsSetup({
     return winners;
   };
 
+  // Apply NFL reseeding rules for Week 2
   const applyReseeding = (week1Winners) => {
     // Add #1 seeds to the mix
     const afcTeams = [
@@ -303,20 +239,22 @@ function PlayoffTeamsSetup({
     nfcTeams.sort((a, b) => a.originalSeed - b.originalSeed);
 
     // #1 seed plays lowest remaining seed
+    // Other two play each other
     const matchups = {
       afc: [
-        { team1: afcTeams[0], team2: afcTeams[3] },
-        { team1: afcTeams[1], team2: afcTeams[2] }
+        { team1: afcTeams[0], team2: afcTeams[3] }, // #1 vs lowest
+        { team1: afcTeams[1], team2: afcTeams[2] }  // Other two
       ],
       nfc: [
-        { team1: nfcTeams[0], team2: nfcTeams[3] },
-        { team1: nfcTeams[1], team2: nfcTeams[2] }
+        { team1: nfcTeams[0], team2: nfcTeams[3] }, // #1 vs lowest
+        { team1: nfcTeams[1], team2: nfcTeams[2] }  // Other two
       ]
     };
 
     return matchups;
   };
 
+  // Confirm Week 2 matchups
   const confirmWeek2 = () => {
     if (!proposedWeek2) {
       alert('No proposed matchups to confirm!');
@@ -336,7 +274,7 @@ function PlayoffTeamsSetup({
     alert('✅ Week 2 matchups confirmed and saved!');
   };
 
-  // Week 3 and 4 functions remain unchanged...
+  // Generate Week 3 matchups
   const generateWeek3Matchups = () => {
     if (!actualScores?.divisional) {
       alert('⚠️ Week 2 scores not yet entered.');
@@ -345,6 +283,7 @@ function PlayoffTeamsSetup({
 
     const scores = actualScores.divisional;
     
+    // Determine Week 2 winners (games 7-10)
     const afcWinner1 = scores[7] && parseInt(scores[7].team1) > parseInt(scores[7].team2) 
       ? playoffTeams.week2.afc[0].team1 
       : playoffTeams.week2.afc[0].team2;
@@ -374,6 +313,7 @@ function PlayoffTeamsSetup({
     setProposedWeek3(matchups);
   };
 
+  // Confirm Week 3
   const confirmWeek3 = () => {
     if (!proposedWeek3) return;
 
@@ -389,6 +329,7 @@ function PlayoffTeamsSetup({
     alert('✅ Week 3 matchups confirmed!');
   };
 
+  // Generate Week 4 (Super Bowl)
   const generateWeek4Matchup = () => {
     if (!actualScores?.conference) {
       alert('⚠️ Week 3 scores not yet entered.');
@@ -417,6 +358,7 @@ function PlayoffTeamsSetup({
     setProposedWeek4(matchup);
   };
 
+  // Confirm Week 4
   const confirmWeek4 = () => {
     if (!proposedWeek4) return;
 
@@ -451,8 +393,8 @@ function PlayoffTeamsSetup({
           <div className={`status-item ${isWeek1Configured() ? 'configured' : 'not-configured'}`}>
             <strong>Week 1:</strong> {isWeek1Configured() ? '✅ Configured' : '⚠️ Not Configured'}
           </div>
-          <div className={`status-item ${isWeek2Configured() ? 'configured' : 'not-configured'}`}>
-            <strong>Week 2:</strong> {isWeek2Configured() ? '✅ Configured' : '⚠️ Not Configured'}
+          <div className="status-item">
+            <strong>Week 2:</strong> {playoffTeams?.week2 ? '✅ Set' : '⏸️ Waiting'}
           </div>
           <div className="status-item">
             <strong>Week 3:</strong> {playoffTeams?.week3 ? '✅ Set' : '⏸️ Waiting'}
@@ -515,178 +457,43 @@ function PlayoffTeamsSetup({
         </button>
       </div>
 
-      {/* ✅ NEW: WEEK 2 - MANUAL SETUP */}
+      {/* WEEK 2 - Auto-Generate */}
       {isWeek1Configured() && (
         <div className="setup-section">
-          <h3>🏈 WEEK 2 - Divisional Round (Manual Setup)</h3>
-          <p style={{color: '#d63031', fontWeight: 'bold'}}>
-            ⚠️ Select teams manually for each game. Away team is on the left, Home team on the right.
-          </p>
+          <h3>🏈 WEEK 2 - Divisional Round (Auto-Generate)</h3>
+          <p>Generate matchups based on Week 1 results with NFL reseeding rules.</p>
 
-          <div className="week2-manual-setup">
-            {/* Game 7 */}
-            <div className="game-setup">
-              <h4>Game 7 - Saturday 1:30 PM PST</h4>
-              <div className="team-selectors">
-                <div className="team-selector">
-                  <label>AWAY Team:</label>
-                  <select
-                    value={week2Games.game7.away?.name || ''}
-                    onChange={(e) => handleWeek2TeamSelect('game7', 'away', e.target.value)}
-                  >
-                    <option value="">Select Team</option>
-                    {NFL_TEAMS.map(team => (
-                      <option key={team.id} value={team.name}>
-                        {team.name} - {team.fullName}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <span style={{fontSize: '1.5rem', margin: '0 10px'}}>@</span>
-                <div className="team-selector">
-                  <label>HOME Team:</label>
-                  <select
-                    value={week2Games.game7.home?.name || ''}
-                    onChange={(e) => handleWeek2TeamSelect('game7', 'home', e.target.value)}
-                  >
-                    <option value="">Select Team</option>
-                    {NFL_TEAMS.map(team => (
-                      <option key={team.id} value={team.name}>
-                        {team.name} - {team.fullName}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+          {!proposedWeek2 && !playoffTeams?.week2 && (
+            <button className="generate-btn" onClick={generateWeek2Matchups}>
+              ⚡ Generate Week 2 Matchups
+            </button>
+          )}
+
+          {proposedWeek2 && (
+            <div className="proposed-matchups">
+              <h4>Proposed Week 2 Matchups:</h4>
+              <div className="matchup-list">
+                <p><strong>AFC Game 1:</strong> {proposedWeek2.afc[0].team1.name} vs {proposedWeek2.afc[0].team2.name}</p>
+                <p><strong>AFC Game 2:</strong> {proposedWeek2.afc[1].team1.name} vs {proposedWeek2.afc[1].team2.name}</p>
+                <p><strong>NFC Game 1:</strong> {proposedWeek2.nfc[0].team1.name} vs {proposedWeek2.nfc[0].team2.name}</p>
+                <p><strong>NFC Game 2:</strong> {proposedWeek2.nfc[1].team1.name} vs {proposedWeek2.nfc[1].team2.name}</p>
               </div>
+              <button className="confirm-btn" onClick={confirmWeek2}>
+                ✅ Confirm Week 2 Matchups
+              </button>
             </div>
+          )}
 
-            {/* Game 8 */}
-            <div className="game-setup">
-              <h4>Game 8 - Saturday 5:00 PM PST</h4>
-              <div className="team-selectors">
-                <div className="team-selector">
-                  <label>AWAY Team:</label>
-                  <select
-                    value={week2Games.game8.away?.name || ''}
-                    onChange={(e) => handleWeek2TeamSelect('game8', 'away', e.target.value)}
-                  >
-                    <option value="">Select Team</option>
-                    {NFL_TEAMS.map(team => (
-                      <option key={team.id} value={team.name}>
-                        {team.name} - {team.fullName}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <span style={{fontSize: '1.5rem', margin: '0 10px'}}>@</span>
-                <div className="team-selector">
-                  <label>HOME Team:</label>
-                  <select
-                    value={week2Games.game8.home?.name || ''}
-                    onChange={(e) => handleWeek2TeamSelect('game8', 'home', e.target.value)}
-                  >
-                    <option value="">Select Team</option>
-                    {NFL_TEAMS.map(team => (
-                      <option key={team.id} value={team.name}>
-                        {team.name} - {team.fullName}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            {/* Game 9 */}
-            <div className="game-setup">
-              <h4>Game 9 - Sunday 12:00 PM PST</h4>
-              <div className="team-selectors">
-                <div className="team-selector">
-                  <label>AWAY Team:</label>
-                  <select
-                    value={week2Games.game9.away?.name || ''}
-                    onChange={(e) => handleWeek2TeamSelect('game9', 'away', e.target.value)}
-                  >
-                    <option value="">Select Team</option>
-                    {NFL_TEAMS.map(team => (
-                      <option key={team.id} value={team.name}>
-                        {team.name} - {team.fullName}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <span style={{fontSize: '1.5rem', margin: '0 10px'}}>@</span>
-                <div className="team-selector">
-                  <label>HOME Team:</label>
-                  <select
-                    value={week2Games.game9.home?.name || ''}
-                    onChange={(e) => handleWeek2TeamSelect('game9', 'home', e.target.value)}
-                  >
-                    <option value="">Select Team</option>
-                    {NFL_TEAMS.map(team => (
-                      <option key={team.id} value={team.name}>
-                        {team.name} - {team.fullName}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            {/* Game 10 */}
-            <div className="game-setup">
-              <h4>Game 10 - Sunday 3:30 PM PST</h4>
-              <div className="team-selectors">
-                <div className="team-selector">
-                  <label>AWAY Team:</label>
-                  <select
-                    value={week2Games.game10.away?.name || ''}
-                    onChange={(e) => handleWeek2TeamSelect('game10', 'away', e.target.value)}
-                  >
-                    <option value="">Select Team</option>
-                    {NFL_TEAMS.map(team => (
-                      <option key={team.id} value={team.name}>
-                        {team.name} - {team.fullName}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <span style={{fontSize: '1.5rem', margin: '0 10px'}}>@</span>
-                <div className="team-selector">
-                  <label>HOME Team:</label>
-                  <select
-                    value={week2Games.game10.home?.name || ''}
-                    onChange={(e) => handleWeek2TeamSelect('game10', 'home', e.target.value)}
-                  >
-                    <option value="">Select Team</option>
-                    {NFL_TEAMS.map(team => (
-                      <option key={team.id} value={team.name}>
-                        {team.name} - {team.fullName}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <button 
-            className="save-btn" 
-            onClick={handleSaveWeek2Manual}
-            style={{marginTop: '20px', fontSize: '1.1rem', padding: '12px 30px'}}
-          >
-            💾 Save Week 2 Teams
-          </button>
-
-          {isWeek2Configured() && (
-            <div className="confirmed-status" style={{marginTop: '15px'}}>
-              ✅ Week 2 teams configured and saved!
+          {playoffTeams?.week2 && (
+            <div className="confirmed-status">
+              ✅ Week 2 matchups confirmed and saved!
             </div>
           )}
         </div>
       )}
 
       {/* WEEK 3 - Auto-Generate */}
-      {isWeek2Configured() && (
+      {playoffTeams?.week2 && (
         <div className="setup-section">
           <h3>🏈 WEEK 3 - Conference Championships (Auto-Generate)</h3>
           
@@ -699,10 +506,8 @@ function PlayoffTeamsSetup({
           {proposedWeek3 && (
             <div className="proposed-matchups">
               <h4>Proposed Week 3 Matchups:</h4>
-              <div className="matchup-list">
-                <p><strong>AFC Championship:</strong> {proposedWeek3.afcChampionship.team1.name} vs {proposedWeek3.afcChampionship.team2.name}</p>
-                <p><strong>NFC Championship:</strong> {proposedWeek3.nfcChampionship.team1.name} vs {proposedWeek3.nfcChampionship.team2.name}</p>
-              </div>
+              <p><strong>AFC Championship:</strong> {proposedWeek3.afcChampionship.team1.name} vs {proposedWeek3.afcChampionship.team2.name}</p>
+              <p><strong>NFC Championship:</strong> {proposedWeek3.nfcChampionship.team1.name} vs {proposedWeek3.nfcChampionship.team2.name}</p>
               <button className="confirm-btn" onClick={confirmWeek3}>
                 ✅ Confirm Week 3 Matchups
               </button>
@@ -717,10 +522,10 @@ function PlayoffTeamsSetup({
         </div>
       )}
 
-      {/* WEEK 4 - Auto-Generate */}
+      {/* WEEK 4 - Super Bowl */}
       {playoffTeams?.week3 && (
         <div className="setup-section">
-          <h3>🏈 WEEK 4 - Super Bowl (Auto-Generate)</h3>
+          <h3>🏆 WEEK 4 - Super Bowl LIX (Auto-Generate)</h3>
           
           {!proposedWeek4 && !playoffTeams?.week4 && (
             <button className="generate-btn" onClick={generateWeek4Matchup}>
@@ -731,9 +536,7 @@ function PlayoffTeamsSetup({
           {proposedWeek4 && (
             <div className="proposed-matchups">
               <h4>Proposed Super Bowl Matchup:</h4>
-              <div className="matchup-list">
-                <p><strong>Super Bowl:</strong> {proposedWeek4.superBowl.team1.name} vs {proposedWeek4.superBowl.team2.name}</p>
-              </div>
+              <p><strong>Super Bowl LIX:</strong> {proposedWeek4.superBowl.team1.name} vs {proposedWeek4.superBowl.team2.name}</p>
               <button className="confirm-btn" onClick={confirmWeek4}>
                 ✅ Confirm Super Bowl Matchup
               </button>

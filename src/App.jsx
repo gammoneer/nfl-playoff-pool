@@ -5496,11 +5496,13 @@ const calculateAllPrizeWinners = () => {
             onUpdatePlayerCode={updatePlayerCode}
           />
         ) : currentView === 'playoffSetup' && codeValidated ? (
+
           <PlayoffTeamsSetup
             playoffTeams={playoffTeams}
             actualScores={actualScores}
             onSavePlayoffTeams={handleSavePlayoffTeams}
             isPoolManager={isPoolManager()}
+            database={database}
           />
         ) : (
           <>
