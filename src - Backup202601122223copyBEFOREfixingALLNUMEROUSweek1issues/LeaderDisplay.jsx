@@ -179,7 +179,6 @@ function calculatePrizeLeaders(prizeNumber, allPicks, actualScores, weekData) {
     // Calculate Most Correct Predictions
     const results = relevantPicks.map(pick => {
       let correctCount = 0;
-      let playerTotal = 0;
       
       // For overall prizes, pick has weeklyPicks array
       // For single week prizes, pick is the direct pick object
@@ -206,9 +205,6 @@ function calculatePrizeLeaders(prizeNumber, allPicks, actualScores, weekData) {
           // If prediction scores are NaN or missing, skip this game
           if (isNaN(predTeam1) || isNaN(predTeam2)) return;
           
-          // Calculate player's predicted total for tiebreaker
-          playerTotal += predTeam1 + predTeam2;
-          
           // Determine winners (only if scores are valid)
           const playerWinner = predTeam1 > predTeam2 ? 'team1' : predTeam2 > predTeam1 ? 'team2' : 'tie';
           const actualWinner = actualTeam1 > actualTeam2 ? 'team1' : actualTeam2 > actualTeam1 ? 'team2' : 'tie';
@@ -220,52 +216,26 @@ function calculatePrizeLeaders(prizeNumber, allPicks, actualScores, weekData) {
         });
       });
       
-      const difference = Math.abs(playerTotal - actualTotal);
-      
       return {
         playerCode: pick.playerCode,
         playerName: pick.playerName,
         score: correctCount,
-        actualTotal,
-        playerTotal,
-        difference
+        actualTotal  // Add actualTotal to each player
       };
     });
     
-    // Sort by correct count first, then by difference (tiebreaker)
-    results.sort((a, b) => {
-      if (a.score !== b.score) {
-        return b.score - a.score;
-      }
-      return a.difference - b.difference;
-    });
+    // Sort by correct count (highest first)
+    results.sort((a, b) => b.score - a.score);
     
     const topScore = results[0]?.score || 0;
-    const topDifference = results[0]?.difference || 0;
-    const tiedLeaders = results.filter(r => r.score === topScore && r.difference === topDifference);
-    
-    // DEBUG - Show tiebreaker calculation for Prize #1
-    if (prizeInfo.name === 'Most Correct Predictions' && prizeInfo.weekName === 'Week 1') {
-      console.log('🏆 WEEK 1 PRIZE #1 - MOST CORRECT WINNERS DEBUG:');
-      console.log('Top 5 players after sort:', results.slice(0, 5).map(p => ({
-        name: p.playerName,
-        correctWinners: p.score,
-        predictedTotal: p.playerTotal,
-        actualTotal: p.actualTotal,
-        difference: p.difference
-      })));
-      console.log('topScore (most correct):', topScore);
-      console.log('topDifference (closest):', topDifference);
-      console.log('tiedLeaders:', tiedLeaders.map(p => p.playerName));
-      console.log('hasTie:', tiedLeaders.length > 1);
-    }
+    const tiedLeaders = results.filter(r => r.score === topScore);
     
     return {
       leaders: tiedLeaders,
       allPlayers: results,
       hasTie: tiedLeaders.length > 1,
       tieCount: tiedLeaders.length,
-      actualTotal
+      actualTotal  // Add actualTotal to return object
     };
     
   } else {

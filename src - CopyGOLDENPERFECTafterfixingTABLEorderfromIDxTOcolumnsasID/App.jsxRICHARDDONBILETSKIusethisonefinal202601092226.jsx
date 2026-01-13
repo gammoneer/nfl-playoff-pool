@@ -2120,7 +2120,11 @@ const exportPlayersToExcel = async () => {
             
             weeks.forEach(weekName => {
               const weekActualScores = actualScores[weekName];
-              const hasActual = weekActualScores && Object.keys(weekActualScores).length > 0;
+              const hasActual = weekActualScores && Object.values(weekActualScores).some(game => {
+                return game && 
+                       game.team1 !== null && game.team1 !== undefined && game.team1 !== '' && game.team1 !== 0 &&
+                       game.team2 !== null && game.team2 !== undefined && game.team2 !== '' && game.team2 !== 0;
+              });
               
               if (hasActual) {
                 const playerWeekPick = allPicks.find(p => p.playerCode === playerPick.playerCode && p.week === weekName);
@@ -2401,50 +2405,27 @@ const exportPlayersToExcel = async () => {
   };
 
   const calculateWeeklyTotal = (playerCode, week) => {
-    console.log(`🔍 calculateWeeklyTotal for ${playerCode}, week ${week}`);
     // Find player's picks for this week
     const playerPick = allPicks.find(p => p.playerCode === playerCode && p.week === week);
-    console.log('🔍 Found playerPick:', !!playerPick);
     if (!playerPick || !playerPick.predictions) return 0;
     
     // Get actual scores for this week
     const weekActualScores = actualScores[week];
-    console.log('🔍 weekActualScores:', weekActualScores);
     if (!weekActualScores) return 0;
     
     // Calculate total predicted and total actual for the ENTIRE WEEK
     let totalPredicted = 0;
     let totalActual = 0;
     
-    // Handle both array and object prediction formats
-    if (Array.isArray(playerPick.predictions)) {
-      // Array format (old picks)
-      playerPick.predictions.forEach((pred, gameId) => {
-        if (gameId === 0 || !pred) return; // Skip index 0
-        
-        const actual = weekActualScores[gameId];
-        
-        // if (pred && actual && pred.team1 && pred.team2 && actual.team1 && actual.team2) {
-        if (pred && actual && pred.team1 && pred.team2 && actual.team1 !== "" && actual.team2 !== "") {
-          totalPredicted += parseInt(pred.team1) + parseInt(pred.team2);
-          totalActual += parseInt(actual.team1) + parseInt(actual.team2);
-        }
-      });
-    } else {
-      // Object format (new picks)
-      Object.keys(playerPick.predictions).forEach(gameId => {
-        const pred = playerPick.predictions[gameId];
-        const actual = weekActualScores[gameId];
-
-        console.log(`🔍 GameId ${gameId}: pred=${JSON.stringify(pred)}, actual=${JSON.stringify(actual)}`);
-        
-        // if (pred && actual && pred.team1 && pred.team2 && actual.team1 && actual.team2) {
-        if (pred && actual && pred.team1 && pred.team2 && actual.team1 !== "" && actual.team2 !== "") {
-          totalPredicted += parseInt(pred.team1) + parseInt(pred.team2);
-          totalActual += parseInt(actual.team1) + parseInt(actual.team2);
-        }
-      });
-    }
+    Object.keys(playerPick.predictions).forEach(gameId => {
+      const pred = playerPick.predictions[gameId];
+      const actual = weekActualScores[gameId];
+      
+      if (pred && actual && pred.team1 && pred.team2 && actual.team1 && actual.team2) {
+        totalPredicted += parseInt(pred.team1) + parseInt(pred.team2);
+        totalActual += parseInt(actual.team1) + parseInt(actual.team2);
+      }
+    });
     
     // Return the absolute difference between total predicted and total actual
     return Math.abs(totalPredicted - totalActual);
@@ -2508,12 +2489,8 @@ const exportPlayersToExcel = async () => {
    * Format grand total with smart P notation
    * Returns object: { display: string, tooltip: string, fontSize: string }
    */
-//  const formatGrandDisplay = (playerCode) => {
-//    const weeks = getPlayerWeeks(playerCode);
   const formatGrandDisplay = (playerCode) => {
-    console.log('🔍 formatGrandDisplay called for:', playerCode);
     const weeks = getPlayerWeeks(playerCode);
-    console.log('🔍 Player weeks:', weeks);
     
     if (weeks.length === 0) {
       return { display: '-', tooltip: '', fontSize: '16px' };
@@ -2530,10 +2507,6 @@ const exportPlayersToExcel = async () => {
       const weekName = weekMap[weekNum];
       const pred = calculatePredictedTotal(playerCode, weekName);
       const diff = calculateWeeklyTotal(playerCode, weekName);
-      console.log(`🔍 Week ${weekNum} (${weekName}): pred=${pred}, diff=${diff}`);
-  
-//      if (pred) {
-//        fullPredicted += pred;
       
       // ✅ FIXED: Check if actual scores have REAL values (not null/undefined/empty strings/zeros)
       const weekActualScores = actualScores[weekName];
@@ -3921,10 +3894,7 @@ const playerTotals = useMemo(() => {
     totals[pick.playerName].week3Display = formatWeeklyDisplay(pick.playerCode, 'conference', 3).display;
     totals[pick.playerName].week2Display = formatWeeklyDisplay(pick.playerCode, 'divisional', 2).display;
     totals[pick.playerName].week1Display = formatWeeklyDisplay(pick.playerCode, 'wildcard', 1).display;
-    const gd = formatGrandDisplay(pick.playerCode);
-    totals[pick.playerName].grand = gd.display;
-    totals[pick.playerName].grandTooltip = gd.tooltip;
-    totals[pick.playerName].grandFontSize = gd.fontSize;
+    totals[pick.playerName].grand = formatGrandDisplay(pick.playerCode).display;
     }
   });
     return totals;
@@ -5456,7 +5426,6 @@ const calculateAllPrizeWinners = () => {
             onUnpublishPrize={handleUnpublishPrize}
             allPicks={allPicks}
             actualScores={actualScores}
-            prizePool={prizePool}
           />
         ) : currentView === 'loginLogs' && codeValidated ? (
           <LoginLogsViewer 
@@ -6811,43 +6780,18 @@ const calculateAllPrizeWinners = () => {
                             {isRNGPick && <span className="rng-indicator" title="Picks generated by Pool Manager (missed deadline)">🎲</span>}
                           </td>
                           {currentWeekData.games.map((game, gameIdx) => {
-                            // Handle both array and object prediction formats
-                            let pred;
-                            if (Array.isArray(pick.predictions)) {
-                              // pred = pick.predictions[gameIdx + 1]; OLD code that was screwing up entire TABLE
-                              pred = pick.predictions[game.id];
-                                  // DEBUG for Dallas
-                                  if (pick.playerName === 'Dallas Pylypow' && gameIdx < 3) {
-                                    console.log(`🔍 Dallas gameIdx=${gameIdx}, game.id=${game.id}, pred:`, pred);
-                                  }
-                            } else {
-                              pred = pick.predictions[game.id];
-                            }
-                            
+                            const pred = pick.predictions[game.id];
                             const actual = actualScores[currentWeek]?.[game.id];
                             const status = gameStatus[currentWeek]?.[game.id];
                             
-                            // DEBUG for columns 4-5 (gameIdx === 1, which is Game ID 3)
-                            if (idx === 0 && gameIdx === 1) {
-                              console.log('🔍 COLUMNS 4-5 DEBUG:', {
-                                gameIdx,
-                                gameId: game.id,
-                                'pred': pred,
-                                'pred?.team1': pred?.team1,
-                                'pred?.team2': pred?.team2,
-                                'actual?.team1': actual?.team1,
-                                'actual?.team2': actual?.team2,
-                                'status': status
-                              });
-                            }
-                            
+                            // Get highlighting for each cell
                             const team1Style = getCellHighlight(
                               pred?.team1,
                               pred?.team2,
                               actual?.team1,
                               actual?.team2,
                               status,
-                              true
+                              true // isTeam1Cell
                             );
                             
                             const team2Style = getCellHighlight(
@@ -6856,7 +6800,7 @@ const calculateAllPrizeWinners = () => {
                               actual?.team1,
                               actual?.team2,
                               status,
-                              false
+                              false // isTeam2Cell
                             );
                             
                             return (
@@ -6871,7 +6815,7 @@ const calculateAllPrizeWinners = () => {
                                     paddingLeft: gameIdx > 0 ? '12px' : '8px'
                                   }}
                                 >
-                                  {pred?.team1 || '-'}
+                                  {pick.predictions[game.id]?.team1 || '-'}
                                 </td>
                                 <td 
                                   className="score"
@@ -6881,7 +6825,7 @@ const calculateAllPrizeWinners = () => {
                                     fontWeight: team2Style.background !== 'transparent' ? 'bold' : 'normal'
                                   }}
                                 >
-                                  {pred?.team2 || '-'}
+                                  {pick.predictions[game.id]?.team2 || '-'}
                                 </td>
                               </React.Fragment>
                             );
@@ -7046,8 +6990,8 @@ const calculateAllPrizeWinners = () => {
                                       <span style={{color: '#000'}}>{week1Display.display}</span>
                                     </td>
                                     <td className="grand-total" style={{fontSize: grandDisplay.fontSize}} title={grandDisplay.tooltip}>
-                                    {grandDisplay.display}
-                                  </td>
+                                      {grandDisplay.display}
+                                    </td>
                                   </>
                                 );
                               })()}

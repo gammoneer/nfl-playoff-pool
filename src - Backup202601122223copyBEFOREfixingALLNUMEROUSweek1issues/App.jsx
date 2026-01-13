@@ -5456,7 +5456,6 @@ const calculateAllPrizeWinners = () => {
             onUnpublishPrize={handleUnpublishPrize}
             allPicks={allPicks}
             actualScores={actualScores}
-            prizePool={prizePool}
           />
         ) : currentView === 'loginLogs' && codeValidated ? (
           <LoginLogsViewer 

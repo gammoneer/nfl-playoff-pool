@@ -13,8 +13,7 @@ const HowWinnersAreDetermined = ({
   onPublishPrize,
   onUnpublishPrize,
   allPicks = [],
-  actualScores = {},
-  prizePool = { prizeValue: 50 }
+  actualScores = {}
 }) => {
   // Track which weeks are expanded
   const [expandedWeeks, setExpandedWeeks] = useState({
@@ -66,20 +65,18 @@ const HowWinnersAreDetermined = ({
     });
   };
 
-  // Prize definitions - dynamically read from prizePool
-  const prizeAmount = `$${(prizePool?.prizeValue || 50).toFixed(2)}`;
-  
+  // Prize definitions
   const prizes = [
-    { week: 'Week 1', title: 'Most Correct Winners', amount: prizeAmount, icon: '🏆', calcKey: 'week1.prize1', pubKey: 'week1_prize1' },
-    { week: 'Week 1', title: 'Closest Total Points', amount: prizeAmount, icon: '💰', calcKey: 'week1.prize2', pubKey: 'week1_prize2' },
-    { week: 'Week 2', title: 'Most Correct Winners', amount: prizeAmount, icon: '🏆', calcKey: 'week2.prize1', pubKey: 'week2_prize1' },
-    { week: 'Week 2', title: 'Closest Total Points', amount: prizeAmount, icon: '💰', calcKey: 'week2.prize2', pubKey: 'week2_prize2' },
-    { week: 'Week 3', title: 'Most Correct Winners', amount: prizeAmount, icon: '🏆', calcKey: 'week3.prize1', pubKey: 'week3_prize1' },
-    { week: 'Week 3', title: 'Closest Total Points', amount: prizeAmount, icon: '💰', calcKey: 'week3.prize2', pubKey: 'week3_prize2' },
-    { week: 'Week 4', title: 'Correct Winner', amount: prizeAmount, icon: '🏆', calcKey: 'week4.prize1', pubKey: 'week4_prize1' },
-    { week: 'Week 4', title: 'Closest Total Points', amount: prizeAmount, icon: '💰', calcKey: 'week4.prize2', pubKey: 'week4_prize2' },
-    { week: 'Grand Prize', title: 'Most Correct Winners', amount: prizeAmount, icon: '🏆', calcKey: 'grandPrize.prize1', pubKey: 'grand_prize1' },
-    { week: 'Grand Prize', title: 'Closest Total Points', amount: prizeAmount, icon: '💰', calcKey: 'grandPrize.prize2', pubKey: 'grand_prize2' }
+    { week: 'Week 1', title: 'Most Correct Winners', amount: '$50', icon: '🏆', calcKey: 'week1.prize1', pubKey: 'week1_prize1' },
+    { week: 'Week 1', title: 'Closest Total Points', amount: '$50', icon: '💰', calcKey: 'week1.prize2', pubKey: 'week1_prize2' },
+    { week: 'Week 2', title: 'Most Correct Winners', amount: '$50', icon: '🏆', calcKey: 'week2.prize1', pubKey: 'week2_prize1' },
+    { week: 'Week 2', title: 'Closest Total Points', amount: '$50', icon: '💰', calcKey: 'week2.prize2', pubKey: 'week2_prize2' },
+    { week: 'Week 3', title: 'Most Correct Winners', amount: '$50', icon: '🏆', calcKey: 'week3.prize1', pubKey: 'week3_prize1' },
+    { week: 'Week 3', title: 'Closest Total Points', amount: '$50', icon: '💰', calcKey: 'week3.prize2', pubKey: 'week3_prize2' },
+    { week: 'Week 4', title: 'Correct Winner', amount: '$50', icon: '🏆', calcKey: 'week4.prize1', pubKey: 'week4_prize1' },
+    { week: 'Week 4', title: 'Closest Total Points', amount: '$50', icon: '💰', calcKey: 'week4.prize2', pubKey: 'week4_prize2' },
+    { week: 'Grand Prize', title: 'Most Correct Winners', amount: '$120', icon: '🏆', calcKey: 'grandPrize.prize1', pubKey: 'grand_prize1' },
+    { week: 'Grand Prize', title: 'Closest Total Points', amount: '$80', icon: '💰', calcKey: 'grandPrize.prize2', pubKey: 'grand_prize2' }
   ];
 
   const getResult = (calcKey) => {

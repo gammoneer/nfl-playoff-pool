@@ -191,24 +191,12 @@ function StandingsPage({ allPicks, actualScores, currentWeek, playerName, player
       
       // Most Correct Predictions
       const correctWinnersData = Object.entries(playerData)
-        .map(([playerName, picks]) => {
-          const correctWinners = calculateCorrectWinners(picks[week], actualScores, week);
-          const difference = calculatePointsDifference(picks[week], actualScores, week);
-          return {
-            playerName,
-            score: correctWinners,
-            difference: difference !== null ? difference : 9999
-          };
-        })
+        .map(([playerName, picks]) => ({
+          playerName,
+          score: calculateCorrectWinners(picks[week], actualScores, week)
+        }))
         .filter(p => p.score > 0)
-        .sort((a, b) => {
-          // Sort by correct winners first
-          if (a.score !== b.score) {
-            return b.score - a.score;
-          }
-          // If tied, sort by difference (tiebreaker)
-          return a.difference - b.difference;
-        });
+        .sort((a, b) => b.score - a.score);
 
       prizes.push({
         prizeNumber: weekIndex * 2 + 1,

@@ -5456,7 +5456,6 @@ const calculateAllPrizeWinners = () => {
             onUnpublishPrize={handleUnpublishPrize}
             allPicks={allPicks}
             actualScores={actualScores}
-            prizePool={prizePool}
           />
         ) : currentView === 'loginLogs' && codeValidated ? (
           <LoginLogsViewer 
@@ -6814,8 +6813,7 @@ const calculateAllPrizeWinners = () => {
                             // Handle both array and object prediction formats
                             let pred;
                             if (Array.isArray(pick.predictions)) {
-                              // pred = pick.predictions[gameIdx + 1]; OLD code that was screwing up entire TABLE
-                              pred = pick.predictions[game.id];
+                              pred = pick.predictions[gameIdx + 1];
                                   // DEBUG for Dallas
                                   if (pick.playerName === 'Dallas Pylypow' && gameIdx < 3) {
                                     console.log(`🔍 Dallas gameIdx=${gameIdx}, game.id=${game.id}, pred:`, pred);
