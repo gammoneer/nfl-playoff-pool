@@ -190,10 +190,10 @@ const PLAYOFF_WEEKS = {
     name: "Divisional Round (Jan 17-18, 2026)",
     deadline: "Friday, January 16, 2026 at 11:59 PM PST",
     games: [
-      { id: 7, team1: "AFC Winner 1", team2: "AFC #1" },
-      { id: 8, team1: "AFC Winner 2", team2: "AFC Winner 3" },
-      { id: 9, team1: "NFC Winner 1", team2: "NFC #1" },
-      { id: 10, team1: "NFC Winner 2", team2: "NFC Winner 3" }
+      { id: 7, team1: "AFC Winner 1", team2: "AFC #1" }, // BUF at DEN
+      { id: 9, team1: "AFC Winner 2", team2: "AFC Winner 3" }, // HOU at NE
+      { id: 8, team1: "NFC Winner 1", team2: "NFC #1" }, // SF at SEA
+      { id: 10, team1: "NFC Winner 2", team2: "NFC Winner 3" } // LAR at CHI
     ]
   },
   conference: {
