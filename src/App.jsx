@@ -4412,7 +4412,7 @@ const calculateAllPrizeWinners = () => {
                 <div style={{fontWeight: 'bold', marginBottom: '10px'}}>
                   Week 1 (Wildcard)
                 </div>
-                {weekCompletionStatus && weekCompletionStatus.wildcard ? (
+                {weekCompletionStatus && weekCompletionStatus?.wildcard ? (
                   <div style={{color: '#fff', fontWeight: 'bold'}}>
                     ✅ Completed
                   </div>
