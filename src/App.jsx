@@ -2079,10 +2079,15 @@ const exportPlayersToExcel = async () => {
 
   // ✅ NEW: Check if all games for a week are marked FINAL
   const areAllGamesFinal = (weekKey) => {
+    console.log('🔍 Checking if all games final for:', weekKey);
+    console.log('📊 gameStatus:', gameStatus);
+    console.log('📊 gameStatus[weekKey]:', gameStatus[weekKey]);
+    
     if (!gameStatus || !gameStatus[weekKey]) {
+      console.log('❌ No game status found');
       return false;
     }
-    
+     
     const weekStatuses = gameStatus[weekKey];
     const weekGames = PLAYOFF_WEEKS[weekKey]?.games || [];
     
