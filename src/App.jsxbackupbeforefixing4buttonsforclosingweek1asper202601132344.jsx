@@ -4407,16 +4407,16 @@ const calculateAllPrizeWinners = () => {
                 padding: '15px',
                 border: '2px solid rgba(255,255,255,0.3)',
                 borderRadius: '8px',
-                backgroundColor: weekCompletionStatus?.wildcard ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.1)'
+                backgroundColor: weekCompletionStatus.wildcard ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.1)'
               }}>
                 <div style={{fontWeight: 'bold', marginBottom: '10px'}}>
                   Week 1 (Wildcard)
                 </div>
-                {weekCompletionStatus && weekCompletionStatus.wildcard ? (
+                {weekCompletionStatus?.wildcard ? (
                   <div style={{color: '#fff', fontWeight: 'bold'}}>
                     ✅ Completed
                   </div>
-                ) : weekCompletionStatus && areAllGamesFinal('wildcard') ? (
+                ) : areAllGamesFinal('wildcard') ? (
                   <button
                     onClick={() => handleCloseWeekAndConfigureNext('wildcard')}
                     style={{
@@ -4433,7 +4433,7 @@ const calculateAllPrizeWinners = () => {
                   </button>
                 ) : (
                   <div style={{fontSize: '0.9rem', opacity: 0.8}}>
-                    ⏳ Loading...
+                    ⏳ Waiting for all games to be FINAL
                   </div>
                 )}
               </div>
@@ -4444,16 +4444,16 @@ const calculateAllPrizeWinners = () => {
                 padding: '15px',
                 border: '2px solid rgba(255,255,255,0.3)',
                 borderRadius: '8px',
-                backgroundColor: weekCompletionStatus?.divisional ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.1)'
+                backgroundColor: weekCompletionStatus.divisional ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.1)'
               }}>
                 <div style={{fontWeight: 'bold', marginBottom: '10px'}}>
                   Week 2 (Divisional)
                 </div>
-                {weekCompletionStatus && weekCompletionStatus.divisional ? (
+                {weekCompletionStatus?.divisional ? (
                   <div style={{color: '#fff', fontWeight: 'bold'}}>
                     ✅ Completed
                   </div>
-                ) : weekCompletionStatus && areAllGamesFinal('divisional') ? (
+                ) : areAllGamesFinal('divisional') ? (
                   <button
                     onClick={() => handleCloseWeekAndConfigureNext('divisional')}
                     style={{
@@ -4470,7 +4470,7 @@ const calculateAllPrizeWinners = () => {
                   </button>
                 ) : (
                   <div style={{fontSize: '0.9rem', opacity: 0.8}}>
-                    ⏳ Loading...
+                    ⏳ Waiting for all games to be FINAL
                   </div>
                 )}
               </div>
@@ -4481,16 +4481,16 @@ const calculateAllPrizeWinners = () => {
                 padding: '15px',
                 border: '2px solid rgba(255,255,255,0.3)',
                 borderRadius: '8px',
-                backgroundColor: weekCompletionStatus?.conference ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.1)'
+                backgroundColor: weekCompletionStatus.conference ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.1)'
               }}>
                 <div style={{fontWeight: 'bold', marginBottom: '10px'}}>
                   Week 3 (Conference)
                 </div>
-                {weekCompletionStatus && weekCompletionStatus.conference ? (
+                {weekCompletionStatus?.conference ? (
                   <div style={{color: '#fff', fontWeight: 'bold'}}>
                     ✅ Completed
                   </div>
-                ) : weekCompletionStatus && areAllGamesFinal('conference') ? (
+                ) : areAllGamesFinal('conference') ? (
                   <button
                     onClick={() => handleCloseWeekAndConfigureNext('conference')}
                     style={{
@@ -4507,7 +4507,7 @@ const calculateAllPrizeWinners = () => {
                   </button>
                 ) : (
                   <div style={{fontSize: '0.9rem', opacity: 0.8}}>
-                    ⏳ Loading...
+                    ⏳ Waiting for all games to be FINAL
                   </div>
                 )}
               </div>
@@ -4518,16 +4518,16 @@ const calculateAllPrizeWinners = () => {
                 padding: '15px',
                 border: '2px solid rgba(255,255,255,0.3)',
                 borderRadius: '8px',
-                backgroundColor: weekCompletionStatus?.superbowl ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.1)'
+                backgroundColor: weekCompletionStatus.superbowl ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.1)'
               }}>
                 <div style={{fontWeight: 'bold', marginBottom: '10px'}}>
                   Week 4 (Super Bowl)
                 </div>
-                  {weekCompletionStatus && weekCompletionStatus.superbowl ? (
+                {weekCompletionStatus?.superbowl ? (
                   <div style={{color: '#fff', fontWeight: 'bold'}}>
-                    ✅ Completed
+                    ✅ Completed - Playoffs Over!
                   </div>
-                ) : weekCompletionStatus && areAllGamesFinal('superbowl') ? (
+                ) : areAllGamesFinal('superbowl') ? (
                   <button
                     onClick={() => handleCloseWeekAndConfigureNext('superbowl')}
                     style={{
@@ -4544,7 +4544,7 @@ const calculateAllPrizeWinners = () => {
                   </button>
                 ) : (
                   <div style={{fontSize: '0.9rem', opacity: 0.8}}>
-                    ⏳ Loading...
+                    ⏳ Waiting for Super Bowl to be FINAL
                   </div>
                 )}
               </div>
