@@ -2098,7 +2098,11 @@ const exportPlayersToExcel = async () => {
   };
   
   // ✅ NEW: Pool Manager closes a week and opens next week for team configuration
-  const handleCloseWeekAndConfigureNext = async (weekKey) => {
+const handleCloseWeekAndConfigureNext = async (weekKey) => {
+    console.log('🔒 ===== CLOSE WEEK BUTTON CLICKED =====');
+    console.log('📊 weekKey:', weekKey);
+    console.log('📊 weekCompletionStatus:', weekCompletionStatus);
+    
     const weekNames = {
       wildcard: 'Week 1',
       divisional: 'Week 2',
@@ -2126,19 +2130,32 @@ const exportPlayersToExcel = async () => {
       `Continue?`
     );
     
-    if (!confirmed) return;
+    if (!confirmed) {
+      console.log('❌ User cancelled');
+      return;
+    }
+    
+    console.log('✅ User confirmed, proceeding...');
     
     try {
-      // Mark this week as completed
+      console.log('💾 Step 1: Creating updated status object...');
       const updatedStatus = {
         ...weekCompletionStatus,
         [weekKey]: true
       };
+      console.log('📊 Updated status object:', updatedStatus);
       
+      console.log('💾 Step 2: Setting local state...');
       setWeekCompletionStatus(updatedStatus);
+      console.log('✅ Local state updated');
       
-      // Save to Firebase
+      console.log('💾 Step 3: Saving to Firebase...');
+      console.log('📊 Firebase path:', `weekCompletionStatus/${weekKey}`);
+      console.log('📊 Firebase value:', true);
+      
       await set(ref(database, `weekCompletionStatus/${weekKey}`), true);
+      
+      console.log('✅✅✅ Firebase save successful! ✅✅✅');
       
       if (nextWeek) {
         alert(
@@ -2149,7 +2166,11 @@ const exportPlayersToExcel = async () => {
         alert(`✅ ${currentWeekName} closed successfully!\n\nAll playoffs complete!`);
       }
     } catch (error) {
-      console.error('Error closing week:', error);
+      console.error('❌❌❌ ERROR CAUGHT ❌❌❌');
+      console.error('Error object:', error);
+      console.error('Error message:', error.message);
+      console.error('Error name:', error.name);
+      console.error('Error stack:', error.stack);
       alert('❌ Error closing week. Check console for details.');
     }
   };
