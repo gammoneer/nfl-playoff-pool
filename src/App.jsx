@@ -4449,7 +4449,7 @@ const calculateAllPrizeWinners = () => {
                 <div style={{fontWeight: 'bold', marginBottom: '10px'}}>
                   Week 2 (Divisional)
                 </div>
-                {weekCompletionStatus && weekCompletionStatus.divisional ? (
+                {weekCompletionStatus && weekCompletionStatus?.divisional ? (
                   <div style={{color: '#fff', fontWeight: 'bold'}}>
                     ✅ Completed
                   </div>
@@ -4486,7 +4486,7 @@ const calculateAllPrizeWinners = () => {
                 <div style={{fontWeight: 'bold', marginBottom: '10px'}}>
                   Week 3 (Conference)
                 </div>
-                {weekCompletionStatus && weekCompletionStatus.conference ? (
+                {weekCompletionStatus && weekCompletionStatus?.conference ? (
                   <div style={{color: '#fff', fontWeight: 'bold'}}>
                     ✅ Completed
                   </div>
@@ -4523,7 +4523,7 @@ const calculateAllPrizeWinners = () => {
                 <div style={{fontWeight: 'bold', marginBottom: '10px'}}>
                   Week 4 (Super Bowl)
                 </div>
-                  {weekCompletionStatus && weekCompletionStatus.superbowl ? (
+                  {weekCompletionStatus && weekCompletionStatus?.superbowl ? (
                   <div style={{color: '#fff', fontWeight: 'bold'}}>
                     ✅ Completed
                   </div>
