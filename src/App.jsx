@@ -444,7 +444,7 @@ function App() {
   // Official Winners (Pool Manager only)
   const [officialWinners, setOfficialWinners] = useState({});
   // ✅ NEW: Track which weeks are manually completed by Pool Manager
-  const [weekCompletionStatus, setWeekCompletionStatus] = useState({
+  const [weekCompletionStatus, setWeekCompletionStatus] = useState(null);
     wildcard: false,
     divisional: false,
     conference: false,
@@ -1650,9 +1650,12 @@ const exportPlayersToExcel = async () => {
     const completionRef = ref(database, 'weekCompletionStatus');
     onValue(completionRef, (snapshot) => {
       const data = snapshot.val();
-      if (data) {
-        setWeekCompletionStatus(data);
-      }
+      setWeekCompletionStatus(data || {
+        wildcard: false,
+        divisional: false,
+        conference: false,
+        superbowl: false
+      });
     });
   }, []);
 
