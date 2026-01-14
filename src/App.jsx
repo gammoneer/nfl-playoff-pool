@@ -445,11 +445,6 @@ function App() {
   const [officialWinners, setOfficialWinners] = useState({});
   // ✅ NEW: Track which weeks are manually completed by Pool Manager
   const [weekCompletionStatus, setWeekCompletionStatus] = useState(null);
-    wildcard: false,
-    divisional: false,
-    conference: false,
-    superbowl: false
-  });
   
   // 💰 PRIZE POOL SETUP (Phase 2)
   const [prizePool, setPrizePool] = useState({
