@@ -1640,47 +1640,24 @@ const exportPlayersToExcel = async () => {
     });
   }, []);
 
-// ✅ NEW: Load week completion status from Firebase
+  // ✅ NEW: Load week completion status from Firebase
   useEffect(() => {
     console.log('🔄 Setting up weekCompletionStatus listener...');
-    console.log('📊 database object:', database);
-    console.log('📊 database type:', typeof database);
-    
-    try {
-      const completionRef = ref(database, 'weekCompletionStatus');
-      console.log('✅ ref created:', completionRef);
-      
-      const unsubscribe = onValue(completionRef, (snapshot) => {
-        console.log('📥 ===== SNAPSHOT RECEIVED =====');
-        const data = snapshot.val();
-        console.log('📊 Data from Firebase:', data);
-        console.log('📊 Data type:', typeof data);
-        
-        const finalData = data || {
-          wildcard: false,
-          divisional: false,
-          conference: false,
-          superbowl: false
-        };
-        
-        console.log('📊 Final data to set:', finalData);
-        setWeekCompletionStatus(finalData);
-        console.log('✅ weekCompletionStatus state updated');
-      }, (error) => {
-        console.error('❌ Firebase listener error:', error);
+    const completionRef = ref(database, 'weekCompletionStatus');
+    onValue(completionRef, (snapshot) => {
+      console.log('📥 weekCompletionStatus snapshot received');
+      const data = snapshot.val();
+      console.log('📊 Data from Firebase:', data);
+      setWeekCompletionStatus(data || {
+        wildcard: false,
+        divisional: false,
+        conference: false,
+        superbowl: false
       });
-      
-      console.log('✅ Listener attached successfully');
-      
-      return () => {
-        console.log('🧹 Cleaning up listener');
-        unsubscribe();
-      };
-    } catch (error) {
-      console.error('❌ Error setting up listener:', error);
-    }
+      console.log('✅ weekCompletionStatus updated');
+    });
   }, []);
-  
+
 // 💰 Load prize pool setup from Firebase
   useEffect(() => {
     const prizePoolRef = ref(database, 'prizePool');
