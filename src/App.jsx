@@ -4552,7 +4552,7 @@ const calculateAllPrizeWinners = () => {
           </div>
         )}
 
-        {/* 👑 POOL MANAGER OVERRIDE - ENTER PICKS FOR ANY PLAYER */}
+        {/* 👑 POOL MANAGER OVERRIDE - ENTER PICKS FOR ANY PLAYER */} 
         {isPoolManager() && codeValidated && (
           <div style={{
             background: 'linear-gradient(135deg, #f39c12 0%, #e74c3c 100%)',
