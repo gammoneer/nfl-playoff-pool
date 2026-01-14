@@ -3516,13 +3516,29 @@ const downloadPicksAsCSV = () => {
       
       return Array.from(uniquePlayers.values());
     } else {
-      // For other weeks, show players with picks OR marked to show in table
+      // For other weeks, show players with picks OR all visible players
       const picksForWeek = allPicks.filter(pick => pick.week === currentWeek);
       const displayedCodes = new Set(picksForWeek.map(p => p.playerCode));
       
-      // Add players marked to show in table (even without picks) - THIS IS THE KEY FIX!
+      // ✅ FIX: Add ALL paid, visible, regular players (even without picks)
       allPlayers.forEach(player => {
-        if (player.showInPicksTable === true && !displayedCodes.has(player.playerCode)) {
+        // Show player if:
+        // 1. They are paid
+        // 2. They are visible (not hidden)
+        // 3. They are a regular player (not pool manager)
+        // 4. Not already in the list
+        // const isPaid = player.paid === true;
+        // const isVisible = player.visible !== false;
+        // const isRegularPlayer = player.role !== 'MANAGER';
+        
+        // if (isPaid && isVisible && isRegularPlayer && !displayedCodes.has(player.playerCode)) {
+        
+        // Check if paid: either paid field OR paymentStatus field
+        const isPaid = player.paid === true || player.paymentStatus === 'PAID';
+        const isVisible = player.visible !== false;
+        const isRegularPlayer = player.role !== 'MANAGER';
+        
+        if (isPaid && isVisible && isRegularPlayer && !displayedCodes.has(player.playerCode)) {
           picksForWeek.push({
             playerName: player.playerName,
             playerCode: player.playerCode,
@@ -3840,10 +3856,14 @@ csv += 'Submitted At\n';
 
     const currentWeekData = PLAYOFF_WEEKS[currentWeek];
     
-    // STEP 5 VALIDATION: Check for incomplete entries
+    // STEP 5 VALIDATION: Check for incomplete entries (allow dashes)
     const missing = [];
     currentWeekData.games.forEach(game => {
-      if (!predictions[game.id] || !predictions[game.id].team1 || !predictions[game.id].team2) {
+      const t1 = predictions[game.id]?.team1;
+      const t2 = predictions[game.id]?.team2;
+      // Allow dashes or numbers, but not empty
+      const isValid = (val) => val === '-' || (val && val.toString().trim() !== '');
+      if (!predictions[game.id] || !isValid(t1) || !isValid(t2)) {
         missing.push(game.id);
       }
     });
@@ -3852,30 +3872,47 @@ csv += 'Submitted At\n';
       setMissingGames(missing);
       setShowPopup('incomplete');
       return;
-    }
-    
-    // STEP 5 VALIDATION: Check for invalid scores
+    }   
+
+    // STEP 5 VALIDATION: Check for invalid scores (skip validation for dashes)
     const invalid = [];
     currentWeekData.games.forEach(game => {
-      const t1 = parseInt(predictions[game.id]?.team1);
-      const t2 = parseInt(predictions[game.id]?.team2);
-      if (isNaN(t1) || isNaN(t2) || t1 < 0 || t2 < 0) {
+      const t1 = predictions[game.id]?.team1;
+      const t2 = predictions[game.id]?.team2;
+      
+      // Skip validation if EITHER is a dash (means "no pick" or partial entry)
+      if (t1 === '-' || t2 === '-') {
+        return; // Valid - no validation needed for dashes
+      }
+      
+      // Otherwise validate as numbers
+      const t1Num = parseInt(t1);
+      const t2Num = parseInt(t2);
+      if (isNaN(t1Num) || isNaN(t2Num) || t1Num < 0 || t2Num < 0) {
         invalid.push(game.id);
       }
     });
-    
+
     if (invalid.length > 0) {
       setInvalidScores(invalid);
       setShowPopup('invalidScores');
       return;
     }
     
-    // STEP 5 VALIDATION: Check for tied games (playoff games NEVER tie!)
+    // STEP 5 VALIDATION: Check for tied games (skip if dashes)
     const tiedGames = [];
     currentWeekData.games.forEach(game => {
-      const t1 = parseInt(predictions[game.id]?.team1);
-      const t2 = parseInt(predictions[game.id]?.team2);
-      if (t1 === t2) {
+      const t1 = predictions[game.id]?.team1;
+      const t2 = predictions[game.id]?.team2;
+      
+      // Skip if dashes
+      if (t1 === '-' || t2 === '-') {
+        return; // No validation needed for dashes
+      }
+      
+      const t1Num = parseInt(t1);
+      const t2Num = parseInt(t2);
+      if (t1Num === t2Num) {
         tiedGames.push(game.id);
       }
     });
@@ -3913,11 +3950,24 @@ csv += 'Submitted At\n';
         }
       }
 
+      // ✅ NEW: Clean predictions - convert dashes to empty strings
+      const cleanedPredictions = {};
+      Object.keys(predictions).forEach(gameId => {
+        const pred = predictions[gameId];
+        if (pred) {
+          // If team1 or team2 is a dash "-", treat as empty string
+          cleanedPredictions[gameId] = {
+            team1: (pred.team1 === '-' || pred.team1 === '') ? '' : pred.team1,
+            team2: (pred.team2 === '-' || pred.team2 === '') ? '' : pred.team2
+          };
+        }
+      });
+
       const pickData = {
         playerName,
         playerCode,
         week: currentWeek,
-        predictions,
+        predictions: cleanedPredictions, // ✅ Use cleaned predictions instead of raw predictions
         timestamp: existingPick ? existingPick.timestamp : Date.now(),
         lastUpdated: Date.now()
       };
@@ -6120,15 +6170,19 @@ const calculateAllPrizeWinners = () => {
                           <span className="team-name-label" style={{color: '#ffffff', fontWeight: '700'}}>{game.team1}</span>
                         </label>
                         <input
-                          type="number"
-                          min="0"
-                          max="99"
+                          type="text"
                           value={predictions[game.id]?.team1 || ''}
-                          onChange={(e) => handleScoreChange(game.id, 'team1', e.target.value)}
-                          placeholder="0"
-                          required
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            // Allow: dash, empty, or numbers 0-99
+                            if (value === '-' || value === '' || /^\d{1,2}$/.test(value)) {
+                              handleScoreChange(game.id, 'team1', value);
+                            }
+                          }}
+                          placeholder="-"
                           disabled={isWeekLocked(currentWeek)}
                           key={`${game.id}-team1-${playerName}`}
+                          maxLength="2"
                         />
                       </div>
                       
@@ -6140,15 +6194,19 @@ const calculateAllPrizeWinners = () => {
                           <span className="team-name-label" style={{color: '#ffffff', fontWeight: '700'}}>{game.team2}</span>
                         </label>
                         <input
-                          type="number"
-                          min="0"
-                          max="99"
+                          type="text"
                           value={predictions[game.id]?.team2 || ''}
-                          onChange={(e) => handleScoreChange(game.id, 'team2', e.target.value)}
-                          placeholder="0"
-                          required
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            // Allow: dash, empty, or numbers 0-99
+                            if (value === '-' || value === '' || /^\d{1,2}$/.test(value)) {
+                              handleScoreChange(game.id, 'team2', value);
+                            }
+                          }}
+                          placeholder="-"
                           disabled={isWeekLocked(currentWeek)}
                           key={`${game.id}-team2-${playerName}`}
+                          maxLength="2"
                         />
                       </div>
                     </div>
@@ -7037,13 +7095,23 @@ const calculateAllPrizeWinners = () => {
                         
                         return Array.from(uniquePlayers.values());
                       } else {
-                        // For other weeks, show players with picks OR marked to show in table
+                        // For other weeks, show players with picks OR all visible players
                         const picksForWeek = allPicks.filter(pick => pick.week === currentWeek);
                         const displayedCodes = new Set(picksForWeek.map(p => p.playerCode));
                         
-                        // Add players marked to show in table (even without picks)
+                        // ✅ FIX: Add players who are paid, visible, and regular players (not managers)
                         allPlayers.forEach(player => {
-                          if (player.showInPicksTable === true && !displayedCodes.has(player.playerCode)) {
+                          // Show player if:
+                          // 1. They are paid
+                          // 2. They are visible (not hidden)
+                          // 3. They are a regular player (not pool manager)
+                          // 4. Not already in the list
+                          // const isPaid = player.paid === true;
+                          const isPaid = player.paid === true || player.paymentStatus === 'PAID';
+                          const isVisible = player.visible !== false;
+                          const isRegularPlayer = player.role !== 'MANAGER';
+                          
+                          if (isPaid && isVisible && isRegularPlayer && !displayedCodes.has(player.playerCode)) {
                             picksForWeek.push({
                               playerName: player.playerName,
                               playerCode: player.playerCode,
