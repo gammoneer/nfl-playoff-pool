@@ -4412,7 +4412,7 @@ const calculateAllPrizeWinners = () => {
                 <div style={{fontWeight: 'bold', marginBottom: '10px'}}>
                   Week 1 (Wildcard)
                 </div>
-                {weekCompletionStatus.wildcard ? (
+                {weekCompletionStatus?.wildcard ? (
                   <div style={{color: '#fff', fontWeight: 'bold'}}>
                     ✅ Completed
                   </div>
@@ -4449,7 +4449,7 @@ const calculateAllPrizeWinners = () => {
                 <div style={{fontWeight: 'bold', marginBottom: '10px'}}>
                   Week 2 (Divisional)
                 </div>
-                {weekCompletionStatus.divisional ? (
+                {weekCompletionStatus?.divisional ? (
                   <div style={{color: '#fff', fontWeight: 'bold'}}>
                     ✅ Completed
                   </div>
@@ -4486,7 +4486,7 @@ const calculateAllPrizeWinners = () => {
                 <div style={{fontWeight: 'bold', marginBottom: '10px'}}>
                   Week 3 (Conference)
                 </div>
-                {weekCompletionStatus.conference ? (
+                {weekCompletionStatus?.conference ? (
                   <div style={{color: '#fff', fontWeight: 'bold'}}>
                     ✅ Completed
                   </div>
@@ -4523,7 +4523,7 @@ const calculateAllPrizeWinners = () => {
                 <div style={{fontWeight: 'bold', marginBottom: '10px'}}>
                   Week 4 (Super Bowl)
                 </div>
-                {weekCompletionStatus.superbowl ? (
+                {weekCompletionStatus?.superbowl ? (
                   <div style={{color: '#fff', fontWeight: 'bold'}}>
                     ✅ Completed - Playoffs Over!
                   </div>
