@@ -1642,15 +1642,19 @@ const exportPlayersToExcel = async () => {
 
   // ✅ NEW: Load week completion status from Firebase
   useEffect(() => {
+    console.log('🔄 Setting up weekCompletionStatus listener...');
     const completionRef = ref(database, 'weekCompletionStatus');
     onValue(completionRef, (snapshot) => {
+      console.log('📥 weekCompletionStatus snapshot received');
       const data = snapshot.val();
+      console.log('📊 Data from Firebase:', data);
       setWeekCompletionStatus(data || {
         wildcard: false,
         divisional: false,
         conference: false,
         superbowl: false
       });
+      console.log('✅ weekCompletionStatus updated');
     });
   }, []);
 
