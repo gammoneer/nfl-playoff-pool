@@ -6988,10 +6988,7 @@ const calculateAllPrizeWinners = () => {
                         </div>
                       </th>
                     )}
-                    <th rowSpan="2" style={{textAlign: 'center'}}>
-                      <div style={{fontSize: '0.85rem', color: '#111211ff', fontWeight: 'bold', marginBottom: '4px'}}>
-                        {allPicks.filter(pick => pick.week === currentWeek && pick.predictions && Object.keys(pick.predictions).length > 0).length} Players
-                      </div>
+                    <th rowSpan="2">
                       Submitted
                       <div style={{marginTop: '4px'}}>
                         <button
@@ -7005,13 +7002,14 @@ const calculateAllPrizeWinners = () => {
                             borderRadius: '4px',
                             cursor: 'pointer'
                           }}
+                          title={`Sort by submission time ${sortColumn === 'timestamp' && sortDirection === 'asc' ? '(Oldest First)' : '(Newest First)'}`}
                         >
                           {sortColumn === 'timestamp' ? (sortDirection === 'asc' ? '↑' : '↓') : '⇅'}
                         </button>
                       </div>
                     </th>
                   </tr>
-
+                  
                   {/* ACTUAL SCORES ROW - Enhanced visibility */}
                   <tr style={{background: '#ffffff', borderTop: '3px solid #4caf50', borderBottom: '3px solid #4caf50'}}>
                     {currentWeekData.games.map((game, gameIdx) => (

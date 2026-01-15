@@ -6988,11 +6988,16 @@ const calculateAllPrizeWinners = () => {
                         </div>
                       </th>
                     )}
-                    <th rowSpan="2" style={{textAlign: 'center'}}>
-                      <div style={{fontSize: '0.85rem', color: '#111211ff', fontWeight: 'bold', marginBottom: '4px'}}>
-                        {allPicks.filter(pick => pick.week === currentWeek && pick.predictions && Object.keys(pick.predictions).length > 0).length} Players
+                    <th rowSpan="2" style={{textAlign: 'center', padding: '8px'}}>
+                      <div style={{fontSize: '0.85rem', color: '#4caf50', fontWeight: 'bold', marginBottom: '4px'}}>
+                        {(() => {
+                          const submittedCount = displayPicks.filter(pick => 
+                            pick.predictions && Object.keys(pick.predictions).length > 0
+                          ).length;
+                          return `${submittedCount} Player${submittedCount !== 1 ? 's' : ''}`;
+                        })()}
                       </div>
-                      Submitted
+                      <div>Submitted</div>
                       <div style={{marginTop: '4px'}}>
                         <button
                           onClick={() => handleSort('timestamp')}
@@ -7005,13 +7010,14 @@ const calculateAllPrizeWinners = () => {
                             borderRadius: '4px',
                             cursor: 'pointer'
                           }}
+                          title={`Sort by submission time ${sortColumn === 'timestamp' && sortDirection === 'asc' ? '(Oldest First)' : '(Newest First)'}`}
                         >
                           {sortColumn === 'timestamp' ? (sortDirection === 'asc' ? '↑' : '↓') : '⇅'}
                         </button>
                       </div>
                     </th>
                   </tr>
-
+                  
                   {/* ACTUAL SCORES ROW - Enhanced visibility */}
                   <tr style={{background: '#ffffff', borderTop: '3px solid #4caf50', borderBottom: '3px solid #4caf50'}}>
                     {currentWeekData.games.map((game, gameIdx) => (
