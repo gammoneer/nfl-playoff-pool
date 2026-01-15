@@ -1229,9 +1229,6 @@ const exportPlayersToExcel = async () => {
    * 🎨 6-COLOR HIGHLIGHTING SYSTEM
    * Three game states, only colors predicted WINNER cell:
    * 
-   * STATE 0 - NO ACTUAL SCORES YET (predictions only)
-    // Show light blue for predicted winner BEFORE games start
-   * 
    * STATE 1: Actual scores entered, but status NOT set (empty/blank)
    *   - Yellow = Predicted winner is currently winning
    *   - Light Blue = Predicted winner is currently losing
@@ -1244,17 +1241,7 @@ const exportPlayersToExcel = async () => {
    *   - Bright Green = Predicted winner WON (correct!)
    *   - Bright Red = Predicted winner LOST (wrong!)
    */
-//  const getCellHighlight = (playerTeam1, playerTeam2, actualTeam1, actualTeam2, gameStatus, isTeam1Cell) => {
-    // Determine which team player predicted to win
-//    const playerPredictedTeam1 = Number(playerTeam1) > Number(playerTeam2);
-//    const playerPredictedTeam2 = Number(playerTeam2) > Number(playerTeam1);
-    
-    // If player predicted a tie or has no valid prediction, no highlighting
-//    if (playerTeam1 === playerTeam2 || !playerTeam1 || !playerTeam2) {
-//      return { background: 'transparent', color: '#000' };
-//    }
-
-    const getCellHighlight = (playerTeam1, playerTeam2, actualTeam1, actualTeam2, gameStatus, isTeam1Cell) => {
+  const getCellHighlight = (playerTeam1, playerTeam2, actualTeam1, actualTeam2, gameStatus, isTeam1Cell) => {
     // Determine which team player predicted to win
     const playerPredictedTeam1 = Number(playerTeam1) > Number(playerTeam2);
     const playerPredictedTeam2 = Number(playerTeam2) > Number(playerTeam1);
@@ -1264,18 +1251,6 @@ const exportPlayersToExcel = async () => {
       return { background: 'transparent', color: '#000' };
     }
     
-    // ✅ NEW: STATE 0 - NO ACTUAL SCORES YET (predictions only)
-    // Show light blue for predicted winner BEFORE games start
-    if (!actualTeam1 && !actualTeam2) {
-      if (isTeam1Cell && playerPredictedTeam1) {
-        return { background: '#b3e5fc', color: '#000' }; // Light Blue - predicted winner
-      }
-      if (!isTeam1Cell && playerPredictedTeam2) {
-        return { background: '#b3e5fc', color: '#000' }; // Light Blue - predicted winner
-      }
-      return { background: 'transparent', color: '#000' };
-    }
-
     // If we have actual scores entered
     if (actualTeam1 !== undefined && actualTeam2 !== undefined && actualTeam1 !== '' && actualTeam2 !== '') {
       const actualTeam1Winning = Number(actualTeam1) > Number(actualTeam2);
@@ -1665,47 +1640,24 @@ const exportPlayersToExcel = async () => {
     });
   }, []);
 
-// ✅ NEW: Load week completion status from Firebase
+  // ✅ NEW: Load week completion status from Firebase
   useEffect(() => {
     console.log('🔄 Setting up weekCompletionStatus listener...');
-    console.log('📊 database object:', database);
-    console.log('📊 database type:', typeof database);
-    
-    try {
-      const completionRef = ref(database, 'weekCompletionStatus');
-      console.log('✅ ref created:', completionRef);
-      
-      const unsubscribe = onValue(completionRef, (snapshot) => {
-        console.log('📥 ===== SNAPSHOT RECEIVED =====');
-        const data = snapshot.val();
-        console.log('📊 Data from Firebase:', data);
-        console.log('📊 Data type:', typeof data);
-        
-        const finalData = data || {
-          wildcard: false,
-          divisional: false,
-          conference: false,
-          superbowl: false
-        };
-        
-        console.log('📊 Final data to set:', finalData);
-        setWeekCompletionStatus(finalData);
-        console.log('✅ weekCompletionStatus state updated');
-      }, (error) => {
-        console.error('❌ Firebase listener error:', error);
+    const completionRef = ref(database, 'weekCompletionStatus');
+    onValue(completionRef, (snapshot) => {
+      console.log('📥 weekCompletionStatus snapshot received');
+      const data = snapshot.val();
+      console.log('📊 Data from Firebase:', data);
+      setWeekCompletionStatus(data || {
+        wildcard: false,
+        divisional: false,
+        conference: false,
+        superbowl: false
       });
-      
-      console.log('✅ Listener attached successfully');
-      
-      return () => {
-        console.log('🧹 Cleaning up listener');
-        unsubscribe();
-      };
-    } catch (error) {
-      console.error('❌ Error setting up listener:', error);
-    }
+      console.log('✅ weekCompletionStatus updated');
+    });
   }, []);
-  
+
 // 💰 Load prize pool setup from Firebase
   useEffect(() => {
     const prizePoolRef = ref(database, 'prizePool');
