@@ -8859,16 +8859,16 @@ const calculateAllPrizeWinners = () => {
                         <table className="picks-table" style={{width: '100%', borderCollapse: 'collapse'}}>
                           <thead>
                             <tr>
-                              <th style={{padding: '10px', fontWeight: 'bold', borderRight: '2px solid #ddd', backgroundColor: '#f5f5f5', color: '#000', fontSize: '14px', textAlign: 'left'}}>
+                              <th style={{padding: '8px', fontWeight: 'bold', borderRight: '2px solid #ddd', backgroundColor: '#f5f5f5'}}>
                                 Player Name
                               </th>
-                              <th style={{padding: '10px', textAlign: 'center', backgroundColor: '#e8f5e9', borderLeft: '3px solid #ccc', color: '#000', fontSize: '14px', fontWeight: 'bold'}}>
-                                {getTeamName(currentWeek, selectedAnalysisGame, 'team1', playoffTeams) || 'Visiting Team'}
+                              <th style={{padding: '8px', textAlign: 'center', backgroundColor: '#e8f5e9', borderLeft: '3px solid #ccc'}}>
+                                {getTeamName(currentWeek, selectedAnalysisGame, 'team1', playoffTeams)}
                               </th>
-                              <th style={{padding: '10px', textAlign: 'center', backgroundColor: '#e3f2fd', color: '#000', fontSize: '14px', fontWeight: 'bold'}}>
-                                {getTeamName(currentWeek, selectedAnalysisGame, 'team2', playoffTeams) || 'Home Team'}
+                              <th style={{padding: '8px', textAlign: 'center', backgroundColor: '#e3f2fd'}}>
+                                {getTeamName(currentWeek, selectedAnalysisGame, 'team2', playoffTeams)}
                               </th>
-                              <th style={{padding: '10px', textAlign: 'center', backgroundColor: '#f5f5f5', color: '#000', fontSize: '14px', fontWeight: 'bold'}}>
+                              <th style={{padding: '8px', textAlign: 'center', backgroundColor: '#f5f5f5'}}>
                                 Date/Time
                               </th>
                             </tr>
@@ -8893,32 +8893,30 @@ const calculateAllPrizeWinners = () => {
                               
                               return (
                                 <tr key={idx} style={{backgroundColor: idx % 2 === 0 ? '#fff' : '#f9f9f9'}}>
-                                  <td style={{padding: '10px', fontWeight: 'bold', borderRight: '2px solid #ddd', color: '#000', fontSize: '14px'}}>
-                                    {player.playerName || 'Unknown Player'}
+                                  <td style={{padding: '8px', fontWeight: 'bold', borderRight: '2px solid #ddd'}}>
+                                    {player.playerName}
                                     {isRNGPick && <span style={{marginLeft: '5px'}} title="Random picks">🎲</span>}
                                   </td>
                                   <td style={{
-                                    padding: '10px',
+                                    padding: '8px',
                                     textAlign: 'center',
                                     background: team1Style.background,
-                                    color: team1Style.color || '#000',
+                                    color: team1Style.color,
                                     fontWeight: team1Style.background !== 'transparent' ? 'bold' : 'normal',
-                                    borderLeft: '3px solid #ccc',
-                                    fontSize: '14px'
+                                    borderLeft: '3px solid #ccc'
                                   }}>
                                     {pred?.team1 || '-'}
                                   </td>
                                   <td style={{
-                                    padding: '10px',
+                                    padding: '8px',
                                     textAlign: 'center',
                                     background: team2Style.background,
-                                    color: team2Style.color || '#000',
-                                    fontWeight: team2Style.background !== 'transparent' ? 'bold' : 'normal',
-                                    fontSize: '14px'
+                                    color: team2Style.color,
+                                    fontWeight: team2Style.background !== 'transparent' ? 'bold' : 'normal'
                                   }}>
                                     {pred?.team2 || '-'}
                                   </td>
-                                  <td style={{padding: '10px', textAlign: 'center', fontSize: '12px', color: '#666'}}>
+                                  <td style={{padding: '8px', textAlign: 'center', fontSize: '0.85rem', color: '#666'}}>
                                     {player.lastUpdated ? new Date(player.lastUpdated).toLocaleString() : player.timestamp ? new Date(player.timestamp).toLocaleString() : '-'}
                                   </td>
                                 </tr>
@@ -8946,16 +8944,16 @@ const calculateAllPrizeWinners = () => {
                         <table className="picks-table" style={{width: '100%', borderCollapse: 'collapse'}}>
                           <thead>
                             <tr>
-                              <th style={{padding: '10px', fontWeight: 'bold', borderRight: '2px solid #ddd', backgroundColor: '#f5f5f5', color: '#000', fontSize: '14px', textAlign: 'left'}}>
+                              <th style={{padding: '8px', fontWeight: 'bold', borderRight: '2px solid #ddd', backgroundColor: '#f5f5f5'}}>
                                 Player Name
                               </th>
-                              <th style={{padding: '10px', textAlign: 'center', backgroundColor: '#e8f5e9', borderLeft: '3px solid #ccc', color: '#000', fontSize: '14px', fontWeight: 'bold'}}>
-                                {getTeamName(currentWeek, selectedAnalysisGame, 'team1', playoffTeams) || 'Visiting Team'}
+                              <th style={{padding: '8px', textAlign: 'center', backgroundColor: '#e8f5e9', borderLeft: '3px solid #ccc'}}>
+                                {getTeamName(currentWeek, selectedAnalysisGame, 'team1', playoffTeams)}
                               </th>
-                              <th style={{padding: '10px', textAlign: 'center', backgroundColor: '#e3f2fd', color: '#000', fontSize: '14px', fontWeight: 'bold'}}>
-                                {getTeamName(currentWeek, selectedAnalysisGame, 'team2', playoffTeams) || 'Home Team'}
+                              <th style={{padding: '8px', textAlign: 'center', backgroundColor: '#e3f2fd'}}>
+                                {getTeamName(currentWeek, selectedAnalysisGame, 'team2', playoffTeams)}
                               </th>
-                              <th style={{padding: '10px', textAlign: 'center', backgroundColor: '#f5f5f5', color: '#000', fontSize: '14px', fontWeight: 'bold'}}>
+                              <th style={{padding: '8px', textAlign: 'center', backgroundColor: '#f5f5f5'}}>
                                 Date/Time
                               </th>
                             </tr>
@@ -8980,32 +8978,30 @@ const calculateAllPrizeWinners = () => {
                               
                               return (
                                 <tr key={idx} style={{backgroundColor: idx % 2 === 0 ? '#fff' : '#f9f9f9'}}>
-                                  <td style={{padding: '10px', fontWeight: 'bold', borderRight: '2px solid #ddd', color: '#000', fontSize: '14px'}}>
-                                    {player.playerName || 'Unknown Player'}
+                                  <td style={{padding: '8px', fontWeight: 'bold', borderRight: '2px solid #ddd'}}>
+                                    {player.playerName}
                                     {isRNGPick && <span style={{marginLeft: '5px'}} title="Random picks">🎲</span>}
                                   </td>
                                   <td style={{
-                                    padding: '10px',
+                                    padding: '8px',
                                     textAlign: 'center',
                                     background: team1Style.background,
-                                    color: team1Style.color || '#000',
+                                    color: team1Style.color,
                                     fontWeight: team1Style.background !== 'transparent' ? 'bold' : 'normal',
-                                    borderLeft: '3px solid #ccc',
-                                    fontSize: '14px'
+                                    borderLeft: '3px solid #ccc'
                                   }}>
                                     {pred?.team1 || '-'}
                                   </td>
                                   <td style={{
-                                    padding: '10px',
+                                    padding: '8px',
                                     textAlign: 'center',
                                     background: team2Style.background,
-                                    color: team2Style.color || '#000',
-                                    fontWeight: team2Style.background !== 'transparent' ? 'bold' : 'normal',
-                                    fontSize: '14px'
+                                    color: team2Style.color,
+                                    fontWeight: team2Style.background !== 'transparent' ? 'bold' : 'normal'
                                   }}>
                                     {pred?.team2 || '-'}
                                   </td>
-                                  <td style={{padding: '10px', textAlign: 'center', fontSize: '12px', color: '#666'}}>
+                                  <td style={{padding: '8px', textAlign: 'center', fontSize: '0.85rem', color: '#666'}}>
                                     {player.lastUpdated ? new Date(player.lastUpdated).toLocaleString() : player.timestamp ? new Date(player.timestamp).toLocaleString() : '-'}
                                   </td>
                                 </tr>

@@ -8856,76 +8856,9 @@ const calculateAllPrizeWinners = () => {
                       </h3>
                       
                       <div style={{overflowX: 'auto', backgroundColor: 'rgba(200, 230, 201, 0.15)'}}>
-                        <table className="picks-table" style={{width: '100%', borderCollapse: 'collapse'}}>
-                          <thead>
-                            <tr>
-                              <th style={{padding: '10px', fontWeight: 'bold', borderRight: '2px solid #ddd', backgroundColor: '#f5f5f5', color: '#000', fontSize: '14px', textAlign: 'left'}}>
-                                Player Name
-                              </th>
-                              <th style={{padding: '10px', textAlign: 'center', backgroundColor: '#e8f5e9', borderLeft: '3px solid #ccc', color: '#000', fontSize: '14px', fontWeight: 'bold'}}>
-                                {getTeamName(currentWeek, selectedAnalysisGame, 'team1', playoffTeams) || 'Visiting Team'}
-                              </th>
-                              <th style={{padding: '10px', textAlign: 'center', backgroundColor: '#e3f2fd', color: '#000', fontSize: '14px', fontWeight: 'bold'}}>
-                                {getTeamName(currentWeek, selectedAnalysisGame, 'team2', playoffTeams) || 'Home Team'}
-                              </th>
-                              <th style={{padding: '10px', textAlign: 'center', backgroundColor: '#f5f5f5', color: '#000', fontSize: '14px', fontWeight: 'bold'}}>
-                                Date/Time
-                              </th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {visitingSorted.map((player, idx) => {
-                              const isRNGPick = player.enteredBy === 'POOL_MANAGER_RNG';
-                              const pred = player.predictions[selectedAnalysisGame];
-                              const actual = actualScores[currentWeek]?.[selectedAnalysisGame];
-                              const status = gameStatus[currentWeek]?.[selectedAnalysisGame];
-                              
-                              const team1Style = getCellHighlight(
-                                pred?.team1, pred?.team2,
-                                actual?.team1, actual?.team2,
-                                status, true
-                              );
-                              const team2Style = getCellHighlight(
-                                pred?.team1, pred?.team2,
-                                actual?.team1, actual?.team2,
-                                status, false
-                              );
-                              
-                              return (
-                                <tr key={idx} style={{backgroundColor: idx % 2 === 0 ? '#fff' : '#f9f9f9'}}>
-                                  <td style={{padding: '10px', fontWeight: 'bold', borderRight: '2px solid #ddd', color: '#000', fontSize: '14px'}}>
-                                    {player.playerName || 'Unknown Player'}
-                                    {isRNGPick && <span style={{marginLeft: '5px'}} title="Random picks">🎲</span>}
-                                  </td>
-                                  <td style={{
-                                    padding: '10px',
-                                    textAlign: 'center',
-                                    background: team1Style.background,
-                                    color: team1Style.color || '#000',
-                                    fontWeight: team1Style.background !== 'transparent' ? 'bold' : 'normal',
-                                    borderLeft: '3px solid #ccc',
-                                    fontSize: '14px'
-                                  }}>
-                                    {pred?.team1 || '-'}
-                                  </td>
-                                  <td style={{
-                                    padding: '10px',
-                                    textAlign: 'center',
-                                    background: team2Style.background,
-                                    color: team2Style.color || '#000',
-                                    fontWeight: team2Style.background !== 'transparent' ? 'bold' : 'normal',
-                                    fontSize: '14px'
-                                  }}>
-                                    {pred?.team2 || '-'}
-                                  </td>
-                                  <td style={{padding: '10px', textAlign: 'center', fontSize: '12px', color: '#666'}}>
-                                    {player.lastUpdated ? new Date(player.lastUpdated).toLocaleString() : player.timestamp ? new Date(player.timestamp).toLocaleString() : '-'}
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
+                        <p style={{textAlign: 'center', padding: '20px', fontSize: '1.2rem', color: '#666'}}>
+                          Top section table code coming in next step...
+                        </p>
                       </div>
                     </div>
 
@@ -8943,76 +8876,9 @@ const calculateAllPrizeWinners = () => {
                       </h3>
                       
                       <div style={{overflowX: 'auto', backgroundColor: 'rgba(179, 229, 252, 0.15)'}}>
-                        <table className="picks-table" style={{width: '100%', borderCollapse: 'collapse'}}>
-                          <thead>
-                            <tr>
-                              <th style={{padding: '10px', fontWeight: 'bold', borderRight: '2px solid #ddd', backgroundColor: '#f5f5f5', color: '#000', fontSize: '14px', textAlign: 'left'}}>
-                                Player Name
-                              </th>
-                              <th style={{padding: '10px', textAlign: 'center', backgroundColor: '#e8f5e9', borderLeft: '3px solid #ccc', color: '#000', fontSize: '14px', fontWeight: 'bold'}}>
-                                {getTeamName(currentWeek, selectedAnalysisGame, 'team1', playoffTeams) || 'Visiting Team'}
-                              </th>
-                              <th style={{padding: '10px', textAlign: 'center', backgroundColor: '#e3f2fd', color: '#000', fontSize: '14px', fontWeight: 'bold'}}>
-                                {getTeamName(currentWeek, selectedAnalysisGame, 'team2', playoffTeams) || 'Home Team'}
-                              </th>
-                              <th style={{padding: '10px', textAlign: 'center', backgroundColor: '#f5f5f5', color: '#000', fontSize: '14px', fontWeight: 'bold'}}>
-                                Date/Time
-                              </th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {homeSorted.map((player, idx) => {
-                              const isRNGPick = player.enteredBy === 'POOL_MANAGER_RNG';
-                              const pred = player.predictions[selectedAnalysisGame];
-                              const actual = actualScores[currentWeek]?.[selectedAnalysisGame];
-                              const status = gameStatus[currentWeek]?.[selectedAnalysisGame];
-                              
-                              const team1Style = getCellHighlight(
-                                pred?.team1, pred?.team2,
-                                actual?.team1, actual?.team2,
-                                status, true
-                              );
-                              const team2Style = getCellHighlight(
-                                pred?.team1, pred?.team2,
-                                actual?.team1, actual?.team2,
-                                status, false
-                              );
-                              
-                              return (
-                                <tr key={idx} style={{backgroundColor: idx % 2 === 0 ? '#fff' : '#f9f9f9'}}>
-                                  <td style={{padding: '10px', fontWeight: 'bold', borderRight: '2px solid #ddd', color: '#000', fontSize: '14px'}}>
-                                    {player.playerName || 'Unknown Player'}
-                                    {isRNGPick && <span style={{marginLeft: '5px'}} title="Random picks">🎲</span>}
-                                  </td>
-                                  <td style={{
-                                    padding: '10px',
-                                    textAlign: 'center',
-                                    background: team1Style.background,
-                                    color: team1Style.color || '#000',
-                                    fontWeight: team1Style.background !== 'transparent' ? 'bold' : 'normal',
-                                    borderLeft: '3px solid #ccc',
-                                    fontSize: '14px'
-                                  }}>
-                                    {pred?.team1 || '-'}
-                                  </td>
-                                  <td style={{
-                                    padding: '10px',
-                                    textAlign: 'center',
-                                    background: team2Style.background,
-                                    color: team2Style.color || '#000',
-                                    fontWeight: team2Style.background !== 'transparent' ? 'bold' : 'normal',
-                                    fontSize: '14px'
-                                  }}>
-                                    {pred?.team2 || '-'}
-                                  </td>
-                                  <td style={{padding: '10px', textAlign: 'center', fontSize: '12px', color: '#666'}}>
-                                    {player.lastUpdated ? new Date(player.lastUpdated).toLocaleString() : player.timestamp ? new Date(player.timestamp).toLocaleString() : '-'}
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
+                        <p style={{textAlign: 'center', padding: '20px', fontSize: '1.2rem', color: '#666'}}>
+                          Bottom section table code coming in next step...
+                        </p>
                       </div>
                     </div>
                   </>
