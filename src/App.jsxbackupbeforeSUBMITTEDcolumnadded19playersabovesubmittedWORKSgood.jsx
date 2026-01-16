@@ -6989,7 +6989,7 @@ const calculateAllPrizeWinners = () => {
                       </th>
                     )}
                     <th rowSpan="2" style={{textAlign: 'center'}}>
-                      <div style={{fontSize: '1rem', color: '#000', fontWeight: 'bold', marginBottom: '4px', display: 'block', lineHeight: '1.2'}}>
+                      <div style={{fontSize: '0.85rem', color: '#111211ff', fontWeight: 'bold', marginBottom: '4px'}}>
                         {allPicks.filter(pick => pick.week === currentWeek && pick.predictions && Object.keys(pick.predictions).length > 0).length} Players
                       </div>
                       Submitted
