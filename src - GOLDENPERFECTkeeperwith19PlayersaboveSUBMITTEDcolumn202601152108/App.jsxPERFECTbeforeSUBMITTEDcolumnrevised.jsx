@@ -379,9 +379,6 @@ function App() {
   const [predictions, setPredictions] = useState({});
   const [allPicks, setAllPicks] = useState([]);
   const [submitted, setSubmitted] = useState(false);
-  const [showScoreAnalysis, setShowScoreAnalysis] = useState(false);
-  const [selectedAnalysisGame, setSelectedAnalysisGame] = useState(1);
-  const [analysisSort, setAnalysisSort] = useState('asc');
   
   // Pool Manager states
   const [teamCodes, setTeamCodes] = useState({});      // { wildcard: { 1: {team1: "PIT", team2: "BUF"}, ... }}
@@ -6420,26 +6417,6 @@ const calculateAllPrizeWinners = () => {
             </button>
           </h2>
 
-          {/* Score Analysis Button */}
-          <button
-            onClick={() => setShowScoreAnalysis(true)}
-            style={{
-              padding: '12px 24px',
-              marginBottom: '20px',
-              marginTop: '10px',
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              color: '#fff',
-              border: 'none',
-              borderRadius: '8px',
-              fontSize: '1rem',
-              fontWeight: 'bold',
-              cursor: 'pointer',
-              boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
-            }}
-          >
-            🔍 View Score Analysis
-          </button>
-
           {allPicks.filter(pick => pick.week === currentWeek).length === 0 ? (
             <p className="no-picks">No picks submitted yet for this week.</p>
           ) : (
@@ -7011,10 +6988,7 @@ const calculateAllPrizeWinners = () => {
                         </div>
                       </th>
                     )}
-                    <th rowSpan="2" style={{textAlign: 'center'}}>
-                      <div style={{fontSize: '1rem', color: '#000', fontWeight: 'bold', marginBottom: '4px', display: 'block', lineHeight: '1.2'}}>
-                        {allPicks.filter(pick => pick.week === currentWeek && pick.predictions && Object.keys(pick.predictions).length > 0).length} Players
-                      </div>
+                    <th rowSpan="2">
                       Submitted
                       <div style={{marginTop: '4px'}}>
                         <button
@@ -7028,13 +7002,14 @@ const calculateAllPrizeWinners = () => {
                             borderRadius: '4px',
                             cursor: 'pointer'
                           }}
+                          title={`Sort by submission time ${sortColumn === 'timestamp' && sortDirection === 'asc' ? '(Oldest First)' : '(Newest First)'}`}
                         >
                           {sortColumn === 'timestamp' ? (sortDirection === 'asc' ? '↑' : '↓') : '⇅'}
                         </button>
                       </div>
                     </th>
                   </tr>
-
+                  
                   {/* ACTUAL SCORES ROW - Enhanced visibility */}
                   <tr style={{background: '#ffffff', borderTop: '3px solid #4caf50', borderBottom: '3px solid #4caf50'}}>
                     {currentWeekData.games.map((game, gameIdx) => (
@@ -8704,307 +8679,6 @@ const calculateAllPrizeWinners = () => {
           Questions? Contact: gammoneer2b@gmail.com
         </p>
       </footer>
-      {/* Score Analysis Modal */}
-      {showScoreAnalysis && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.8)',
-          zIndex: 9999,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '20px',
-          overflow: 'auto'
-        }}>
-          <div style={{
-            backgroundColor: '#fff',
-            borderRadius: '12px',
-            maxWidth: '95vw',
-            maxHeight: '95vh',
-            width: '100%',
-            overflow: 'auto',
-            boxShadow: '0 10px 40px rgba(0,0,0,0.3)'
-          }}>
-            {/* Header */}
-            <div style={{
-              padding: '20px',
-              borderBottom: '2px solid #ddd',
-              backgroundColor: '#667eea',
-              color: '#fff',
-              borderRadius: '12px 12px 0 0',
-              position: 'sticky',
-              top: 0,
-              zIndex: 10
-            }}>
-              <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-                <h2 style={{margin: 0}}>🔍 Score Analysis - {currentWeekData.name}</h2>
-                <button
-                  onClick={() => setShowScoreAnalysis(false)}
-                  style={{
-                    padding: '10px 20px',
-                    background: '#e74c3c',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    fontSize: '1rem',
-                    fontWeight: 'bold'
-                  }}
-                >
-                  ✖ Close
-                </button>
-              </div>
-
-              {/* Game Selector */}
-              <div style={{marginTop: '15px', display: 'flex', gap: '10px', flexWrap: 'wrap'}}>
-                {currentWeekData.games.map(game => (
-                  <button
-                    key={game.id}
-                    onClick={() => setSelectedAnalysisGame(game.id)}
-                    style={{
-                      padding: '10px 15px',
-                      background: selectedAnalysisGame === game.id ? '#4caf50' : '#fff',
-                      color: selectedAnalysisGame === game.id ? '#fff' : '#000',
-                      border: '2px solid ' + (selectedAnalysisGame === game.id ? '#4caf50' : '#ddd'),
-                      borderRadius: '6px',
-                      cursor: 'pointer',
-                      fontWeight: 'bold',
-                      fontSize: '0.9rem'
-                    }}
-                  >
-                    Game {game.id}: {getTeamName(currentWeek, game.id, 'team1', playoffTeams)} @ {getTeamName(currentWeek, game.id, 'team2', playoffTeams)}
-                  </button>
-                ))}
-                
-                {/* Sort Button */}
-                <button
-                  onClick={() => setAnalysisSort(analysisSort === 'asc' ? 'desc' : 'asc')}
-                  style={{
-                    padding: '10px 20px',
-                    background: '#f39c12',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    fontWeight: 'bold',
-                    fontSize: '0.9rem',
-                    marginLeft: 'auto'
-                  }}
-                >
-                  Sort: {analysisSort === 'asc' ? 'Low → High ↑' : 'High → Low ↓'}
-                </button>
-              </div>
-            </div>
-
-            {/* Content - Two Table Sections */}
-            <div>
-              {/* Calculate sorted player lists */}
-              {(() => {
-                // Get all players with their picks for current week
-                const playersWithPicks = allPlayers.map(player => {
-                  const playerPick = allPicks.find(p => p.playerCode === player.playerCode && p.week === currentWeek);
-                  return {
-                    ...player,
-                    predictions: playerPick?.predictions || {},
-                    timestamp: playerPick?.timestamp,
-                    lastUpdated: playerPick?.lastUpdated,
-                    enteredBy: playerPick?.enteredBy
-                  };
-                });
-
-                // Filter to show only paid, visible, non-manager players
-                const visiblePlayers = playersWithPicks.filter(player => {
-                  const isPaid = player.paid === true || player.paymentStatus === 'PAID';
-                  const isVisible = player.visible !== false;
-                  const isRegularPlayer = player.role !== 'MANAGER';
-                  return isPaid && isVisible && isRegularPlayer;
-                });
-
-                // Sort by selected game's visiting team score
-                const visitingSorted = [...visiblePlayers].sort((a, b) => {
-                  const aScore = parseInt(a.predictions[selectedAnalysisGame]?.team1) || (analysisSort === 'asc' ? 999 : -1);
-                  const bScore = parseInt(b.predictions[selectedAnalysisGame]?.team1) || (analysisSort === 'asc' ? 999 : -1);
-                  return analysisSort === 'asc' ? aScore - bScore : bScore - aScore;
-                });
-
-                // Sort by selected game's home team score
-                const homeSorted = [...visiblePlayers].sort((a, b) => {
-                  const aScore = parseInt(a.predictions[selectedAnalysisGame]?.team2) || (analysisSort === 'asc' ? 999 : -1);
-                  const bScore = parseInt(b.predictions[selectedAnalysisGame]?.team2) || (analysisSort === 'asc' ? 999 : -1);
-                  return analysisSort === 'asc' ? aScore - bScore : bScore - aScore;
-                });
-
-                const selectedGameInfo = currentWeekData.games.find(g => g.id === selectedAnalysisGame);
-
-                return (
-                  <>
-                    {/* TOP SECTION - Visiting Team Sort */}
-                    <div style={{marginBottom: '30px'}}>
-                      <h3 style={{
-                        padding: '15px',
-                        margin: 0,
-                        backgroundColor: 'rgba(200, 230, 201, 0.5)',
-                        borderBottom: '3px solid #4caf50',
-                        color: '#000',
-                        fontWeight: 'bold'
-                      }}>
-                        🔼 VISITING TEAM SORT - Game {selectedAnalysisGame}: {getTeamName(currentWeek, selectedAnalysisGame, 'team1', playoffTeams)} @ {getTeamName(currentWeek, selectedAnalysisGame, 'team2', playoffTeams)}
-                      </h3>
-                      
-                      <div style={{overflowX: 'auto', backgroundColor: 'rgba(200, 230, 201, 0.15)'}}>
-                        <p style={{textAlign: 'center', padding: '20px', fontSize: '1.2rem', color: '#666'}}>
-                          <table className="picks-table" style={{width: '100%', borderCollapse: 'collapse'}}>
-                            <tbody>
-                              {visitingSorted.map((player, idx) => {
-                                const isRNGPick = player.enteredBy === 'POOL_MANAGER_RNG';
-                                return (
-                                  <tr key={idx} style={{backgroundColor: idx % 2 === 0 ? '#fff' : '#f9f9f9'}}>
-                                    <td style={{padding: '8px', fontWeight: 'bold', borderRight: '2px solid #ddd'}}>
-                                      {player.playerName}
-                                      {isRNGPick && <span style={{marginLeft: '5px'}} title="Random picks">🎲</span>}
-                                    </td>
-                                    {currentWeekData.games.map(game => {
-                                      const pred = player.predictions[game.id];
-                                      const actual = actualScores[currentWeek]?.[game.id];
-                                      const status = gameStatus[currentWeek]?.[game.id];
-                                      
-                                      const team1Style = getCellHighlight(
-                                        pred?.team1, pred?.team2,
-                                        actual?.team1, actual?.team2,
-                                        status, true
-                                      );
-                                      const team2Style = getCellHighlight(
-                                        pred?.team1, pred?.team2,
-                                        actual?.team1, actual?.team2,
-                                        status, false
-                                      );
-                                      
-                                      return (
-                                        <React.Fragment key={game.id}>
-                                          <td style={{
-                                            padding: '8px',
-                                            textAlign: 'center',
-                                            background: team1Style.background,
-                                            color: team1Style.color,
-                                            fontWeight: team1Style.background !== 'transparent' ? 'bold' : 'normal',
-                                            borderLeft: '3px solid #ccc'
-                                          }}>
-                                            {pred?.team1 || '-'}
-                                          </td>
-                                          <td style={{
-                                            padding: '8px',
-                                            textAlign: 'center',
-                                            background: team2Style.background,
-                                            color: team2Style.color,
-                                            fontWeight: team2Style.background !== 'transparent' ? 'bold' : 'normal'
-                                          }}>
-                                            {pred?.team2 || '-'}
-                                          </td>
-                                        </React.Fragment>
-                                      );
-                                    })}
-                                    <td style={{padding: '8px', textAlign: 'center', fontSize: '0.85rem', color: '#666'}}>
-                                      {player.lastUpdated ? new Date(player.lastUpdated).toLocaleString() : player.timestamp ? new Date(player.timestamp).toLocaleString() : '-'}
-                                    </td>
-                                  </tr>
-                                );
-                              })}
-                            </tbody>
-                          </table>
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* BOTTOM SECTION - Home Team Sort */}
-                    <div>
-                      <h3 style={{
-                        padding: '15px',
-                        margin: 0,
-                        backgroundColor: 'rgba(179, 229, 252, 0.5)',
-                        borderBottom: '3px solid #2196F3',
-                        color: '#000',
-                        fontWeight: 'bold'
-                      }}>
-                        🔽 HOME TEAM SORT - Game {selectedAnalysisGame}: {getTeamName(currentWeek, selectedAnalysisGame, 'team1', playoffTeams)} @ {getTeamName(currentWeek, selectedAnalysisGame, 'team2', playoffTeams)}
-                      </h3>
-                      
-                      <div style={{overflowX: 'auto', backgroundColor: 'rgba(179, 229, 252, 0.15)'}}>
-                        <p style={{textAlign: 'center', padding: '20px', fontSize: '1.2rem', color: '#666'}}>
-                          <table className="picks-table" style={{width: '100%', borderCollapse: 'collapse'}}>
-                            <tbody>
-                              {homeSorted.map((player, idx) => {
-                                const isRNGPick = player.enteredBy === 'POOL_MANAGER_RNG';
-                                return (
-                                  <tr key={idx} style={{backgroundColor: idx % 2 === 0 ? '#fff' : '#f9f9f9'}}>
-                                    <td style={{padding: '8px', fontWeight: 'bold', borderRight: '2px solid #ddd'}}>
-                                      {player.playerName}
-                                      {isRNGPick && <span style={{marginLeft: '5px'}} title="Random picks">🎲</span>}
-                                    </td>
-                                    {currentWeekData.games.map(game => {
-                                      const pred = player.predictions[game.id];
-                                      const actual = actualScores[currentWeek]?.[game.id];
-                                      const status = gameStatus[currentWeek]?.[game.id];
-                                      
-                                      const team1Style = getCellHighlight(
-                                        pred?.team1, pred?.team2,
-                                        actual?.team1, actual?.team2,
-                                        status, true
-                                      );
-                                      const team2Style = getCellHighlight(
-                                        pred?.team1, pred?.team2,
-                                        actual?.team1, actual?.team2,
-                                        status, false
-                                      );
-                                      
-                                      return (
-                                        <React.Fragment key={game.id}>
-                                          <td style={{
-                                            padding: '8px',
-                                            textAlign: 'center',
-                                            background: team1Style.background,
-                                            color: team1Style.color,
-                                            fontWeight: team1Style.background !== 'transparent' ? 'bold' : 'normal',
-                                            borderLeft: '3px solid #ccc'
-                                          }}>
-                                            {pred?.team1 || '-'}
-                                          </td>
-                                          <td style={{
-                                            padding: '8px',
-                                            textAlign: 'center',
-                                            background: team2Style.background,
-                                            color: team2Style.color,
-                                            fontWeight: team2Style.background !== 'transparent' ? 'bold' : 'normal'
-                                          }}>
-                                            {pred?.team2 || '-'}
-                                          </td>
-                                        </React.Fragment>
-                                      );
-                                    })}
-                                    <td style={{padding: '8px', textAlign: 'center', fontSize: '0.85rem', color: '#666'}}>
-                                      {player.lastUpdated ? new Date(player.lastUpdated).toLocaleString() : player.timestamp ? new Date(player.timestamp).toLocaleString() : '-'}
-                                    </td>
-                                  </tr>
-                                );
-                              })}
-                            </tbody>
-                          </table>
-
-
-
-                        </p>
-                      </div>
-                    </div>
-                  </>
-                );
-              })()}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
