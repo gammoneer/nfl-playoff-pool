@@ -1419,34 +1419,6 @@ const exportPlayersToExcel = async () => {
 
       await set(ref(database, `officialWinners/${weekKey}`), publishData);
       
-      // Also update publishedWinners for HowWinnersAreDetermined compatibility
-      const weekMapping = {
-        'wildcard': 'week1',
-        'divisional': 'week2',
-        'conference': 'week3',
-        'superbowl': 'week4',
-        'grand': 'grand'
-      };
-      const weekName = weekMapping[weekKey];
-      
-      // Mark prizes as published
-      const publishUpdates = {};
-      prizes.forEach(prize => {
-        const prizeNum = prize.prizeNumber;
-        let pubKey;
-        if (weekName === 'grand') {
-          pubKey = prizeNum === 9 ? 'grand_prize1' : 'grand_prize2';
-        } else {
-          pubKey = `${weekName}_prize${prizeNum % 2 === 1 ? '1' : '2'}`;
-        }
-        publishUpdates[pubKey] = true;
-      });
-      
-      // Update publishedWinners in Firebase
-      for (const [key, value] of Object.entries(publishUpdates)) {
-        await set(ref(database, `publishedWinners/${key}`), value);
-      }
-      
       alert(`✅ Winners published for ${weekKey}!`);
     } catch (error) {
       console.error('Error publishing winners:', error);
@@ -1460,34 +1432,6 @@ const exportPlayersToExcel = async () => {
   const handleUnpublishWinners = async (weekKey) => {
     try {
       await set(ref(database, `officialWinners/${weekKey}/published`), false);
-      
-      // Also unpublish in publishedWinners for HowWinnersAreDetermined
-      const weekMapping = {
-        'wildcard': 'week1',
-        'divisional': 'week2',
-        'conference': 'week3',
-        'superbowl': 'week4',
-        'grand': 'grand'
-      };
-      const weekName = weekMapping[weekKey];
-      
-      // Get prize numbers for this week
-      const prizeNums = weekName === 'grand' ? [9, 10] : 
-                        weekName === 'week1' ? [1, 2] :
-                        weekName === 'week2' ? [3, 4] :
-                        weekName === 'week3' ? [5, 6] : [7, 8];
-      
-      // Unpublish both prizes for this week
-      for (const prizeNum of prizeNums) {
-        let pubKey;
-        if (weekName === 'grand') {
-          pubKey = prizeNum === 9 ? 'grand_prize1' : 'grand_prize2';
-        } else {
-          pubKey = `${weekName}_prize${prizeNum % 2 === 1 ? '1' : '2'}`;
-        }
-        await set(ref(database, `publishedWinners/${pubKey}`), false);
-      }
-      
       alert(`✅ Winners unpublished for ${weekKey}. You can now edit them.`);
     } catch (error) {
       console.error('Error unpublishing winners:', error);

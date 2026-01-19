@@ -216,30 +216,6 @@ function StandingsPage({ allPicks, actualScores, gameStatus, currentWeek, player
     return statusValues.length > 0 && statusValues.every(status => status === 'final');
   };
 
-  /**
-   * Check if prizes for a week are officially published by Pool Manager
-   */
-  const areWinnersPublished = (week) => {
-    if (!convertedWinners || Object.keys(convertedWinners).length === 0) {
-      return false;
-    }
-
-    // Map week to prize numbers
-    const weekToPrizes = {
-      'wildcard': [1, 2],
-      'divisional': [3, 4],
-      'conference': [5, 6],
-      'superbowl': [7, 8],
-      'grand': [9, 10]  // Grand prizes
-    };
-
-    const prizeNumbers = weekToPrizes[week];
-    if (!prizeNumbers) return false;
-
-    // Check if both prizes for this week exist in convertedWinners
-    return prizeNumbers.every(num => convertedWinners[`prize${num}`]);
-  };
-
   // ============================================
   // PROCESS DATA FOR STANDINGS
   // ============================================
@@ -793,13 +769,13 @@ function StandingsPage({ allPicks, actualScores, gameStatus, currentWeek, player
                                       <span style={{
                                         marginLeft: '8px',
                                         fontSize: '0.7rem',
-                                        background: areWinnersPublished(prize.week) ? '#28a745' : '#4facfe',
+                                        background: areAllGamesFinal(prize.week) ? '#28a745' : '#4facfe',
                                         color: 'white',
                                         padding: '2px 6px',
                                         borderRadius: '4px',
                                         fontWeight: '600'
                                       }}>
-                                        {areWinnersPublished(prize.week) ? 'WINNER' : 'LEADING'}
+                                        {areAllGamesFinal(prize.week) ? 'WINNER' : 'LEADING'}
                                       </span>
                                     )}
                                   </td>
@@ -925,13 +901,13 @@ function StandingsPage({ allPicks, actualScores, gameStatus, currentWeek, player
                                       <span style={{
                                         marginLeft: '8px',
                                         fontSize: '0.7rem',
-                                        background: areWinnersPublished('superbowl') ? '#28a745' : '#4facfe',
+                                        background: areAllGamesFinal('superbowl') ? '#28a745' : '#4facfe',
                                         color: 'white',
                                         padding: '2px 6px',
                                         borderRadius: '4px',
                                         fontWeight: '600'
                                       }}>
-                                        {areWinnersPublished('superbowl') ? 'WINNER' : 'LEADING'}
+                                        {areAllGamesFinal('superbowl') ? 'WINNER' : 'LEADING'}
                                       </span>
                                     )}
                                   </td>
@@ -1057,13 +1033,13 @@ function StandingsPage({ allPicks, actualScores, gameStatus, currentWeek, player
                                       <span style={{
                                         marginLeft: '8px',
                                         fontSize: '0.7rem',
-                                        background: areWinnersPublished('grand') ? '#28a745' : '#4facfe',
+                                        background: (areAllGamesFinal('wildcard') && areAllGamesFinal('divisional') && areAllGamesFinal('conference') && areAllGamesFinal('superbowl')) ? '#28a745' : '#4facfe',
                                         color: 'white',
                                         padding: '2px 6px',
                                         borderRadius: '4px',
                                         fontWeight: '600'
                                       }}>
-                                        {areWinnersPublished('grand') ? 'WINNER' : 'LEADING'}
+                                        {(areAllGamesFinal('wildcard') && areAllGamesFinal('divisional') && areAllGamesFinal('conference') && areAllGamesFinal('superbowl')) ? 'WINNER' : 'LEADING'}
                                       </span>
                                     )}
                                   </td>

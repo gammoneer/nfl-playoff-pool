@@ -46,58 +46,6 @@ function StandingsPage({ allPicks, actualScores, gameStatus, currentWeek, player
   };
   
   // ============================================
-  // CONVERT NEW WINNER FORMAT TO OLD FORMAT
-  // ============================================
-  // The new WinnerDeclaration system uses nested structure by week
-  // This converts it to flat structure for display compatibility
-  const convertedWinners = useMemo(() => {
-    if (!officialWinners || Object.keys(officialWinners).length === 0) {
-      return {};
-    }
-
-    // Check if it's already in old format (has prize1, prize2, etc keys)
-    const firstKey = Object.keys(officialWinners)[0];
-    if (firstKey.startsWith('prize')) {
-      // Old format, return as-is
-      return officialWinners;
-    }
-
-    // New format - convert week-based to flat prize-based
-    const converted = {};
-    const prizeNames = {
-      1: 'Prize #1 - Week 1 Most Correct Predictions',
-      2: 'Prize #2 - Week 1 Closest Total Points',
-      3: 'Prize #3 - Week 2 Most Correct Predictions',
-      4: 'Prize #4 - Week 2 Closest Total Points',
-      5: 'Prize #5 - Week 3 Most Correct Predictions',
-      6: 'Prize #6 - Week 3 Closest Total Points',
-      7: 'Prize #7 - Week 4 Most Correct Predictions',
-      8: 'Prize #8 - Week 4 Closest Total Points',
-      9: 'Prize #9 - Overall 4-Week Grand Total Most Correct Predictions',
-      10: 'Prize #10 - Overall 4-Week Grand Total Closest Points'
-    };
-
-    // Loop through each week (wildcard, divisional, conference, superbowl, grand)
-    Object.values(officialWinners).forEach(weekData => {
-      if (weekData.prizes && Array.isArray(weekData.prizes)) {
-        weekData.prizes.forEach(prize => {
-          const prizeNum = prize.prizeNumber;
-          converted[`prize${prizeNum}`] = {
-            prizeNumber: prizeNum,
-            prizeName: prizeNames[prizeNum] || `Prize #${prizeNum}`,
-            prizeValue: prizePool?.prizeValue || (prizePool?.totalFees * 0.1) || 56,
-            winners: prize.winners || [],
-            declaredBy: weekData.publishedBy || 'POOL_MANAGER',
-            declaredAt: weekData.publishedAt || new Date().toISOString()
-          };
-        });
-      }
-    });
-
-    return converted;
-  }, [officialWinners, prizePool]);
-  
-  // ============================================
   // SCORING CALCULATION FUNCTIONS
   // ============================================
   
@@ -214,30 +162,6 @@ function StandingsPage({ allPicks, actualScores, gameStatus, currentWeek, player
     
     // Return true only if ALL games have status 'final'
     return statusValues.length > 0 && statusValues.every(status => status === 'final');
-  };
-
-  /**
-   * Check if prizes for a week are officially published by Pool Manager
-   */
-  const areWinnersPublished = (week) => {
-    if (!convertedWinners || Object.keys(convertedWinners).length === 0) {
-      return false;
-    }
-
-    // Map week to prize numbers
-    const weekToPrizes = {
-      'wildcard': [1, 2],
-      'divisional': [3, 4],
-      'conference': [5, 6],
-      'superbowl': [7, 8],
-      'grand': [9, 10]  // Grand prizes
-    };
-
-    const prizeNumbers = weekToPrizes[week];
-    if (!prizeNumbers) return false;
-
-    // Check if both prizes for this week exist in convertedWinners
-    return prizeNumbers.every(num => convertedWinners[`prize${num}`]);
   };
 
   // ============================================
@@ -518,7 +442,7 @@ function StandingsPage({ allPicks, actualScores, gameStatus, currentWeek, player
         )}
         
         {/* Official Prize Awards - Declared by Pool Manager */}
-        {convertedWinners && Object.keys(convertedWinners).length > 0 && (
+        {officialWinners && Object.keys(officialWinners).length > 0 && (
           <div style={{
             background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
             color: 'white',
@@ -536,7 +460,7 @@ function StandingsPage({ allPicks, actualScores, gameStatus, currentWeek, player
               gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
               gap: '20px'
             }}>
-              {Object.entries(convertedWinners).sort((a, b) => {
+              {Object.entries(officialWinners).sort((a, b) => {
                 return a[1].prizeNumber - b[1].prizeNumber;
               }).map(([key, prize]) => (
                 <div key={key} style={{
@@ -793,13 +717,13 @@ function StandingsPage({ allPicks, actualScores, gameStatus, currentWeek, player
                                       <span style={{
                                         marginLeft: '8px',
                                         fontSize: '0.7rem',
-                                        background: areWinnersPublished(prize.week) ? '#28a745' : '#4facfe',
+                                        background: areAllGamesFinal(prize.week) ? '#28a745' : '#4facfe',
                                         color: 'white',
                                         padding: '2px 6px',
                                         borderRadius: '4px',
                                         fontWeight: '600'
                                       }}>
-                                        {areWinnersPublished(prize.week) ? 'WINNER' : 'LEADING'}
+                                        {areAllGamesFinal(prize.week) ? 'WINNER' : 'LEADING'}
                                       </span>
                                     )}
                                   </td>
@@ -925,13 +849,13 @@ function StandingsPage({ allPicks, actualScores, gameStatus, currentWeek, player
                                       <span style={{
                                         marginLeft: '8px',
                                         fontSize: '0.7rem',
-                                        background: areWinnersPublished('superbowl') ? '#28a745' : '#4facfe',
+                                        background: areAllGamesFinal('superbowl') ? '#28a745' : '#4facfe',
                                         color: 'white',
                                         padding: '2px 6px',
                                         borderRadius: '4px',
                                         fontWeight: '600'
                                       }}>
-                                        {areWinnersPublished('superbowl') ? 'WINNER' : 'LEADING'}
+                                        {areAllGamesFinal('superbowl') ? 'WINNER' : 'LEADING'}
                                       </span>
                                     )}
                                   </td>
@@ -1057,13 +981,13 @@ function StandingsPage({ allPicks, actualScores, gameStatus, currentWeek, player
                                       <span style={{
                                         marginLeft: '8px',
                                         fontSize: '0.7rem',
-                                        background: areWinnersPublished('grand') ? '#28a745' : '#4facfe',
+                                        background: (areAllGamesFinal('wildcard') && areAllGamesFinal('divisional') && areAllGamesFinal('conference') && areAllGamesFinal('superbowl')) ? '#28a745' : '#4facfe',
                                         color: 'white',
                                         padding: '2px 6px',
                                         borderRadius: '4px',
                                         fontWeight: '600'
                                       }}>
-                                        {areWinnersPublished('grand') ? 'WINNER' : 'LEADING'}
+                                        {(areAllGamesFinal('wildcard') && areAllGamesFinal('divisional') && areAllGamesFinal('conference') && areAllGamesFinal('superbowl')) ? 'WINNER' : 'LEADING'}
                                       </span>
                                     )}
                                   </td>
