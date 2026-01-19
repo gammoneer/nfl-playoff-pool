@@ -4,7 +4,7 @@ import './StandingsPage.css';
 // Import scoring functions (we'll integrate these)
 // For now, we'll include the logic directly
 
-function StandingsPage({ allPicks, actualScores, gameStatus, currentWeek, playerName, playerCode, isPoolManager, prizePool, officialWinners, publishedWinners, onLogout }) {
+function StandingsPage({ allPicks, actualScores, gameStatus, currentWeek, playerName, playerCode, isPoolManager, prizePool, officialWinners, onLogout }) {
   
   // Track which prize week sections are expanded
   const [expandedPrizeWeeks, setExpandedPrizeWeeks] = useState({
@@ -44,64 +44,6 @@ function StandingsPage({ allPicks, actualScores, gameStatus, currentWeek, player
       'Grand Prizes': false
     });
   };
-  
-  // ============================================
-  // CONVERT NEW WINNER FORMAT TO OLD FORMAT
-  // ============================================
-  const convertedWinners = useMemo(() => {
-    if (!officialWinners || Object.keys(officialWinners).length === 0) {
-      return {};
-    }
-
-    // Check if it's already in old format
-    const firstKey = Object.keys(officialWinners)[0];
-    if (firstKey.startsWith('prize')) {
-      return officialWinners;
-    }
-
-    // New format - convert
-    const converted = {};
-    const prizeNames = {
-      1: 'Prize #1 - Week 1 Most Correct Predictions',
-      2: 'Prize #2 - Week 1 Closest Total Points',
-      3: 'Prize #3 - Week 2 Most Correct Predictions',
-      4: 'Prize #4 - Week 2 Closest Total Points',
-      5: 'Prize #5 - Week 3 Most Correct Predictions',
-      6: 'Prize #6 - Week 3 Closest Total Points',
-      7: 'Prize #7 - Week 4 Most Correct Predictions',
-      8: 'Prize #8 - Week 4 Closest Total Points',
-      9: 'Prize #9 - Overall 4-Week Grand Total Most Correct Predictions',
-      10: 'Prize #10 - Overall 4-Week Grand Total Closest Points'
-    };
-
-    Object.values(officialWinners).forEach(weekData => {
-      if (weekData.prizes && Array.isArray(weekData.prizes)) {
-        weekData.prizes.forEach(prize => {
-          const prizeNum = prize.prizeNumber;
-          
-          let calculatedPrizeValue = 56;
-          if (prizePool) {
-            if (prizePool.prizeValue) {
-              calculatedPrizeValue = prizePool.prizeValue;
-            } else if (prizePool.totalFees) {
-              calculatedPrizeValue = prizePool.totalFees * 0.1;
-            }
-          }
-          
-          converted[`prize${prizeNum}`] = {
-            prizeNumber: prizeNum,
-            prizeName: prizeNames[prizeNum] || `Prize #${prizeNum}`,
-            prizeValue: calculatedPrizeValue,
-            winners: prize.winners || [],
-            declaredBy: weekData.publishedBy || 'POOL_MANAGER',
-            declaredAt: weekData.publishedAt || new Date().toISOString()
-          };
-        });
-      }
-    });
-
-    return converted;
-  }, [officialWinners, prizePool]);
   
   // ============================================
   // SCORING CALCULATION FUNCTIONS
@@ -500,7 +442,7 @@ function StandingsPage({ allPicks, actualScores, gameStatus, currentWeek, player
         )}
         
         {/* Official Prize Awards - Declared by Pool Manager */}
-        {convertedWinners && Object.keys(convertedWinners).length > 0 && (
+        {officialWinners && Object.keys(officialWinners).length > 0 && (
           <div style={{
             background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
             color: 'white',
@@ -518,7 +460,7 @@ function StandingsPage({ allPicks, actualScores, gameStatus, currentWeek, player
               gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
               gap: '20px'
             }}>
-              {Object.entries(convertedWinners).sort((a, b) => {
+              {Object.entries(officialWinners).sort((a, b) => {
                 return a[1].prizeNumber - b[1].prizeNumber;
               }).map(([key, prize]) => (
                 <div key={key} style={{
@@ -771,37 +713,19 @@ function StandingsPage({ allPicks, actualScores, gameStatus, currentWeek, player
                                   </td>
                                   <td className="player-name">
                                     {leader.playerName}
-                                    {isLeading && (() => {
-                                      // Check if winners are officially published by prize number
-                                      const pn = prize.prizeNumber;
-                                      let isPublished = false;
-                                      
-                                      if (pn === 1 || pn === 2) {
-                                        isPublished = publishedWinners?.week1_prize1 && publishedWinners?.week1_prize2;
-                                      } else if (pn === 3 || pn === 4) {
-                                        isPublished = publishedWinners?.week2_prize1 && publishedWinners?.week2_prize2;
-                                      } else if (pn === 5 || pn === 6) {
-                                        isPublished = publishedWinners?.week3_prize1 && publishedWinners?.week3_prize2;
-                                      } else if (pn === 7 || pn === 8) {
-                                        isPublished = publishedWinners?.week4_prize1 && publishedWinners?.week4_prize2;
-                                      } else if (pn === 9 || pn === 10) {
-                                        isPublished = publishedWinners?.grand_prize1 && publishedWinners?.grand_prize2;
-                                      }
-                                      
-                                      return (
-                                        <span style={{
-                                          marginLeft: '8px',
-                                          fontSize: '0.7rem',
-                                          background: isPublished ? '#28a745' : '#4facfe',
-                                          color: 'white',
-                                          padding: '2px 6px',
-                                          borderRadius: '4px',
-                                          fontWeight: '600'
-                                        }}>
-                                          {isPublished ? 'WINNER' : 'LEADING'}
-                                        </span>
-                                      );
-                                    })()}
+                                    {isLeading && (
+                                      <span style={{
+                                        marginLeft: '8px',
+                                        fontSize: '0.7rem',
+                                        background: areAllGamesFinal(prize.week) ? '#28a745' : '#4facfe',
+                                        color: 'white',
+                                        padding: '2px 6px',
+                                        borderRadius: '4px',
+                                        fontWeight: '600'
+                                      }}>
+                                        {areAllGamesFinal(prize.week) ? 'WINNER' : 'LEADING'}
+                                      </span>
+                                    )}
                                   </td>
                                   <td className="score">
                                     {prize.type === 'correctWinners' 
@@ -921,24 +845,19 @@ function StandingsPage({ allPicks, actualScores, gameStatus, currentWeek, player
                                   </td>
                                   <td className="player-name">
                                     {leader.playerName}
-                                    {isLeading && (() => {
-                                      // Week 2 is prizes 3-4
-                                      const isPublished = publishedWinners?.week2_prize1 && publishedWinners?.week2_prize2;
-                                      
-                                      return (
-                                        <span style={{
-                                          marginLeft: '8px',
-                                          fontSize: '0.7rem',
-                                          background: isPublished ? '#28a745' : '#4facfe',
-                                          color: 'white',
-                                          padding: '2px 6px',
-                                          borderRadius: '4px',
-                                          fontWeight: '600'
-                                        }}>
-                                          {isPublished ? 'WINNER' : 'LEADING'}
-                                        </span>
-                                      );
-                                    })()}
+                                    {isLeading && (
+                                      <span style={{
+                                        marginLeft: '8px',
+                                        fontSize: '0.7rem',
+                                        background: areAllGamesFinal('superbowl') ? '#28a745' : '#4facfe',
+                                        color: 'white',
+                                        padding: '2px 6px',
+                                        borderRadius: '4px',
+                                        fontWeight: '600'
+                                      }}>
+                                        {areAllGamesFinal('superbowl') ? 'WINNER' : 'LEADING'}
+                                      </span>
+                                    )}
                                   </td>
                                   <td className="score">
                                     {prize.type === 'correctWinners' 
@@ -1058,24 +977,19 @@ function StandingsPage({ allPicks, actualScores, gameStatus, currentWeek, player
                                   </td>
                                   <td className="player-name">
                                     {leader.playerName}
-                                    {isLeading && (() => {
-                                      // Grand prizes are 9-10
-                                      const isPublished = publishedWinners?.grand_prize1 && publishedWinners?.grand_prize2;
-                                      
-                                      return (
-                                        <span style={{
-                                          marginLeft: '8px',
-                                          fontSize: '0.7rem',
-                                          background: isPublished ? '#28a745' : '#4facfe',
-                                          color: 'white',
-                                          padding: '2px 6px',
-                                          borderRadius: '4px',
-                                          fontWeight: '600'
-                                        }}>
-                                          {isPublished ? 'WINNER' : 'LEADING'}
-                                        </span>
-                                      );
-                                    })()}
+                                    {isLeading && (
+                                      <span style={{
+                                        marginLeft: '8px',
+                                        fontSize: '0.7rem',
+                                        background: (areAllGamesFinal('wildcard') && areAllGamesFinal('divisional') && areAllGamesFinal('conference') && areAllGamesFinal('superbowl')) ? '#28a745' : '#4facfe',
+                                        color: 'white',
+                                        padding: '2px 6px',
+                                        borderRadius: '4px',
+                                        fontWeight: '600'
+                                      }}>
+                                        {(areAllGamesFinal('wildcard') && areAllGamesFinal('divisional') && areAllGamesFinal('conference') && areAllGamesFinal('superbowl')) ? 'WINNER' : 'LEADING'}
+                                      </span>
+                                    )}
                                   </td>
                                   <td className="score">
                                     {prize.type === 'correctWinners' 

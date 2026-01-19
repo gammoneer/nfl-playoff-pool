@@ -798,7 +798,7 @@ function StandingsPage({ allPicks, actualScores, gameStatus, currentWeek, player
                                           borderRadius: '4px',
                                           fontWeight: '600'
                                         }}>
-                                          {isPublished ? 'WINNER' : 'LEADING'}
+                                          {isPublished ? 'WINNER' : (pn === 3 || pn === 4) ? 'TESTING' : 'LEADING'}
                                         </span>
                                       );
                                     })()}
@@ -935,7 +935,7 @@ function StandingsPage({ allPicks, actualScores, gameStatus, currentWeek, player
                                           borderRadius: '4px',
                                           fontWeight: '600'
                                         }}>
-                                          {isPublished ? 'WINNER' : 'LEADING'}
+                                          {isPublished ? 'WINNER' : 'TESTING'}
                                         </span>
                                       );
                                     })()}

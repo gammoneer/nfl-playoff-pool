@@ -922,8 +922,8 @@ function StandingsPage({ allPicks, actualScores, gameStatus, currentWeek, player
                                   <td className="player-name">
                                     {leader.playerName}
                                     {isLeading && (() => {
-                                      // Week 2 is prizes 3-4
-                                      const isPublished = publishedWinners?.week2_prize1 && publishedWinners?.week2_prize2;
+                                      // Week 4 is prizes 7-8
+                                      const isPublished = publishedWinners?.week4_prize1 && publishedWinners?.week4_prize2;
                                       
                                       return (
                                         <span style={{
