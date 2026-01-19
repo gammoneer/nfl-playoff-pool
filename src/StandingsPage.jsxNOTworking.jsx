@@ -82,21 +82,10 @@ function StandingsPage({ allPicks, actualScores, gameStatus, currentWeek, player
       if (weekData.prizes && Array.isArray(weekData.prizes)) {
         weekData.prizes.forEach(prize => {
           const prizeNum = prize.prizeNumber;
-          
-          // Calculate prize value safely
-          let calculatedPrizeValue = 56; // Default fallback
-          if (prizePool) {
-            if (prizePool.prizeValue) {
-              calculatedPrizeValue = prizePool.prizeValue;
-            } else if (prizePool.totalFees) {
-              calculatedPrizeValue = prizePool.totalFees * 0.1;
-            }
-          }
-          
           converted[`prize${prizeNum}`] = {
             prizeNumber: prizeNum,
             prizeName: prizeNames[prizeNum] || `Prize #${prizeNum}`,
-            prizeValue: calculatedPrizeValue,
+            prizeValue: prizePool?.prizeValue || (prizePool?.totalFees * 0.1) || 56,
             winners: prize.winners || [],
             declaredBy: weekData.publishedBy || 'POOL_MANAGER',
             declaredAt: weekData.publishedAt || new Date().toISOString()
