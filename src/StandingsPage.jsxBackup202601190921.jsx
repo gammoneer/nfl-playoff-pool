@@ -6,11 +6,6 @@ import './StandingsPage.css';
 
 function StandingsPage({ allPicks, actualScores, gameStatus, currentWeek, playerName, playerCode, isPoolManager, prizePool, officialWinners, publishedWinners, onLogout }) {
   
-  // DEBUG: Log what props we receive
-  console.log('📦 StandingsPage received publishedWinners:', publishedWinners);
-  console.log('📦 Type:', typeof publishedWinners);
-  console.log('📦 Keys:', publishedWinners ? Object.keys(publishedWinners) : 'null/undefined');
-  
   // Track which prize week sections are expanded
   const [expandedPrizeWeeks, setExpandedPrizeWeeks] = useState({
     'Week 1': true,  // Default: Week 1 open
@@ -236,11 +231,7 @@ function StandingsPage({ allPicks, actualScores, gameStatus, currentWeek, player
    * Check if prizes for a week are officially published by Pool Manager
    */
   const areWinnersPublished = (week) => {
-    console.log('🔍 Checking areWinnersPublished for week:', week);
-    console.log('📊 publishedWinners:', publishedWinners);
-    
     if (!publishedWinners) {
-      console.log('❌ publishedWinners is null/undefined');
       return false;
     }
 
@@ -254,22 +245,10 @@ function StandingsPage({ allPicks, actualScores, gameStatus, currentWeek, player
     };
 
     const pubKeys = weekToPubKeys[week];
-    console.log('🔑 Checking keys:', pubKeys);
-    
-    if (!pubKeys) {
-      console.log('❌ No pubKeys for this week');
-      return false;
-    }
+    if (!pubKeys) return false;
 
     // Check if both prizes for this week are published
-    const result = pubKeys.every(key => {
-      const value = publishedWinners[key];
-      console.log(`   ${key}: ${value}`);
-      return value === true;
-    });
-    
-    console.log('✅ Result:', result);
-    return result;
+    return pubKeys.every(key => publishedWinners[key] === true);
   };
 
   // ============================================
