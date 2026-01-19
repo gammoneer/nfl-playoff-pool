@@ -4,7 +4,7 @@ import './StandingsPage.css';
 // Import scoring functions (we'll integrate these)
 // For now, we'll include the logic directly
 
-function StandingsPage({ allPicks, actualScores, gameStatus, currentWeek, playerName, playerCode, isPoolManager, prizePool, officialWinners, publishedWinners, onLogout }) {
+function StandingsPage({ allPicks, actualScores, gameStatus, currentWeek, playerName, playerCode, isPoolManager, prizePool, officialWinners, onLogout }) {
   
   // Track which prize week sections are expanded
   const [expandedPrizeWeeks, setExpandedPrizeWeeks] = useState({
@@ -82,21 +82,10 @@ function StandingsPage({ allPicks, actualScores, gameStatus, currentWeek, player
       if (weekData.prizes && Array.isArray(weekData.prizes)) {
         weekData.prizes.forEach(prize => {
           const prizeNum = prize.prizeNumber;
-          
-          // Calculate prize value safely
-          let calculatedPrizeValue = 56; // Default fallback
-          if (prizePool) {
-            if (prizePool.prizeValue) {
-              calculatedPrizeValue = prizePool.prizeValue;
-            } else if (prizePool.totalFees) {
-              calculatedPrizeValue = prizePool.totalFees * 0.1;
-            }
-          }
-          
           converted[`prize${prizeNum}`] = {
             prizeNumber: prizeNum,
             prizeName: prizeNames[prizeNum] || `Prize #${prizeNum}`,
-            prizeValue: calculatedPrizeValue,
+            prizeValue: prizePool?.prizeValue || (prizePool?.totalFees * 0.1) || 56,
             winners: prize.winners || [],
             declaredBy: weekData.publishedBy || 'POOL_MANAGER',
             declaredAt: weekData.publishedAt || new Date().toISOString()
@@ -225,30 +214,6 @@ function StandingsPage({ allPicks, actualScores, gameStatus, currentWeek, player
     
     // Return true only if ALL games have status 'final'
     return statusValues.length > 0 && statusValues.every(status => status === 'final');
-  };
-
-  /**
-   * Check if prizes for a week are officially published by Pool Manager
-   */
-  const areWinnersPublished = (week) => {
-    if (!publishedWinners) {
-      return false;
-    }
-
-    // Map week to publishedWinners keys
-    const weekToPubKeys = {
-      'wildcard': ['week1_prize1', 'week1_prize2'],
-      'divisional': ['week2_prize1', 'week2_prize2'],
-      'conference': ['week3_prize1', 'week3_prize2'],
-      'superbowl': ['week4_prize1', 'week4_prize2'],
-      'grand': ['grand_prize1', 'grand_prize2']
-    };
-
-    const pubKeys = weekToPubKeys[week];
-    if (!pubKeys) return false;
-
-    // Check if both prizes for this week are published
-    return pubKeys.every(key => publishedWinners[key] === true);
   };
 
   // ============================================
@@ -804,13 +769,13 @@ function StandingsPage({ allPicks, actualScores, gameStatus, currentWeek, player
                                       <span style={{
                                         marginLeft: '8px',
                                         fontSize: '0.7rem',
-                                        background: areWinnersPublished(prize.week) ? '#28a745' : '#4facfe',
+                                        background: areAllGamesFinal(prize.week) ? '#28a745' : '#4facfe',
                                         color: 'white',
                                         padding: '2px 6px',
                                         borderRadius: '4px',
                                         fontWeight: '600'
                                       }}>
-                                        {areWinnersPublished(prize.week) ? 'WINNER' : 'LEADING'}
+                                        {areAllGamesFinal(prize.week) ? 'WINNER' : 'LEADING'}
                                       </span>
                                     )}
                                   </td>
@@ -936,13 +901,13 @@ function StandingsPage({ allPicks, actualScores, gameStatus, currentWeek, player
                                       <span style={{
                                         marginLeft: '8px',
                                         fontSize: '0.7rem',
-                                        background: areWinnersPublished('superbowl') ? '#28a745' : '#4facfe',
+                                        background: areAllGamesFinal('superbowl') ? '#28a745' : '#4facfe',
                                         color: 'white',
                                         padding: '2px 6px',
                                         borderRadius: '4px',
                                         fontWeight: '600'
                                       }}>
-                                        {areWinnersPublished('superbowl') ? 'WINNER' : 'LEADING'}
+                                        {areAllGamesFinal('superbowl') ? 'WINNER' : 'LEADING'}
                                       </span>
                                     )}
                                   </td>
@@ -1068,13 +1033,13 @@ function StandingsPage({ allPicks, actualScores, gameStatus, currentWeek, player
                                       <span style={{
                                         marginLeft: '8px',
                                         fontSize: '0.7rem',
-                                        background: areWinnersPublished('grand') ? '#28a745' : '#4facfe',
+                                        background: (areAllGamesFinal('wildcard') && areAllGamesFinal('divisional') && areAllGamesFinal('conference') && areAllGamesFinal('superbowl')) ? '#28a745' : '#4facfe',
                                         color: 'white',
                                         padding: '2px 6px',
                                         borderRadius: '4px',
                                         fontWeight: '600'
                                       }}>
-                                        {areWinnersPublished('grand') ? 'WINNER' : 'LEADING'}
+                                        {(areAllGamesFinal('wildcard') && areAllGamesFinal('divisional') && areAllGamesFinal('conference') && areAllGamesFinal('superbowl')) ? 'WINNER' : 'LEADING'}
                                       </span>
                                     )}
                                   </td>

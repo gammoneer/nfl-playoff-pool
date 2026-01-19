@@ -5870,7 +5870,6 @@ const calculateAllPrizeWinners = () => {
             isPoolManager={isPoolManager()}
             prizePool={prizePool}
             officialWinners={officialWinners}
-            publishedWinners={publishedWinners}
             onLogout={handleLogout}
           />) : currentView === 'winners' && codeValidated ? (
           <HowWinnersAreDetermined 

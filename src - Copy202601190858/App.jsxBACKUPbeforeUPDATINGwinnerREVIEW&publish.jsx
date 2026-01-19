@@ -459,8 +459,12 @@ function App() {
   const [showPrizePoolSetup, setShowPrizePoolSetup] = useState(false);
   
   // 🏆 ENHANCED WINNER DECLARATION (Phase 2)
-  // Winner declaration state variables removed - now handled by WinnerDeclaration component
-  // Note: weekCompletionStatus already declared at line 450 - using that one
+  const [selectedPrize, setSelectedPrize] = useState('');
+  const [numberOfWinners, setNumberOfWinners] = useState(1);
+  const [selectedWinners, setSelectedWinners] = useState([]);
+  const [useCustomSplit, setUseCustomSplit] = useState(false);
+  const [customSplits, setCustomSplits] = useState([]);
+  const [showWinnerDeclaration, setShowWinnerDeclaration] = useState(false);
   
   // Track original picks for unsaved changes detection
   const [originalPicks, setOriginalPicks] = useState({});
@@ -1404,94 +1408,76 @@ const exportPlayersToExcel = async () => {
   };
 
   /**
-   * Publish winners for a week - NEW SYSTEM
+   * Declare winner(s) for a prize
    */
-  const handlePublishWinners = async (weekKey, prizes) => {
-    try {
-      const publishData = {
-        weekKey,
-        prizes,
-        publishedBy: playerCode,
-        publishedByName: playerName,
-        publishedAt: new Date().toISOString(),
-        published: true
-      };
-
-      await set(ref(database, `officialWinners/${weekKey}`), publishData);
-      
-      // Also update publishedWinners for HowWinnersAreDetermined compatibility
-      const weekMapping = {
-        'wildcard': 'week1',
-        'divisional': 'week2',
-        'conference': 'week3',
-        'superbowl': 'week4',
-        'grand': 'grand'
-      };
-      const weekName = weekMapping[weekKey];
-      
-      // Mark prizes as published
-      const publishUpdates = {};
-      prizes.forEach(prize => {
-        const prizeNum = prize.prizeNumber;
-        let pubKey;
-        if (weekName === 'grand') {
-          pubKey = prizeNum === 9 ? 'grand_prize1' : 'grand_prize2';
-        } else {
-          pubKey = `${weekName}_prize${prizeNum % 2 === 1 ? '1' : '2'}`;
-        }
-        publishUpdates[pubKey] = true;
-      });
-      
-      // Update publishedWinners in Firebase
-      for (const [key, value] of Object.entries(publishUpdates)) {
-        await set(ref(database, `publishedWinners/${key}`), value);
-      }
-      
-      alert(`✅ Winners published for ${weekKey}!`);
-    } catch (error) {
-      console.error('Error publishing winners:', error);
-      alert(`❌ Error publishing winners: ${error.message}`);
+  const declareWinners = async () => {
+    if (!selectedPrize || selectedWinners.length === 0) {
+      alert('❌ Please select a prize and at least one winner.');
+      return;
     }
-  };
-
-  /**
-   * Unpublish winners for a week - allows editing
-   */
-  const handleUnpublishWinners = async (weekKey) => {
+    
     try {
-      await set(ref(database, `officialWinners/${weekKey}/published`), false);
+      const prizeValue = prizePool.prizeValue || 100;
+      let splits = [];
       
-      // Also unpublish in publishedWinners for HowWinnersAreDetermined
-      const weekMapping = {
-        'wildcard': 'week1',
-        'divisional': 'week2',
-        'conference': 'week3',
-        'superbowl': 'week4',
-        'grand': 'grand'
-      };
-      const weekName = weekMapping[weekKey];
-      
-      // Get prize numbers for this week
-      const prizeNums = weekName === 'grand' ? [9, 10] : 
-                        weekName === 'week1' ? [1, 2] :
-                        weekName === 'week2' ? [3, 4] :
-                        weekName === 'week3' ? [5, 6] : [7, 8];
-      
-      // Unpublish both prizes for this week
-      for (const prizeNum of prizeNums) {
-        let pubKey;
-        if (weekName === 'grand') {
-          pubKey = prizeNum === 9 ? 'grand_prize1' : 'grand_prize2';
-        } else {
-          pubKey = `${weekName}_prize${prizeNum % 2 === 1 ? '1' : '2'}`;
+      if (useCustomSplit) {
+        // Validate custom splits
+        const totalPercent = customSplits.reduce((sum, split) => sum + Number(split.percentage || 0), 0);
+        const totalAmount = customSplits.reduce((sum, split) => sum + Number(split.amount || 0), 0);
+        
+        if (Math.abs(totalPercent - 100) > 0.01) {
+          alert(`❌ Percentages must equal 100%!\nCurrent total: ${totalPercent.toFixed(2)}%`);
+          return;
         }
-        await set(ref(database, `publishedWinners/${pubKey}`), false);
+        
+        if (Math.abs(totalAmount - prizeValue) > 0.01) {
+          alert(`❌ Amounts must equal $${prizeValue.toFixed(2)}!\nCurrent total: $${totalAmount.toFixed(2)}`);
+          return;
+        }
+        
+        splits = customSplits.map((split, idx) => ({
+          playerCode: selectedWinners[idx].code,
+          playerName: selectedWinners[idx].name,
+          percentage: Number(split.percentage),
+          amount: Number(split.amount)
+        }));
+      } else {
+        // Auto-calculate equal split
+        const autoSplits = calculateSplit(prizeValue, selectedWinners.length);
+        splits = selectedWinners.map((winner, idx) => ({
+          playerCode: winner.code,
+          playerName: winner.name,
+          percentage: autoSplits[idx].percentage,
+          amount: autoSplits[idx].amount
+        }));
       }
       
-      alert(`✅ Winners unpublished for ${weekKey}. You can now edit them.`);
+      // Save to Firebase
+      const winnerData = {
+        prizeNumber: selectedPrize,
+        prizeName: getPrizeName(selectedPrize),
+        prizeValue: prizeValue,
+        winners: splits,
+        declaredBy: 'POOL_MANAGER',
+        declaredByCode: playerCode,
+        declaredByName: playerName,
+        declaredAt: new Date().toISOString()
+      };
+      
+      await set(ref(database, `officialWinners/prize${selectedPrize}`), winnerData);
+      
+      alert(`✅ Winner(s) declared for ${getPrizeName(selectedPrize)}!\n\n${splits.map(s => `${s.playerName}: ${s.percentage}% ($${s.amount.toFixed(2)})`).join('\n')}`);
+      
+      // Reset form
+      setSelectedPrize('');
+      setNumberOfWinners(1);
+      setSelectedWinners([]);
+      setUseCustomSplit(false);
+      setCustomSplits([]);
+      setShowWinnerDeclaration(false);
     } catch (error) {
-      console.error('Error unpublishing winners:', error);
-      alert(`❌ Error unpublishing winners: ${error.message}`);
+      console.error('Error declaring winners:', error);
+      alert(`❌ Error declaring winners: ${error.message}`);
     }
   };
 
@@ -5870,7 +5856,6 @@ const calculateAllPrizeWinners = () => {
             isPoolManager={isPoolManager()}
             prizePool={prizePool}
             officialWinners={officialWinners}
-            publishedWinners={publishedWinners}
             onLogout={handleLogout}
           />) : currentView === 'winners' && codeValidated ? (
           <HowWinnersAreDetermined 
@@ -7837,26 +7822,103 @@ const calculateAllPrizeWinners = () => {
                 )}
               </div>
 
-              {/* NEW Winner Management System */}
+              {/* Winner Declaration Section */}
               {prizePool.totalFees > 0 && (
-                <div style={{marginTop: '30px'}}>
-                  <WinnerDeclaration
-                    allPicks={allPicks}
-                    actualScores={actualScores}
-                    games={PLAYOFF_WEEKS}
-                    officialWinners={officialWinners}
-                    onPublishWinners={handlePublishWinners}
-                    onUnpublishWinners={handleUnpublishWinners}
-                    isPoolManager={true}
-                    totalPrizePool={prizePool.totalFees}
-                    weekCompletionStatus={{
-                      wildcard: weekCompletionStatus?.wildcard || false,
-                      divisional: weekCompletionStatus?.divisional || false,
-                      conference: weekCompletionStatus?.conference || false,
-                      superbowl: weekCompletionStatus?.superbowl || false,
-                      grand: weekCompletionStatus?.superbowl || false
+                <div style={{
+                  background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                  color: 'white',
+                  padding: '25px',
+                  borderRadius: '12px',
+                  boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+                }}>
+                  <h2 style={{margin: '0 0 20px 0', display: 'flex', alignItems: 'center', gap: '10px'}}>
+                    <span>🏆</span>
+                    <span>DECLARE PRIZE WINNERS</span>
+                  </h2>
+                  
+                  <button
+                    onClick={() => setShowWinnerDeclaration(true)}
+                    style={{
+                      padding: '14px 28px',
+                      background: 'white',
+                      color: '#f5576c',
+                      border: 'none',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      fontWeight: '700',
+                      fontSize: '1.1rem',
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
                     }}
-                  />
+                  >
+                    🏆 Declare Winner(s) for a Prize
+                  </button>
+                  
+                  {/* Show Current Declarations */}
+                  {Object.keys(officialWinners).length > 0 && (
+                    <div style={{marginTop: '25px'}}>
+                      <h3 style={{marginBottom: '15px', fontSize: '1.1rem'}}>📋 Current Prize Winners:</h3>
+                      <div style={{
+                        background: 'rgba(255,255,255,0.2)',
+                        padding: '15px',
+                        borderRadius: '8px',
+                        maxHeight: '400px',
+                        overflowY: 'auto'
+                      }}>
+                        {Object.entries(officialWinners).sort((a, b) => {
+                          const prizeA = a[1].prizeNumber;
+                          const prizeB = b[1].prizeNumber;
+                          return prizeA - prizeB;
+                        }).map(([key, prize]) => (
+                          <div key={key} style={{
+                            background: 'rgba(255,255,255,0.9)',
+                            color: '#333',
+                            padding: '15px',
+                            borderRadius: '6px',
+                            marginBottom: '12px'
+                          }}>
+                            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px'}}>
+                              <div>
+                                <div style={{fontWeight: 'bold', fontSize: '1rem', marginBottom: '5px'}}>
+                                  {prize.prizeName}
+                                </div>
+                                <div style={{fontSize: '0.9rem', color: '#666'}}>
+                                  Prize Value: ${prize.prizeValue.toFixed(2)}
+                                </div>
+                              </div>
+                              <button
+                                onClick={() => deletePrizeDeclaration(prize.prizeNumber)}
+                                style={{
+                                  padding: '6px 12px',
+                                  background: '#e74c3c',
+                                  color: 'white',
+                                  border: 'none',
+                                  borderRadius: '4px',
+                                  cursor: 'pointer',
+                                  fontSize: '0.85rem',
+                                  fontWeight: '600'
+                                }}
+                              >
+                                🗑️ Delete
+                              </button>
+                            </div>
+                            <div style={{paddingLeft: '15px'}}>
+                              {prize.winners.map((winner, idx) => (
+                                <div key={idx} style={{
+                                  padding: '8px 0',
+                                  borderBottom: idx < prize.winners.length - 1 ? '1px solid #eee' : 'none'
+                                }}>
+                                  <span style={{fontWeight: '600'}}>🏆 {winner.playerName}</span>
+                                  <span style={{marginLeft: '15px', color: '#666'}}>
+                                    {winner.percentage.toFixed(2)}% = ${winner.amount.toFixed(2)}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -8020,6 +8082,288 @@ const calculateAllPrizeWinners = () => {
           )}
 
           {/* 🏆 WINNER DECLARATION POPUP */}
+          {showWinnerDeclaration && (
+            <div style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: 'rgba(0,0,0,0.85)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 10000,
+              padding: '20px'
+            }}>
+              <div style={{
+                background: 'white',
+                borderRadius: '12px',
+                padding: '30px',
+                maxWidth: '700px',
+                width: '100%',
+                maxHeight: '90vh',
+                overflowY: 'auto',
+                boxShadow: '0 8px 32px rgba(0,0,0,0.3)'
+              }}>
+                <h2 style={{marginTop: 0, color: '#f5576c'}}>🏆 Declare Prize Winner(s)</h2>
+                
+                {/* Prize Selection */}
+                <div style={{marginBottom: '20px'}}>
+                  <label style={{display: 'block', marginBottom: '8px', fontWeight: '600'}}>
+                    Select Prize:
+                  </label>
+                  <select
+                    value={selectedPrize}
+                    onChange={(e) => setSelectedPrize(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '12px',
+                      fontSize: '1rem',
+                      border: '2px solid #f5576c',
+                      borderRadius: '6px'
+                    }}
+                  >
+                    <option value="">-- Select Prize --</option>
+                    {[1,2,3,4,5,6,7,8,9,10].map(num => (
+                      <option key={num} value={num}>{getPrizeName(num)}</option>
+                    ))}
+                  </select>
+                  {selectedPrize && (
+                    <div style={{marginTop: '8px', fontSize: '0.9rem', color: '#666'}}>
+                      Prize Value: ${prizePool.prizeValue.toFixed(2)} (10% of pool)
+                    </div>
+                  )}
+                </div>
+                
+                {selectedPrize && (
+                  <>
+                    {/* Number of Winners */}
+                    <div style={{marginBottom: '20px'}}>
+                      <label style={{display: 'block', marginBottom: '8px', fontWeight: '600'}}>
+                        Number of Winners (Tie?):
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="10"
+                        value={numberOfWinners}
+                        onChange={(e) => {
+                          const num = parseInt(e.target.value) || 1;
+                          setNumberOfWinners(num);
+                          setSelectedWinners(Array(num).fill(null).map(() => ({ name: '', code: '' })));
+                          const splits = calculateSplit(prizePool.prizeValue, num);
+                          setCustomSplits(splits);
+                        }}
+                        style={{
+                          width: '100%',
+                          padding: '12px',
+                          fontSize: '1rem',
+                          border: '2px solid #f5576c',
+                          borderRadius: '6px'
+                        }}
+                      />
+                      <div style={{fontSize: '0.85rem', color: '#666', marginTop: '5px'}}>
+                        How many players are tied? (1 = single winner, 2+ = tie)
+                      </div>
+                    </div>
+                    
+                    {/* Winner Selection */}
+                    <div style={{marginBottom: '20px'}}>
+                      <label style={{display: 'block', marginBottom: '12px', fontWeight: '600'}}>
+                        Select Winner(s):
+                      </label>
+                      {Array(numberOfWinners).fill(0).map((_, idx) => {
+                        const autoSplit = !useCustomSplit ? calculateSplit(prizePool.prizeValue, numberOfWinners)[idx] : null;
+                        return (
+                          <div key={idx} style={{
+                            background: '#f8f9fa',
+                            padding: '15px',
+                            borderRadius: '8px',
+                            marginBottom: '12px'
+                          }}>
+                            <div style={{marginBottom: '10px', fontWeight: '600'}}>
+                              Winner {idx + 1}:
+                            </div>
+                            <select
+                              value={selectedWinners[idx]?.code || ''}
+                              onChange={(e) => {
+                                const player = Object.entries(PLAYER_CODES).find(([code]) => code === e.target.value);
+                                const newWinners = [...selectedWinners];
+                                newWinners[idx] = { code: e.target.value, name: player ? player[1] : '' };
+                                setSelectedWinners(newWinners);
+                              }}
+                              style={{
+                                width: '100%',
+                                padding: '10px',
+                                fontSize: '1rem',
+                                border: '1px solid #ddd',
+                                borderRadius: '6px',
+                                marginBottom: '8px'
+                              }}
+                            >
+                              <option value="">-- Select Player --</option>
+                              {Object.entries(PLAYER_CODES).sort((a, b) => a[1].localeCompare(b[1])).map(([code, name]) => (
+                                <option key={code} value={code}>{name}</option>
+                              ))}
+                            </select>
+                            {!useCustomSplit && autoSplit && (
+                              <div style={{fontSize: '0.9rem', color: '#666'}}>
+                                Share: {autoSplit.percentage.toFixed(2)}% = ${autoSplit.amount.toFixed(2)}
+                                {idx === numberOfWinners - 1 && numberOfWinners > 1 && (
+                                  <span style={{marginLeft: '10px', fontSize: '0.85rem', color: '#f5576c'}}>
+                                    (includes extra penny)
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                            {useCustomSplit && (
+                              <div style={{display: 'flex', gap: '10px', marginTop: '8px'}}>
+                                <input
+                                  type="number"
+                                  placeholder="%"
+                                  step="0.01"
+                                  value={customSplits[idx]?.percentage || ''}
+                                  onChange={(e) => {
+                                    const newSplits = [...customSplits];
+                                    const percent = parseFloat(e.target.value) || 0;
+                                    newSplits[idx] = {
+                                      ...newSplits[idx],
+                                      percentage: percent,
+                                      amount: (prizePool.prizeValue * percent / 100)
+                                    };
+                                    setCustomSplits(newSplits);
+                                  }}
+                                  style={{
+                                    flex: '1',
+                                    padding: '8px',
+                                    border: '1px solid #ddd',
+                                    borderRadius: '4px'
+                                  }}
+                                />
+                                <input
+                                  type="number"
+                                  placeholder="$"
+                                  step="0.01"
+                                  value={customSplits[idx]?.amount || ''}
+                                  onChange={(e) => {
+                                    const newSplits = [...customSplits];
+                                    const amount = parseFloat(e.target.value) || 0;
+                                    newSplits[idx] = {
+                                      ...newSplits[idx],
+                                      amount: amount,
+                                      percentage: (amount / prizePool.prizeValue * 100)
+                                    };
+                                    setCustomSplits(newSplits);
+                                  }}
+                                  style={{
+                                    flex: '1',
+                                    padding: '8px',
+                                    border: '1px solid #ddd',
+                                    borderRadius: '4px'
+                                  }}
+                                />
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                    
+                    {/* Manual Override Toggle */}
+                    <div style={{marginBottom: '20px'}}>
+                      <label style={{display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer'}}>
+                        <input
+                          type="checkbox"
+                          checked={useCustomSplit}
+                          onChange={(e) => setUseCustomSplit(e.target.checked)}
+                          style={{width: '18px', height: '18px'}}
+                        />
+                        <span style={{fontWeight: '600'}}>Use custom percentages/amounts (manual override)</span>
+                      </label>
+                    </div>
+                    
+                    {/* Summary */}
+                    <div style={{
+                      background: '#fff3cd',
+                      border: '2px solid #ffc107',
+                      padding: '15px',
+                      borderRadius: '8px',
+                      marginBottom: '20px',
+                      color: '#000' // BLACK TEXT FOR READABILITY
+                    }}>
+                      <div style={{fontWeight: '700', marginBottom: '10px', color: '#000', fontSize: '1.05rem'}}>📊 Summary:</div>
+                      {selectedWinners.every(w => w.name) ? (
+                        <div style={{color: '#000'}}>
+                          {selectedWinners.map((winner, idx) => {
+                            const split = useCustomSplit ? customSplits[idx] : calculateSplit(prizePool.prizeValue, numberOfWinners)[idx];
+                            return (
+                              <div key={idx} style={{marginBottom: '5px', color: '#000', fontWeight: '600'}}>
+                                🏆 {winner.name}: {split?.percentage.toFixed(2)}% = ${split?.amount.toFixed(2)}
+                              </div>
+                            );
+                          })}
+                          <div style={{marginTop: '10px', paddingTop: '10px', borderTop: '2px solid #856404', fontWeight: '700', color: '#000'}}>
+                            Total: {useCustomSplit 
+                              ? customSplits.reduce((sum, s) => sum + (s.percentage || 0), 0).toFixed(2)
+                              : '100.00'}% = $
+                            {useCustomSplit
+                              ? customSplits.reduce((sum, s) => sum + (s.amount || 0), 0).toFixed(2)
+                              : prizePool.prizeValue.toFixed(2)}
+                          </div>
+                        </div>
+                      ) : (
+                        <div style={{color: '#856404', fontWeight: '600'}}>Select all winners to see summary</div>
+                      )}
+                    </div>
+                  </>
+                )}
+                
+                <div style={{display: 'flex', gap: '10px'}}>
+                  <button
+                    onClick={() => {
+                      setShowWinnerDeclaration(false);
+                      setSelectedPrize('');
+                      setNumberOfWinners(1);
+                      setSelectedWinners([]);
+                      setUseCustomSplit(false);
+                      setCustomSplits([]);
+                    }}
+                    style={{
+                      flex: '1',
+                      padding: '14px',
+                      background: '#95a5a6',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontSize: '1rem',
+                      fontWeight: '700'
+                    }}
+                  >
+                    ❌ Cancel
+                  </button>
+                  <button
+                    onClick={declareWinners}
+                    disabled={!selectedPrize || !selectedWinners.every(w => w.name)}
+                    style={{
+                      flex: '1',
+                      padding: '14px',
+                      background: selectedPrize && selectedWinners.every(w => w.name) ? '#f5576c' : '#ccc',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '6px',
+                      cursor: selectedPrize && selectedWinners.every(w => w.name) ? 'pointer' : 'not-allowed',
+                      fontSize: '1rem',
+                      fontWeight: '700'
+                    }}
+                  >
+                    🏆 Declare Winner(s)
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* 🆕 STEP 5: All Validation Popups */}
           {showPopup === 'unsavedChanges' && (

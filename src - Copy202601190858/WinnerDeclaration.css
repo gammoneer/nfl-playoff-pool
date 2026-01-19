@@ -1,0 +1,493 @@
+/* ============================================
+   WINNER DECLARATION STYLES
+   Pool Manager winner selection interface
+   ============================================ */
+
+.winner-declaration-container {
+  padding: 30px 20px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* Access Denied */
+.access-denied {
+  text-align: center;
+  padding: 60px 20px;
+  background: #f8d7da;
+  border: 2px solid #dc3545;
+  border-radius: 12px;
+  max-width: 500px;
+  margin: 50px auto;
+}
+
+.access-denied h2 {
+  color: #721c24;
+  margin: 0 0 15px 0;
+}
+
+.access-denied p {
+  color: #721c24;
+  font-size: 1.1rem;
+}
+
+/* Header */
+.declaration-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.declaration-header h2 {
+  font-size: 2rem;
+  color: #333;
+  margin: 0 0 10px 0;
+  font-weight: 700;
+}
+
+.subtitle {
+  font-size: 1rem;
+  color: #666;
+  max-width: 700px;
+  margin: 0 auto 25px auto;
+  line-height: 1.6;
+}
+
+/* Progress Bar */
+.progress-bar {
+  max-width: 500px;
+  margin: 0 auto;
+  background: #e9ecef;
+  border-radius: 20px;
+  height: 30px;
+  overflow: hidden;
+  position: relative;
+}
+
+.progress-text {
+  position: absolute;
+  width: 100%;
+  text-align: center;
+  line-height: 30px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #333;
+  z-index: 2;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #28a745 0%, #20c997 100%);
+  transition: width 0.5s ease;
+  border-radius: 20px;
+}
+
+/* Prize Selectors Grid */
+.prize-selectors-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+  gap: 25px;
+  margin-bottom: 40px;
+}
+
+/* Prize Selector */
+.prize-selector {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border: 2px solid #e0e0e0;
+  overflow: hidden;
+}
+
+/* Selector Header */
+.prize-selector-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 20px;
+  color: white;
+}
+
+.prize-info-block h3 {
+  font-size: 1.3rem;
+  margin: 0 0 8px 0;
+  font-weight: 700;
+}
+
+.prize-type {
+  font-size: 0.95rem;
+  margin: 0 0 5px 0;
+  opacity: 0.95;
+}
+
+.prize-amount {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin: 8px 0 0 0;
+  color: #ffd700;
+}
+
+.current-winner-badge {
+  margin-top: 15px;
+  padding: 10px 15px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.badge-label {
+  font-size: 0.85rem;
+  opacity: 0.9;
+}
+
+.badge-name {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+/* Selector Body */
+.prize-selector-body {
+  padding: 20px;
+}
+
+/* Tie Alert */
+.tie-alert {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 15px;
+  background: #fff3cd;
+  border: 2px solid #ffc107;
+  border-radius: 6px;
+  margin-bottom: 20px;
+}
+
+.alert-icon {
+  font-size: 1.5rem;
+}
+
+.alert-text {
+  font-size: 0.9rem;
+  color: #856404;
+  font-weight: 600;
+}
+
+/* Leader List */
+.leader-list h4 {
+  font-size: 0.9rem;
+  color: #666;
+  margin: 0 0 15px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
+.leader-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.leader-option:hover {
+  border-color: #667eea;
+  background: #f8f9ff;
+}
+
+.leader-option.is-leading {
+  border-color: #28a745;
+  background: #f0fff4;
+}
+
+.leader-option input[type="radio"] {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+}
+
+.leader-option-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.leader-rank {
+  font-weight: 700;
+  color: #667eea;
+  min-width: 35px;
+}
+
+.leader-name {
+  flex: 1;
+  font-weight: 600;
+  color: #333;
+}
+
+.leader-score {
+  font-weight: 600;
+  color: #28a745;
+  min-width: 80px;
+  text-align: right;
+}
+
+.leading-flag {
+  display: inline-block;
+  padding: 3px 8px;
+  background: #28a745;
+  color: white;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+/* Selector Actions */
+.selector-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.declare-btn {
+  flex: 1;
+  padding: 12px 20px;
+  background: #28a745;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.declare-btn:hover:not(:disabled) {
+  background: #218838;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.declare-btn:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.remove-btn {
+  padding: 12px 20px;
+  background: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.remove-btn:hover {
+  background: #c82333;
+}
+
+/* Confirmation Modal */
+.confirm-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  animation: fadeIn 0.2s ease;
+}
+
+.confirm-modal {
+  background: white;
+  border-radius: 12px;
+  padding: 30px;
+  max-width: 500px;
+  width: 90%;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(50px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.confirm-modal h3 {
+  font-size: 1.5rem;
+  color: #333;
+  margin: 0 0 15px 0;
+}
+
+.confirm-modal p {
+  font-size: 1rem;
+  color: #666;
+  line-height: 1.6;
+  margin: 0 0 12px 0;
+}
+
+.confirm-details {
+  padding: 15px;
+  background: #f8f9fa;
+  border-left: 4px solid #667eea;
+  border-radius: 4px;
+  margin: 15px 0;
+}
+
+.confirm-warning {
+  font-weight: 600;
+  color: #dc3545;
+  margin-top: 15px;
+}
+
+.confirm-buttons {
+  display: flex;
+  gap: 10px;
+  margin-top: 25px;
+}
+
+.btn-confirm {
+  flex: 1;
+  padding: 12px 20px;
+  background: #28a745;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-confirm:hover {
+  background: #218838;
+}
+
+.btn-cancel {
+  flex: 1;
+  padding: 12px 20px;
+  background: #6c757d;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-cancel:hover {
+  background: #5a6268;
+}
+
+/* Footer */
+.declaration-footer {
+  text-align: center;
+  padding: 30px 20px;
+  border-top: 2px solid #e0e0e0;
+}
+
+.notify-all-btn {
+  padding: 15px 40px;
+  background: #ffc107;
+  color: #333;
+  border: none;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.notify-all-btn:hover:not(:disabled) {
+  background: #e0a800;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+.notify-all-btn:disabled {
+  background: #e9ecef;
+  color: #6c757d;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* ============================================
+   RESPONSIVE DESIGN
+   ============================================ */
+
+@media (max-width: 1024px) {
+  .prize-selectors-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .winner-declaration-container {
+    padding: 20px 15px;
+  }
+
+  .declaration-header h2 {
+    font-size: 1.5rem;
+  }
+
+  .prize-selector-header {
+    padding: 15px;
+  }
+
+  .prize-info-block h3 {
+    font-size: 1.1rem;
+  }
+
+  .prize-selector-body {
+    padding: 15px;
+  }
+
+  .leader-option-content {
+    flex-wrap: wrap;
+  }
+
+  .leader-score {
+    min-width: auto;
+  }
+
+  .selector-actions {
+    flex-direction: column;
+  }
+
+  .notify-all-btn {
+    font-size: 1rem;
+    padding: 12px 30px;
+  }
+}
+
+@media (max-width: 480px) {
+  .confirm-modal {
+    padding: 20px;
+  }
+
+  .confirm-buttons {
+    flex-direction: column;
+  }
+}

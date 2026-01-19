@@ -4,7 +4,7 @@ import './StandingsPage.css';
 // Import scoring functions (we'll integrate these)
 // For now, we'll include the logic directly
 
-function StandingsPage({ allPicks, actualScores, gameStatus, currentWeek, playerName, playerCode, isPoolManager, prizePool, officialWinners, publishedWinners, onLogout }) {
+function StandingsPage({ allPicks, actualScores, gameStatus, currentWeek, playerName, playerCode, isPoolManager, prizePool, officialWinners, onLogout }) {
   
   // Track which prize week sections are expanded
   const [expandedPrizeWeeks, setExpandedPrizeWeeks] = useState({
@@ -82,21 +82,10 @@ function StandingsPage({ allPicks, actualScores, gameStatus, currentWeek, player
       if (weekData.prizes && Array.isArray(weekData.prizes)) {
         weekData.prizes.forEach(prize => {
           const prizeNum = prize.prizeNumber;
-          
-          // Calculate prize value safely
-          let calculatedPrizeValue = 56; // Default fallback
-          if (prizePool) {
-            if (prizePool.prizeValue) {
-              calculatedPrizeValue = prizePool.prizeValue;
-            } else if (prizePool.totalFees) {
-              calculatedPrizeValue = prizePool.totalFees * 0.1;
-            }
-          }
-          
           converted[`prize${prizeNum}`] = {
             prizeNumber: prizeNum,
             prizeName: prizeNames[prizeNum] || `Prize #${prizeNum}`,
-            prizeValue: calculatedPrizeValue,
+            prizeValue: prizePool?.prizeValue || (prizePool?.totalFees * 0.1) || 56,
             winners: prize.winners || [],
             declaredBy: weekData.publishedBy || 'POOL_MANAGER',
             declaredAt: weekData.publishedAt || new Date().toISOString()
@@ -231,24 +220,24 @@ function StandingsPage({ allPicks, actualScores, gameStatus, currentWeek, player
    * Check if prizes for a week are officially published by Pool Manager
    */
   const areWinnersPublished = (week) => {
-    if (!publishedWinners) {
+    if (!convertedWinners || Object.keys(convertedWinners).length === 0) {
       return false;
     }
 
-    // Map week to publishedWinners keys
-    const weekToPubKeys = {
-      'wildcard': ['week1_prize1', 'week1_prize2'],
-      'divisional': ['week2_prize1', 'week2_prize2'],
-      'conference': ['week3_prize1', 'week3_prize2'],
-      'superbowl': ['week4_prize1', 'week4_prize2'],
-      'grand': ['grand_prize1', 'grand_prize2']
+    // Map week to prize numbers
+    const weekToPrizes = {
+      'wildcard': [1, 2],
+      'divisional': [3, 4],
+      'conference': [5, 6],
+      'superbowl': [7, 8],
+      'grand': [9, 10]  // Grand prizes
     };
 
-    const pubKeys = weekToPubKeys[week];
-    if (!pubKeys) return false;
+    const prizeNumbers = weekToPrizes[week];
+    if (!prizeNumbers) return false;
 
-    // Check if both prizes for this week are published
-    return pubKeys.every(key => publishedWinners[key] === true);
+    // Check if both prizes for this week exist in convertedWinners
+    return prizeNumbers.every(num => convertedWinners[`prize${num}`]);
   };
 
   // ============================================
