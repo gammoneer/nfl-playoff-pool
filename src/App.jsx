@@ -2130,6 +2130,9 @@ const exportPlayersToExcel = async () => {
   };
 
   // Pool Manager functions to update team codes
+  // 🐛 FIX: Debounced team code save to prevent dropdown from closing
+  const teamCodeSaveTimers = React.useRef({});
+  
   const handleTeamCodeChange = (gameId, team, code) => {
     const updatedCodes = {
       ...teamCodes,
@@ -2143,8 +2146,16 @@ const exportPlayersToExcel = async () => {
     };
     setTeamCodes(updatedCodes);
     
-    // Save to Firebase
-    set(ref(database, `teamCodes/${currentWeek}/${gameId}/${team}`), code.toUpperCase());
+    // Clear existing timer for this specific input
+    const timerKey = `${currentWeek}-${gameId}-${team}`;
+    if (teamCodeSaveTimers.current[timerKey]) {
+      clearTimeout(teamCodeSaveTimers.current[timerKey]);
+    }
+    
+    // Save to Firebase after 500ms of no typing (debounced)
+    teamCodeSaveTimers.current[timerKey] = setTimeout(() => {
+      set(ref(database, `teamCodes/${currentWeek}/${gameId}/${team}`), code.toUpperCase());
+    }, 500);
   };
 
   // Pool Manager functions to update actual scores
@@ -6710,9 +6721,11 @@ const calculateAllPrizeWinners = () => {
                             <input
                               type="text"
                               maxLength="3"
+                              list={`nfl-teams-list-${game.id}-team1`}
                               value={teamCodes[currentWeek]?.[game.id]?.team1 || ''}
                               onChange={(e) => handleTeamCodeChange(game.id, 'team1', e.target.value)}
                               placeholder="PIT"
+                              autoComplete="off"
                               style={{
                                 width: '45px',
                                 padding: '4px',
@@ -6723,13 +6736,49 @@ const calculateAllPrizeWinners = () => {
                                 borderRadius: '4px'
                               }}
                             />
+                            <datalist id={`nfl-teams-list-${game.id}-team1`}>
+                              <option value="ARI">Arizona Cardinals</option>
+                              <option value="ATL">Atlanta Falcons</option>
+                              <option value="BAL">Baltimore Ravens</option>
+                              <option value="BUF">Buffalo Bills</option>
+                              <option value="CAR">Carolina Panthers</option>
+                              <option value="CHI">Chicago Bears</option>
+                              <option value="CIN">Cincinnati Bengals</option>
+                              <option value="CLE">Cleveland Browns</option>
+                              <option value="DAL">Dallas Cowboys</option>
+                              <option value="DEN">Denver Broncos</option>
+                              <option value="DET">Detroit Lions</option>
+                              <option value="GB">Green Bay Packers</option>
+                              <option value="HOU">Houston Texans</option>
+                              <option value="IND">Indianapolis Colts</option>
+                              <option value="JAC">Jacksonville Jaguars</option>
+                              <option value="KC">Kansas City Chiefs</option>
+                              <option value="LV">Las Vegas Raiders</option>
+                              <option value="LAC">Los Angeles Chargers</option>
+                              <option value="LAR">Los Angeles Rams</option>
+                              <option value="MIA">Miami Dolphins</option>
+                              <option value="MIN">Minnesota Vikings</option>
+                              <option value="NE">New England Patriots</option>
+                              <option value="NO">New Orleans Saints</option>
+                              <option value="NYG">New York Giants</option>
+                              <option value="NYJ">New York Jets</option>
+                              <option value="PHI">Philadelphia Eagles</option>
+                              <option value="PIT">Pittsburgh Steelers</option>
+                              <option value="SF">San Francisco 49ers</option>
+                              <option value="SEA">Seattle Seahawks</option>
+                              <option value="TB">Tampa Bay Buccaneers</option>
+                              <option value="TEN">Tennessee Titans</option>
+                              <option value="WAS">Washington Commanders</option>
+                            </datalist>
                             <span style={{fontSize: '0.8rem'}}>@</span>
                             <input
                               type="text"
                               maxLength="3"
+                              list={`nfl-teams-list-${game.id}-team2`}
                               value={teamCodes[currentWeek]?.[game.id]?.team2 || ''}
                               onChange={(e) => handleTeamCodeChange(game.id, 'team2', e.target.value)}
                               placeholder="BUF"
+                              autoComplete="off"
                               style={{
                                 width: '45px',
                                 padding: '4px',
@@ -6740,6 +6789,40 @@ const calculateAllPrizeWinners = () => {
                                 borderRadius: '4px'
                               }}
                             />
+                            <datalist id={`nfl-teams-list-${game.id}-team2`}>
+                              <option value="ARI">Arizona Cardinals</option>
+                              <option value="ATL">Atlanta Falcons</option>
+                              <option value="BAL">Baltimore Ravens</option>
+                              <option value="BUF">Buffalo Bills</option>
+                              <option value="CAR">Carolina Panthers</option>
+                              <option value="CHI">Chicago Bears</option>
+                              <option value="CIN">Cincinnati Bengals</option>
+                              <option value="CLE">Cleveland Browns</option>
+                              <option value="DAL">Dallas Cowboys</option>
+                              <option value="DEN">Denver Broncos</option>
+                              <option value="DET">Detroit Lions</option>
+                              <option value="GB">Green Bay Packers</option>
+                              <option value="HOU">Houston Texans</option>
+                              <option value="IND">Indianapolis Colts</option>
+                              <option value="JAC">Jacksonville Jaguars</option>
+                              <option value="KC">Kansas City Chiefs</option>
+                              <option value="LV">Las Vegas Raiders</option>
+                              <option value="LAC">Los Angeles Chargers</option>
+                              <option value="LAR">Los Angeles Rams</option>
+                              <option value="MIA">Miami Dolphins</option>
+                              <option value="MIN">Minnesota Vikings</option>
+                              <option value="NE">New England Patriots</option>
+                              <option value="NO">New Orleans Saints</option>
+                              <option value="NYG">New York Giants</option>
+                              <option value="NYJ">New York Jets</option>
+                              <option value="PHI">Philadelphia Eagles</option>
+                              <option value="PIT">Pittsburgh Steelers</option>
+                              <option value="SF">San Francisco 49ers</option>
+                              <option value="SEA">Seattle Seahawks</option>
+                              <option value="TB">Tampa Bay Buccaneers</option>
+                              <option value="TEN">Tennessee Titans</option>
+                              <option value="WAS">Washington Commanders</option>
+                            </datalist>
                           </div>
                         )}
                         {/* 
