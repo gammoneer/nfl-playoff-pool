@@ -369,66 +369,6 @@ const NFL_2025_SCORING_DATA = [
              item.visitor + item.home >= 5 ? 'less-common' : 'rare'
 }));
 
-// 🕐 PST TIME HELPER FUNCTIONS (for timezone clock)
-const getPSTTime = () => {
-  const now = new Date();
-  const pstTime = new Date(now.toLocaleString("en-US", {timeZone: "America/Los_Angeles"}));
-  return pstTime;
-};
-
-const formatPSTTimestamp = (timestamp) => {
-  const date = new Date(timestamp);
-  const options = {
-    timeZone: 'America/Los_Angeles',
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true
-  };
-  return date.toLocaleString('en-US', options) + ' PST';
-};
-
-const getDeadline = () => {
-  const pst = getPSTTime();
-  const dayOfWeek = pst.getDay(); // 0=Sun, 5=Fri
-  
-  // Find next Friday 11:59 PM PST
-  let daysUntilFriday = (5 - dayOfWeek + 7) % 7;
-  if (dayOfWeek === 5 && pst.getHours() >= 23 && pst.getMinutes() >= 59) {
-    daysUntilFriday = 7; // Next Friday
-  }
-  if (daysUntilFriday === 0 && (pst.getHours() < 23 || (pst.getHours() === 23 && pst.getMinutes() < 59))) {
-    daysUntilFriday = 0; // This Friday
-  }
-  
-  const deadline = new Date(pst);
-  deadline.setDate(deadline.getDate() + daysUntilFriday);
-  deadline.setHours(23, 59, 59, 999);
-  return deadline;
-};
-
-const getTimeRemaining = () => {
-  const now = getPSTTime();
-  const deadline = getDeadline();
-  const diff = deadline - now;
-  
-  if (diff <= 0) return { expired: true, hours: 0, minutes: 0, seconds: 0, formatted: '00:00:00' };
-  
-  const hours = Math.floor(diff / (1000 * 60 * 60));
-  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-  const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-  
-  return {
-    expired: false,
-    hours: hours,
-    minutes: minutes,
-    seconds: seconds,
-    formatted: `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
-  };
-};
-
 function App() {
   // Navigation state for switching between views
   const [currentView, setCurrentView] = useState('picks'); // 'picks' or 'standings'
@@ -491,11 +431,6 @@ function App() {
   
   // NFL Scoring Guide modal state
   const [showScoringGuide, setShowScoringGuide] = useState(false);
-
-  // 🕐 PST CLOCK STATE
-  const [pstTime, setPstTime] = useState(getPSTTime());
-  const [timeRemaining, setTimeRemaining] = useState(getTimeRemaining());
-  const [showPSTClock, setShowPSTClock] = useState(false);
 
   // ============================================
   // 🆕 STEP 5: COMPLETE FEATURE STATE
@@ -1679,37 +1614,6 @@ const exportPlayersToExcel = async () => {
       }
     });
   }, []);
-
-  // 🕐 PST CLOCK: Update every second and check if should display
-  useEffect(() => {
-    const updateClock = () => {
-      const pst = getPSTTime();
-      setPstTime(pst);
-      setTimeRemaining(getTimeRemaining());
-      
-      // Determine if clock should show:
-      // 1. Only on Fridays (day 5)
-      // 2. Between 12:01 AM and 11:59 PM PST
-      // 3. Only while playoffs are ongoing (not all weeks completed)
-      const dayOfWeek = pst.getDay();
-      const isFriday = dayOfWeek === 5;
-      
-      // Check if all playoff weeks are complete (Super Bowl is final)
-      const playoffsComplete = gameStatus?.superbowl && 
-        Object.values(gameStatus.superbowl || {}).every(status => status === 'final');
-      
-      // Show clock only on Fridays during active playoff season
-      setShowPSTClock(isFriday && !playoffsComplete);
-    };
-    
-    // Update immediately
-    updateClock();
-    
-    // Update every second
-    const interval = setInterval(updateClock, 1000);
-    
-    return () => clearInterval(interval);
-  }, [gameStatus]);
 
   // 🔒 NEW: Pool Manager function to manually lock/unlock a week
   const handleWeekLockToggle = (weekKey) => {
@@ -4406,102 +4310,6 @@ const calculateAllPrizeWinners = () => {
   }, [allPicks, actualScores]);
   return (
     <div className="App">
-      {/* 🕐 PST CLOCK BANNER - Only shows Friday during playoffs */}
-      {showPSTClock && (
-        <div style={{
-          background: timeRemaining.hours === 0 && timeRemaining.minutes < 60 && !timeRemaining.expired ? '#dc3545' : '#667eea',
-          color: '#fff',
-          padding: '20px',
-          marginBottom: '20px',
-          borderRadius: '8px',
-          border: '3px solid ' + (timeRemaining.hours === 0 && timeRemaining.minutes < 60 && !timeRemaining.expired ? '#a71d2a' : '#5568d3'),
-          textAlign: 'center',
-          boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
-        }}>
-          {/* Header Warning - ALL TIMES ARE PST */}
-          <div style={{
-            fontSize: '1.1rem',
-            fontWeight: '700',
-            marginBottom: '15px',
-            letterSpacing: '0.5px',
-            borderBottom: '2px solid rgba(255,255,255,0.3)',
-            paddingBottom: '10px',
-            color: '#fff'
-          }}>
-            ⚠️ ALL TIMES IN THIS APP ARE IN PACIFIC STANDARD TIME (PST) ⚠️
-          </div>
-          
-          {/* Current PST Time */}
-          <div style={{
-            fontSize: '1.4rem',
-            fontWeight: 'bold',
-            marginBottom: '12px',
-            color: '#fff'
-          }}>
-            🕐 Current PST Time: {pstTime.toLocaleTimeString('en-US', {
-              timeZone: 'America/Los_Angeles',
-              hour: 'numeric',
-              minute: '2-digit',
-              second: '2-digit',
-              hour12: true
-            })} ({pstTime.toLocaleDateString('en-US', {
-              timeZone: 'America/Los_Angeles',
-              weekday: 'long',
-              month: 'short',
-              day: 'numeric'
-            })})
-          </div>
-          
-          {/* Countdown or Locked Message */}
-          {!timeRemaining.expired ? (
-            <div style={{
-              background: timeRemaining.hours === 0 && timeRemaining.minutes < 60 ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.2)',
-              padding: '15px',
-              borderRadius: '6px',
-              marginTop: '10px'
-            }}>
-              <div style={{
-                fontSize: timeRemaining.hours === 0 && timeRemaining.minutes < 60 ? '1.6rem' : '1.4rem',
-                fontWeight: '700',
-                marginBottom: '8px',
-                color: '#fff'
-              }}>
-                {timeRemaining.hours === 0 && timeRemaining.minutes < 60 ? '🚨' : '⏰'} PICKS LOCK IN: {timeRemaining.formatted} {timeRemaining.hours === 0 && timeRemaining.minutes < 60 ? '🚨' : ''}
-              </div>
-              <div style={{fontSize: '1.1rem', marginBottom: '5px', color: '#fff'}}>
-                Deadline: 11:59 PM PST Tonight
-              </div>
-              {timeRemaining.hours === 0 && timeRemaining.minutes < 60 && (
-                <div style={{
-                  fontSize: '1.2rem',
-                  fontWeight: '700',
-                  marginTop: '10px',
-                  animation: 'pulse 1s infinite',
-                  color: '#fff'
-                }}>
-                  ⚠️ SUBMIT YOUR PICKS NOW! ⚠️
-                </div>
-              )}
-            </div>
-          ) : (
-            <div style={{
-              background: '#28a745',
-              padding: '15px',
-              borderRadius: '6px',
-              fontSize: '1.3rem',
-              fontWeight: '700',
-              marginTop: '10px',
-              color: '#fff'
-            }}>
-              ✅ PICKS ARE LOCKED - Games In Progress
-              <div style={{fontSize: '1rem', marginTop: '8px', fontWeight: '500'}}>
-                Picks closed at: 11:59 PM PST
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-      
       <header>
         <h1>🏈 Richard's NFL Playoff Pool 2025</h1>
         <p>Enter your score predictions for each NFL Playoff 2025 game</p>
