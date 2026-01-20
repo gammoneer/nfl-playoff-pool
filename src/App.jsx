@@ -1680,7 +1680,7 @@ const exportPlayersToExcel = async () => {
     });
   }, []);
 
-  // 🕐 PST CLOCK: Update every second and check if should display
+  // 🕐 PST CLOCK: Update every 5 seconds and check if should display (changed from 1 second to prevent dropdown issues)
   useEffect(() => {
     const updateClock = () => {
       const pst = getPSTTime();
@@ -1705,8 +1705,8 @@ const exportPlayersToExcel = async () => {
     // Update immediately
     updateClock();
     
-    // Update every second
-    const interval = setInterval(updateClock, 1000);
+    // Update every 5 seconds (not every 1 second to prevent dropdown closing issues)
+    const interval = setInterval(updateClock, 5000);
     
     return () => clearInterval(interval);
   }, [gameStatus]);
