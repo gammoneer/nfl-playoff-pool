@@ -7356,7 +7356,7 @@ const calculateAllPrizeWinners = () => {
                           style={{
                             padding: '4px 8px',
                             fontSize: '0.7rem',
-                            background: sortColumn === 'timestamp' ? '#4caf50' : '#050505ff',
+                            background: sortColumn === 'timestamp' ? '#4caf50' : '#f0f0f0',
                             color: sortColumn === 'timestamp' ? '#fff' : '#000',
                             border: '1px solid #ddd',
                             borderRadius: '4px',
