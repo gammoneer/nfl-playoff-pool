@@ -2145,16 +2145,38 @@ const exportPlayersToExcel = async () => {
     };
     setTeamCodes(updatedCodes);
     
+    // 🔥 CRITICAL FIX: Also update playoffTeams so players see the correct team names!
+    if (currentWeek === 'conference') {
+      const updatedPlayoffTeams = {
+        ...playoffTeams,
+        week3: {
+          ...(playoffTeams.week3 || {}),
+          afcChampionship: gameId === 11 ? {
+            ...(playoffTeams.week3?.afcChampionship || {}),
+            [team]: code.toUpperCase()
+          } : playoffTeams.week3?.afcChampionship || {},
+          nfcChampionship: gameId === 12 ? {
+            ...(playoffTeams.week3?.nfcChampionship || {}),
+            [team]: code.toUpperCase()
+          } : playoffTeams.week3?.nfcChampionship || {}
+        }
+      };
+      setPlayoffTeams(updatedPlayoffTeams);
+      
+      // Save playoffTeams to Firebase immediately
+      set(ref(database, 'playoffTeams/week3'), updatedPlayoffTeams.week3);
+    }
+    
     // Clear existing timer for this specific input
     const timerKey = `${currentWeek}-${gameId}-${team}`;
     if (teamCodeSaveTimers.current[timerKey]) {
       clearTimeout(teamCodeSaveTimers.current[timerKey]);
     }
     
-    // Save to Firebase after 10 SECONDS of no typing (debounced) - gives time to select from dropdown
+    // Save to Firebase after 3 SECONDS of no typing (debounced) - gives time to select from dropdown
     teamCodeSaveTimers.current[timerKey] = setTimeout(() => {
       set(ref(database, `teamCodes/${currentWeek}/${gameId}/${team}`), code.toUpperCase());
-    }, 10000);
+    }, 3000);
   };
 
   // Pool Manager functions to update actual scores
