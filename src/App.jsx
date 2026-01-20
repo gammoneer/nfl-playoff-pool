@@ -1680,7 +1680,7 @@ const exportPlayersToExcel = async () => {
     });
   }, []);
 
-  // 🕐 PST CLOCK: Update every 5 seconds and check if should display (changed from 1 second to prevent dropdown issues)
+  // 🕐 PST CLOCK: Update check (DISABLED updates to prevent dropdown closing)
   useEffect(() => {
     const updateClock = () => {
       const pst = getPSTTime();
@@ -1702,13 +1702,12 @@ const exportPlayersToExcel = async () => {
       setShowPSTClock(isFriday && !playoffsComplete);
     };
     
-    // Update immediately
+    // Update ONCE on mount only - NO INTERVAL to prevent dropdown closing
     updateClock();
     
-    // Update every 5 seconds (not every 1 second to prevent dropdown closing issues)
-    const interval = setInterval(updateClock, 5000);
-    
-    return () => clearInterval(interval);
+    // NO setInterval - commenting out to fix dropdown issue
+    // const interval = setInterval(updateClock, 5000);
+    // return () => clearInterval(interval);
   }, [gameStatus]);
 
   // 🔒 NEW: Pool Manager function to manually lock/unlock a week
