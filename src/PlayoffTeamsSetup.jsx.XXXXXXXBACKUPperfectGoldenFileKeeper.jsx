@@ -222,21 +222,7 @@ function PlayoffTeamsSetup({
     }
 
     const { ref, set } = await import('firebase/database');
-    
-    // 🔥 FIX: Save in the structure that App.jsx expects!
-    const playoffData = { 
-      week3Manual: week3Games,
-      week3: {
-        afcChampionship: {
-          team1: week3Games.game11.away,
-          team2: week3Games.game11.home
-        },
-        nfcChampionship: {
-          team1: week3Games.game12.away,
-          team2: week3Games.game12.home
-        }
-      }
-    };
+    const playoffData = { week3Manual: week3Games };
     onSavePlayoffTeams(playoffData);
 
     try {
@@ -259,17 +245,7 @@ function PlayoffTeamsSetup({
     }
 
     const { ref, set } = await import('firebase/database');
-    
-    // 🔥 FIX: Save in the structure that App.jsx expects!
-    const playoffData = { 
-      week4Manual: week4Game,
-      week4: {
-        superBowl: {
-          team1: week4Game.game13.away,
-          team2: week4Game.game13.home
-        }
-      }
-    };
+    const playoffData = { week4Manual: week4Game };
     onSavePlayoffTeams(playoffData);
 
     try {
