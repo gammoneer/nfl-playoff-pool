@@ -200,8 +200,8 @@ const PLAYOFF_WEEKS = {
     name: "Conference Championships (Jan 25, 2026)",
     deadline: "Friday, January 23, 2026 at 11:59 PM PST",
     games: [
-      { id: 11, team1: "AFC Winner A", team2: "AFC Winner B" },
-      { id: 12, team1: "NFC Winner A", team2: "NFC Winner B" }
+      { id: 11, team1: "AFC2", team2: "AFC1" },
+      { id: 12, team1: "NFC2", team2: "NFC1" }
     ]
   },
   superbowl: {
@@ -7347,7 +7347,7 @@ const calculateAllPrizeWinners = () => {
                         {allPicks.filter(pick => pick.week === currentWeek && pick.predictions && Object.keys(pick.predictions).length > 0).length} Players
                       </div>
                       Submitted
-                      <div style={{fontSize: '0.75rem', color: '#666', fontWeight: '500', marginTop: '2px'}}>
+                      <div style={{fontSize: '0.75rem', color: '#050505ff', fontWeight: '500', marginTop: '2px'}}>
                         (PST)
                       </div>
                       <div style={{marginTop: '4px'}}>
