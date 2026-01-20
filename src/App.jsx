@@ -200,8 +200,8 @@ const PLAYOFF_WEEKS = {
     name: "Conference Championships (Jan 25, 2026)",
     deadline: "Friday, January 23, 2026 at 11:59 PM PST",
     games: [
-      { id: 11, team1: "AFC Winner A", team2: "AFC Winner B" },
-      { id: 12, team1: "NFC Winner A", team2: "NFC Winner B" }
+      { id: 11, team1: "AFC-B", team2: "AFC-A" },
+      { id: 12, team1: "NFC-B", team2: "NFC-A" }
     ]
   },
   superbowl: {
