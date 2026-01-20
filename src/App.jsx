@@ -2155,7 +2155,7 @@ const exportPlayersToExcel = async () => {
     // Save to Firebase after 500ms of no typing (debounced)
     teamCodeSaveTimers.current[timerKey] = setTimeout(() => {
       set(ref(database, `teamCodes/${currentWeek}/${gameId}/${team}`), code.toUpperCase());
-    }, 500);
+    }, 5000);
   };
 
   // Pool Manager functions to update actual scores
