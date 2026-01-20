@@ -2147,17 +2147,20 @@ const exportPlayersToExcel = async () => {
     
     // 🔥 CRITICAL FIX: Also update playoffTeams so players see the correct team names!
     if (currentWeek === 'conference') {
+      const teamCode = code.toUpperCase();
+      const teamObject = { name: teamCode }; // Save as object with name property
+      
       const updatedPlayoffTeams = {
         ...playoffTeams,
         week3: {
           ...(playoffTeams.week3 || {}),
           afcChampionship: gameId === 11 ? {
             ...(playoffTeams.week3?.afcChampionship || {}),
-            [team]: code.toUpperCase()
+            [team]: teamObject
           } : playoffTeams.week3?.afcChampionship || {},
           nfcChampionship: gameId === 12 ? {
             ...(playoffTeams.week3?.nfcChampionship || {}),
-            [team]: code.toUpperCase()
+            [team]: teamObject
           } : playoffTeams.week3?.nfcChampionship || {}
         }
       };
