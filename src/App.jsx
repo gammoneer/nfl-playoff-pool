@@ -7347,7 +7347,7 @@ const calculateAllPrizeWinners = () => {
                         {allPicks.filter(pick => pick.week === currentWeek && pick.predictions && Object.keys(pick.predictions).length > 0).length} Players
                       </div>
                       Submitted
-                      <div style={{fontSize: '0.75rem', color: '#f80707ff', fontWeight: 'bold', marginTop: '2px'}}>
+                      <div style={{fontSize: '0.95rem', color: '#f80707ff', fontWeight: 'bold', marginTop: '2px'}}>
                         (PST)
                       </div>
                       <div style={{marginTop: '4px'}}>
