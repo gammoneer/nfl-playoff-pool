@@ -2152,10 +2152,10 @@ const exportPlayersToExcel = async () => {
       clearTimeout(teamCodeSaveTimers.current[timerKey]);
     }
     
-    // Save to Firebase after 1000ms of no typing (debounced)
+    // Save to Firebase after 3 SECONDS of no typing (debounced) - gives time to select from dropdown
     teamCodeSaveTimers.current[timerKey] = setTimeout(() => {
       set(ref(database, `teamCodes/${currentWeek}/${gameId}/${team}`), code.toUpperCase());
-    }, 10000);
+    }, 3000);
   };
 
   // Pool Manager functions to update actual scores
@@ -6718,111 +6718,105 @@ const calculateAllPrizeWinners = () => {
                         {/* Team codes row for Pool Manager */}
                         {isPoolManager() && (
                           <div style={{marginTop: '5px', display: 'flex', gap: '5px', justifyContent: 'center', alignItems: 'center'}}>
-                            <input
-                              type="text"
-                              maxLength="3"
-                              list={`nfl-teams-list-${game.id}-team1`}
+                            <select
                               value={teamCodes[currentWeek]?.[game.id]?.team1 || ''}
                               onChange={(e) => handleTeamCodeChange(game.id, 'team1', e.target.value)}
-                              placeholder="PIT"
-                              autoComplete="off"
                               style={{
-                                width: '45px',
-                                padding: '4px',
+                                width: '80px',
+                                padding: '6px 4px',
                                 textAlign: 'center',
-                                fontSize: '0.8rem',
+                                fontSize: '0.75rem',
                                 fontWeight: 'bold',
                                 border: '2px solid #667eea',
-                                borderRadius: '4px'
+                                borderRadius: '4px',
+                                background: '#fff',
+                                color: '#000'
                               }}
-                            />
-                            <datalist id={`nfl-teams-list-${game.id}-team1`}>
-                              <option value="ARI">Arizona Cardinals</option>
-                              <option value="ATL">Atlanta Falcons</option>
-                              <option value="BAL">Baltimore Ravens</option>
-                              <option value="BUF">Buffalo Bills</option>
-                              <option value="CAR">Carolina Panthers</option>
-                              <option value="CHI">Chicago Bears</option>
-                              <option value="CIN">Cincinnati Bengals</option>
-                              <option value="CLE">Cleveland Browns</option>
-                              <option value="DAL">Dallas Cowboys</option>
-                              <option value="DEN">Denver Broncos</option>
-                              <option value="DET">Detroit Lions</option>
-                              <option value="GB">Green Bay Packers</option>
-                              <option value="HOU">Houston Texans</option>
-                              <option value="IND">Indianapolis Colts</option>
-                              <option value="JAC">Jacksonville Jaguars</option>
-                              <option value="KC">Kansas City Chiefs</option>
-                              <option value="LV">Las Vegas Raiders</option>
-                              <option value="LAC">Los Angeles Chargers</option>
-                              <option value="LAR">Los Angeles Rams</option>
-                              <option value="MIA">Miami Dolphins</option>
-                              <option value="MIN">Minnesota Vikings</option>
-                              <option value="NE">New England Patriots</option>
-                              <option value="NO">New Orleans Saints</option>
-                              <option value="NYG">New York Giants</option>
-                              <option value="NYJ">New York Jets</option>
-                              <option value="PHI">Philadelphia Eagles</option>
-                              <option value="PIT">Pittsburgh Steelers</option>
-                              <option value="SF">San Francisco 49ers</option>
-                              <option value="SEA">Seattle Seahawks</option>
-                              <option value="TB">Tampa Bay Buccaneers</option>
-                              <option value="TEN">Tennessee Titans</option>
-                              <option value="WAS">Washington Commanders</option>
-                            </datalist>
-                            <span style={{fontSize: '0.8rem'}}>@</span>
-                            <input
-                              type="text"
-                              maxLength="3"
-                              list={`nfl-teams-list-${game.id}-team2`}
+                            >
+                              <option value="">--</option>
+                              <option value="ARI">ARI</option>
+                              <option value="ATL">ATL</option>
+                              <option value="BAL">BAL</option>
+                              <option value="BUF">BUF</option>
+                              <option value="CAR">CAR</option>
+                              <option value="CHI">CHI</option>
+                              <option value="CIN">CIN</option>
+                              <option value="CLE">CLE</option>
+                              <option value="DAL">DAL</option>
+                              <option value="DEN">DEN</option>
+                              <option value="DET">DET</option>
+                              <option value="GB">GB</option>
+                              <option value="HOU">HOU</option>
+                              <option value="IND">IND</option>
+                              <option value="JAC">JAC</option>
+                              <option value="KC">KC</option>
+                              <option value="LV">LV</option>
+                              <option value="LAC">LAC</option>
+                              <option value="LAR">LAR</option>
+                              <option value="MIA">MIA</option>
+                              <option value="MIN">MIN</option>
+                              <option value="NE">NE</option>
+                              <option value="NO">NO</option>
+                              <option value="NYG">NYG</option>
+                              <option value="NYJ">NYJ</option>
+                              <option value="PHI">PHI</option>
+                              <option value="PIT">PIT</option>
+                              <option value="SF">SF</option>
+                              <option value="SEA">SEA</option>
+                              <option value="TB">TB</option>
+                              <option value="TEN">TEN</option>
+                              <option value="WAS">WAS</option>
+                            </select>
+                            <span style={{fontSize: '0.8rem', fontWeight: 'bold'}}>@</span>
+                            <select
                               value={teamCodes[currentWeek]?.[game.id]?.team2 || ''}
                               onChange={(e) => handleTeamCodeChange(game.id, 'team2', e.target.value)}
-                              placeholder="BUF"
-                              autoComplete="off"
                               style={{
-                                width: '45px',
-                                padding: '4px',
+                                width: '80px',
+                                padding: '6px 4px',
                                 textAlign: 'center',
-                                fontSize: '0.8rem',
+                                fontSize: '0.75rem',
                                 fontWeight: 'bold',
                                 border: '2px solid #667eea',
-                                borderRadius: '4px'
+                                borderRadius: '4px',
+                                background: '#fff',
+                                color: '#000'
                               }}
-                            />
-                            <datalist id={`nfl-teams-list-${game.id}-team2`}>
-                              <option value="ARI">Arizona Cardinals</option>
-                              <option value="ATL">Atlanta Falcons</option>
-                              <option value="BAL">Baltimore Ravens</option>
-                              <option value="BUF">Buffalo Bills</option>
-                              <option value="CAR">Carolina Panthers</option>
-                              <option value="CHI">Chicago Bears</option>
-                              <option value="CIN">Cincinnati Bengals</option>
-                              <option value="CLE">Cleveland Browns</option>
-                              <option value="DAL">Dallas Cowboys</option>
-                              <option value="DEN">Denver Broncos</option>
-                              <option value="DET">Detroit Lions</option>
-                              <option value="GB">Green Bay Packers</option>
-                              <option value="HOU">Houston Texans</option>
-                              <option value="IND">Indianapolis Colts</option>
-                              <option value="JAC">Jacksonville Jaguars</option>
-                              <option value="KC">Kansas City Chiefs</option>
-                              <option value="LV">Las Vegas Raiders</option>
-                              <option value="LAC">Los Angeles Chargers</option>
-                              <option value="LAR">Los Angeles Rams</option>
-                              <option value="MIA">Miami Dolphins</option>
-                              <option value="MIN">Minnesota Vikings</option>
-                              <option value="NE">New England Patriots</option>
-                              <option value="NO">New Orleans Saints</option>
-                              <option value="NYG">New York Giants</option>
-                              <option value="NYJ">New York Jets</option>
-                              <option value="PHI">Philadelphia Eagles</option>
-                              <option value="PIT">Pittsburgh Steelers</option>
-                              <option value="SF">San Francisco 49ers</option>
-                              <option value="SEA">Seattle Seahawks</option>
-                              <option value="TB">Tampa Bay Buccaneers</option>
-                              <option value="TEN">Tennessee Titans</option>
-                              <option value="WAS">Washington Commanders</option>
-                            </datalist>
+                            >
+                              <option value="">--</option>
+                              <option value="ARI">ARI</option>
+                              <option value="ATL">ATL</option>
+                              <option value="BAL">BAL</option>
+                              <option value="BUF">BUF</option>
+                              <option value="CAR">CAR</option>
+                              <option value="CHI">CHI</option>
+                              <option value="CIN">CIN</option>
+                              <option value="CLE">CLE</option>
+                              <option value="DAL">DAL</option>
+                              <option value="DEN">DEN</option>
+                              <option value="DET">DET</option>
+                              <option value="GB">GB</option>
+                              <option value="HOU">HOU</option>
+                              <option value="IND">IND</option>
+                              <option value="JAC">JAC</option>
+                              <option value="KC">KC</option>
+                              <option value="LV">LV</option>
+                              <option value="LAC">LAC</option>
+                              <option value="LAR">LAR</option>
+                              <option value="MIA">MIA</option>
+                              <option value="MIN">MIN</option>
+                              <option value="NE">NE</option>
+                              <option value="NO">NO</option>
+                              <option value="NYG">NYG</option>
+                              <option value="NYJ">NYJ</option>
+                              <option value="PHI">PHI</option>
+                              <option value="PIT">PIT</option>
+                              <option value="SF">SF</option>
+                              <option value="SEA">SEA</option>
+                              <option value="TB">TB</option>
+                              <option value="TEN">TEN</option>
+                              <option value="WAS">WAS</option>
+                            </select>
                           </div>
                         )}
                         {/* 
