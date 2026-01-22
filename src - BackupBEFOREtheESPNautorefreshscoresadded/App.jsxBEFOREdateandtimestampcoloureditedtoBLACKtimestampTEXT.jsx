@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { initializeApp } from 'firebase/app';
 import { getDatabase, ref, push, onValue, set, update, get, remove } from 'firebase/database';
 import './App.css';
@@ -200,8 +200,8 @@ const PLAYOFF_WEEKS = {
     name: "Conference Championships (Jan 25, 2026)",
     deadline: "Friday, January 23, 2026 at 11:59 PM PST",
     games: [
-      { id: 11, team1: "AFC Winner A", team2: "AFC Winner B" },
-      { id: 12, team1: "NFC Winner A", team2: "NFC Winner B" }
+      { id: 11, team1: "AFC2", team2: "AFC1" },
+      { id: 12, team1: "NFC2", team2: "NFC1" }
     ]
   },
   superbowl: {
@@ -1930,18 +1930,8 @@ const exportPlayersToExcel = async () => {
   }, [currentWeek, allPicks, codeValidated, playerName]);
 
   // 📡 Initialize ESPN Auto-Refresh
-  // 🔥 FIX: Use ref to always call the latest version of handleESPNFetch
-  const handleESPNFetchRef = useRef();
-  
   useEffect(() => {
-    // Wrapper function that always calls the latest handleESPNFetch
-    const callESPNFetch = () => {
-      if (handleESPNFetchRef.current) {
-        handleESPNFetchRef.current();
-      }
-    };
-    
-    const autoRefresh = new ESPNAutoRefresh(callESPNFetch, 5);
+    const autoRefresh = new ESPNAutoRefresh(handleESPNFetch, 5);
     setEspnAutoRefresh(autoRefresh);
     // Cleanup on unmount
     return () => {
@@ -2042,10 +2032,6 @@ const exportPlayersToExcel = async () => {
       console.error('Error fetching ESPN scores:', error);
     }
   };
-  
-  // 🔥 FIX: Update ref to always point to latest handleESPNFetch
-  handleESPNFetchRef.current = handleESPNFetch;
-
 
   /**
    * Toggle game lock (prevent/allow ESPN updates)
@@ -2895,6 +2881,7 @@ const handleCloseWeekAndConfigureNext = async (weekKey) => {
     
     // Calculate ONLY for completed weeks
     let playedPredicted = 0;
+    let totalDifference = 0;
     let hasAnyActual = false;
     
     const weekMap = { 1: 'wildcard', 2: 'divisional', 3: 'conference', 4: 'superbowl' };
@@ -2902,8 +2889,12 @@ const handleCloseWeekAndConfigureNext = async (weekKey) => {
     weeks.forEach(weekNum => {
       const weekName = weekMap[weekNum];
       const pred = calculatePredictedTotal(playerCode, weekName);
-      console.log(`🔍 Week ${weekNum} (${weekName}): pred=${pred}`);
+      const diff = calculateWeeklyTotal(playerCode, weekName);
+      console.log(`🔍 Week ${weekNum} (${weekName}): pred=${pred}, diff=${diff}`);
   
+//      if (pred) {
+//        fullPredicted += pred;
+      
       // ✅ FIXED: Check if actual scores have REAL values (not null/undefined/empty strings/zeros)
       const weekActualScores = actualScores[weekName];
       const hasActual = weekActualScores && Object.values(weekActualScores).some(game => {
@@ -2915,6 +2906,7 @@ const handleCloseWeekAndConfigureNext = async (weekKey) => {
       // ONLY include weeks that have actual scores
       if (pred && hasActual) {
         playedPredicted += pred;
+        totalDifference += diff;
         hasAnyActual = true;
       }
     });
@@ -2927,10 +2919,6 @@ const handleCloseWeekAndConfigureNext = async (weekKey) => {
         fontSize: '16px'
       };
     }
-    
-    // 🔥 FIX: Calculate difference from official grand total (simple subtraction, not adding weekly absolutes)
-    const officialGrandTotal = getGrandTotalHeaderValue();
-    const totalDifference = Math.abs(playedPredicted - (officialGrandTotal || 0));
     
     // Show only completed weeks total
     const tooltip = `Predicted: ${playedPredicted} | Off by: ${totalDifference}`;
@@ -7359,7 +7347,7 @@ const calculateAllPrizeWinners = () => {
                         {allPicks.filter(pick => pick.week === currentWeek && pick.predictions && Object.keys(pick.predictions).length > 0).length} Players
                       </div>
                       Submitted
-                      <div style={{fontSize: '0.75rem', color: '#f80707ff', fontWeight: 'bold', marginTop: '2px'}}>
+                      <div style={{fontSize: '0.95rem', color: '#f00f0fff', fontWeight: 'bold', marginTop: '2px'}}>
                         (PST)
                       </div>
                       <div style={{marginTop: '4px'}}>
@@ -7857,7 +7845,7 @@ const calculateAllPrizeWinners = () => {
                             </td>
                           )}
 
-                          <td className="timestamp" style={{color: '#000000'}}>
+                          <td className="timestamp">
                             {new Date(pick.lastUpdated || pick.timestamp).toLocaleString('en-US', {
                               timeZone: 'America/Los_Angeles',
                               month: '2-digit',

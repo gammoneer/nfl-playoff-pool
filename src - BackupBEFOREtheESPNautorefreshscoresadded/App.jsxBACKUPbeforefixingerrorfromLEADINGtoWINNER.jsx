@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { initializeApp } from 'firebase/app';
 import { getDatabase, ref, push, onValue, set, update, get, remove } from 'firebase/database';
 import './App.css';
@@ -369,66 +369,6 @@ const NFL_2025_SCORING_DATA = [
              item.visitor + item.home >= 5 ? 'less-common' : 'rare'
 }));
 
-// 🕐 PST TIME HELPER FUNCTIONS (for timezone clock)
-const getPSTTime = () => {
-  const now = new Date();
-  const pstTime = new Date(now.toLocaleString("en-US", {timeZone: "America/Los_Angeles"}));
-  return pstTime;
-};
-
-const formatPSTTimestamp = (timestamp) => {
-  const date = new Date(timestamp);
-  const options = {
-    timeZone: 'America/Los_Angeles',
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true
-  };
-  return date.toLocaleString('en-US', options) + ' PST';
-};
-
-const getDeadline = () => {
-  const pst = getPSTTime();
-  const dayOfWeek = pst.getDay(); // 0=Sun, 5=Fri
-  
-  // Find next Friday 11:59 PM PST
-  let daysUntilFriday = (5 - dayOfWeek + 7) % 7;
-  if (dayOfWeek === 5 && pst.getHours() >= 23 && pst.getMinutes() >= 59) {
-    daysUntilFriday = 7; // Next Friday
-  }
-  if (daysUntilFriday === 0 && (pst.getHours() < 23 || (pst.getHours() === 23 && pst.getMinutes() < 59))) {
-    daysUntilFriday = 0; // This Friday
-  }
-  
-  const deadline = new Date(pst);
-  deadline.setDate(deadline.getDate() + daysUntilFriday);
-  deadline.setHours(23, 59, 59, 999);
-  return deadline;
-};
-
-const getTimeRemaining = () => {
-  const now = getPSTTime();
-  const deadline = getDeadline();
-  const diff = deadline - now;
-  
-  if (diff <= 0) return { expired: true, hours: 0, minutes: 0, seconds: 0, formatted: '00:00:00' };
-  
-  const hours = Math.floor(diff / (1000 * 60 * 60));
-  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-  const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-  
-  return {
-    expired: false,
-    hours: hours,
-    minutes: minutes,
-    seconds: seconds,
-    formatted: `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
-  };
-};
-
 function App() {
   // Navigation state for switching between views
   const [currentView, setCurrentView] = useState('picks'); // 'picks' or 'standings'
@@ -492,11 +432,6 @@ function App() {
   // NFL Scoring Guide modal state
   const [showScoringGuide, setShowScoringGuide] = useState(false);
 
-  // 🕐 PST CLOCK STATE
-  const [pstTime, setPstTime] = useState(getPSTTime());
-  const [timeRemaining, setTimeRemaining] = useState(getTimeRemaining());
-  const [showPSTClock, setShowPSTClock] = useState(false);
-
   // ============================================
   // 🆕 STEP 5: COMPLETE FEATURE STATE
   // ============================================
@@ -519,11 +454,7 @@ function App() {
     totalFees: 0,
     prizeValue: 0,
     numberOfPlayers: 0,
-    entryFee: 20,
-    perfectScoreBonusEnabled: false,
-    perfectScorePrizeType: 'dollar', // 'dollar' or 'percentage'
-    perfectScorePrizeAmount: 0,
-    perfectScoreCutoff: 30
+    entryFee: 20
   });
   const [showPrizePoolSetup, setShowPrizePoolSetup] = useState(false);
   
@@ -547,13 +478,6 @@ function App() {
   const [showRngPreview, setShowRngPreview] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null); // 'week' or 'all'
   const [showClearWeekConfirm, setShowClearWeekConfirm] = useState(null); // weekKey to clear
-  
-  // 🎯 PERFECT SCORE FORM STATE (for Prize Pool Setup modal)
-  const [perfectScoreBonusEnabled, setPerfectScoreBonusEnabled] = useState(false);
-  const [perfectScorePrizeType, setPerfectScorePrizeType] = useState('dollar');
-  const [perfectScorePrizeAmount, setPerfectScorePrizeAmount] = useState('');
-  const [perfectScoreCutoff, setPerfectScoreCutoff] = useState('');
-  
   // 🎲 RNG ALERT STATE (ADD THESE 2 LINES) ⬇️
   const [showRNGAlert, setShowRNGAlert] = useState(true);
   const [rngAlertDismissed, setRngAlertDismissed] = useState(false);
@@ -1428,7 +1352,7 @@ const exportPlayersToExcel = async () => {
   /**
    * Save prize pool setup to Firebase
    */
-  const savePrizePool = async (totalFees, numberOfPlayers, entryFee, perfectScoreBonusEnabled, perfectScorePrizeType, perfectScorePrizeAmount, perfectScoreCutoff) => {
+  const savePrizePool = async (totalFees, numberOfPlayers, entryFee) => {
     try {
       const prizeValue = totalFees / 10; // Each prize is 10%
       const poolData = {
@@ -1436,24 +1360,12 @@ const exportPlayersToExcel = async () => {
         prizeValue: Number(prizeValue.toFixed(2)),
         numberOfPlayers: Number(numberOfPlayers),
         entryFee: Number(entryFee),
-        perfectScoreBonusEnabled: perfectScoreBonusEnabled || false,
-        perfectScorePrizeType: perfectScorePrizeType || 'dollar',
-        perfectScorePrizeAmount: perfectScoreBonusEnabled ? Number(perfectScorePrizeAmount) : 0,
-        perfectScoreCutoff: perfectScoreBonusEnabled ? Number(perfectScoreCutoff) : 30,
         lastUpdated: new Date().toISOString()
       };
       
       await set(ref(database, 'prizePool'), poolData);
       setPrizePool(poolData);
-      
-      let message = `✅ Prize pool saved!\n\nTotal Pool: $${totalFees}\nEach Prize: $${prizeValue.toFixed(2)} (10%)`;
-      if (perfectScoreBonusEnabled) {
-        const actualPrizeAmount = perfectScorePrizeType === 'percentage' 
-          ? (totalFees * perfectScorePrizeAmount / 100).toFixed(2)
-          : perfectScorePrizeAmount;
-        message += `\n\n🎯 Perfect Score Prizes:\nType: ${perfectScorePrizeType === 'percentage' ? perfectScorePrizeAmount + '% of total pool' : 'Fixed amount'}\nPrize Pool: $${actualPrizeAmount}\nCutoff: ${perfectScoreCutoff} perfect scores`;
-      }
-      alert(message);
+      alert(`✅ Prize pool saved!\n\nTotal Pool: $${totalFees}\nEach Prize: $${prizeValue.toFixed(2)} (10%)`);
       setShowPrizePoolSetup(false);
     } catch (error) {
       console.error('Error saving prize pool:', error);
@@ -1507,34 +1419,6 @@ const exportPlayersToExcel = async () => {
 
       await set(ref(database, `officialWinners/${weekKey}`), publishData);
       
-      // Also update publishedWinners for HowWinnersAreDetermined compatibility
-      const weekMapping = {
-        'wildcard': 'week1',
-        'divisional': 'week2',
-        'conference': 'week3',
-        'superbowl': 'week4',
-        'grand': 'grand'
-      };
-      const weekName = weekMapping[weekKey];
-      
-      // Mark prizes as published
-      const publishUpdates = {};
-      prizes.forEach(prize => {
-        const prizeNum = prize.prizeNumber;
-        let pubKey;
-        if (weekName === 'grand') {
-          pubKey = prizeNum === 9 ? 'grand_prize1' : 'grand_prize2';
-        } else {
-          pubKey = `${weekName}_prize${prizeNum % 2 === 1 ? '1' : '2'}`;
-        }
-        publishUpdates[pubKey] = true;
-      });
-      
-      // Update publishedWinners in Firebase
-      for (const [key, value] of Object.entries(publishUpdates)) {
-        await set(ref(database, `publishedWinners/${key}`), value);
-      }
-      
       alert(`✅ Winners published for ${weekKey}!`);
     } catch (error) {
       console.error('Error publishing winners:', error);
@@ -1548,34 +1432,6 @@ const exportPlayersToExcel = async () => {
   const handleUnpublishWinners = async (weekKey) => {
     try {
       await set(ref(database, `officialWinners/${weekKey}/published`), false);
-      
-      // Also unpublish in publishedWinners for HowWinnersAreDetermined
-      const weekMapping = {
-        'wildcard': 'week1',
-        'divisional': 'week2',
-        'conference': 'week3',
-        'superbowl': 'week4',
-        'grand': 'grand'
-      };
-      const weekName = weekMapping[weekKey];
-      
-      // Get prize numbers for this week
-      const prizeNums = weekName === 'grand' ? [9, 10] : 
-                        weekName === 'week1' ? [1, 2] :
-                        weekName === 'week2' ? [3, 4] :
-                        weekName === 'week3' ? [5, 6] : [7, 8];
-      
-      // Unpublish both prizes for this week
-      for (const prizeNum of prizeNums) {
-        let pubKey;
-        if (weekName === 'grand') {
-          pubKey = prizeNum === 9 ? 'grand_prize1' : 'grand_prize2';
-        } else {
-          pubKey = `${weekName}_prize${prizeNum % 2 === 1 ? '1' : '2'}`;
-        }
-        await set(ref(database, `publishedWinners/${pubKey}`), false);
-      }
-      
       alert(`✅ Winners unpublished for ${weekKey}. You can now edit them.`);
     } catch (error) {
       console.error('Error unpublishing winners:', error);
@@ -1679,36 +1535,6 @@ const exportPlayersToExcel = async () => {
       }
     });
   }, []);
-
-  // 🕐 PST CLOCK: Update check (DISABLED updates to prevent dropdown closing)
-  useEffect(() => {
-    const updateClock = () => {
-      const pst = getPSTTime();
-      setPstTime(pst);
-      setTimeRemaining(getTimeRemaining());
-      
-      // Determine if clock should show:
-      // 1. Only on Fridays (day 5)
-      // 2. Between 12:01 AM and 11:59 PM PST
-      // 3. Only while playoffs are ongoing (not all weeks completed)
-      const dayOfWeek = pst.getDay();
-      const isFriday = dayOfWeek === 5;
-      
-      // Check if all playoff weeks are complete (Super Bowl is final)
-      const playoffsComplete = gameStatus?.superbowl && 
-        Object.values(gameStatus.superbowl || {}).every(status => status === 'final');
-      
-      // Show clock only on Fridays during active playoff season
-      setShowPSTClock(isFriday && !playoffsComplete);
-    };
-    
-    // Update ONCE on mount only - NO INTERVAL to prevent dropdown closing
-    updateClock();
-    
-    // NO setInterval - commenting out to fix dropdown issue
-    // const interval = setInterval(updateClock, 5000);
-    // return () => clearInterval(interval);
-  }, [gameStatus]);
 
   // 🔒 NEW: Pool Manager function to manually lock/unlock a week
   const handleWeekLockToggle = (weekKey) => {
@@ -1930,18 +1756,8 @@ const exportPlayersToExcel = async () => {
   }, [currentWeek, allPicks, codeValidated, playerName]);
 
   // 📡 Initialize ESPN Auto-Refresh
-  // 🔥 FIX: Use ref to always call the latest version of handleESPNFetch
-  const handleESPNFetchRef = useRef();
-  
   useEffect(() => {
-    // Wrapper function that always calls the latest handleESPNFetch
-    const callESPNFetch = () => {
-      if (handleESPNFetchRef.current) {
-        handleESPNFetchRef.current();
-      }
-    };
-    
-    const autoRefresh = new ESPNAutoRefresh(callESPNFetch, 5);
+    const autoRefresh = new ESPNAutoRefresh(handleESPNFetch, 5);
     setEspnAutoRefresh(autoRefresh);
     // Cleanup on unmount
     return () => {
@@ -2042,10 +1858,6 @@ const exportPlayersToExcel = async () => {
       console.error('Error fetching ESPN scores:', error);
     }
   };
-  
-  // 🔥 FIX: Update ref to always point to latest handleESPNFetch
-  handleESPNFetchRef.current = handleESPNFetch;
-
 
   /**
    * Toggle game lock (prevent/allow ESPN updates)
@@ -2143,9 +1955,6 @@ const exportPlayersToExcel = async () => {
   };
 
   // Pool Manager functions to update team codes
-  // 🐛 FIX: Debounced team code save to prevent dropdown from closing
-  const teamCodeSaveTimers = React.useRef({});
-  
   const handleTeamCodeChange = (gameId, team, code) => {
     const updatedCodes = {
       ...teamCodes,
@@ -2159,41 +1968,8 @@ const exportPlayersToExcel = async () => {
     };
     setTeamCodes(updatedCodes);
     
-    // 🔥 CRITICAL FIX: Also update playoffTeams so players see the correct team names!
-    if (currentWeek === 'conference') {
-      const teamCode = code.toUpperCase();
-      const teamObject = { name: teamCode }; // Save as object with name property
-      
-      const updatedPlayoffTeams = {
-        ...playoffTeams,
-        week3: {
-          ...(playoffTeams.week3 || {}),
-          afcChampionship: gameId === 11 ? {
-            ...(playoffTeams.week3?.afcChampionship || {}),
-            [team]: teamObject
-          } : playoffTeams.week3?.afcChampionship || {},
-          nfcChampionship: gameId === 12 ? {
-            ...(playoffTeams.week3?.nfcChampionship || {}),
-            [team]: teamObject
-          } : playoffTeams.week3?.nfcChampionship || {}
-        }
-      };
-      setPlayoffTeams(updatedPlayoffTeams);
-      
-      // Save playoffTeams to Firebase immediately
-      set(ref(database, 'playoffTeams/week3'), updatedPlayoffTeams.week3);
-    }
-    
-    // Clear existing timer for this specific input
-    const timerKey = `${currentWeek}-${gameId}-${team}`;
-    if (teamCodeSaveTimers.current[timerKey]) {
-      clearTimeout(teamCodeSaveTimers.current[timerKey]);
-    }
-    
-    // Save to Firebase after 3 SECONDS of no typing (debounced) - gives time to select from dropdown
-    teamCodeSaveTimers.current[timerKey] = setTimeout(() => {
-      set(ref(database, `teamCodes/${currentWeek}/${gameId}/${team}`), code.toUpperCase());
-    }, 3000);
+    // Save to Firebase
+    set(ref(database, `teamCodes/${currentWeek}/${gameId}/${team}`), code.toUpperCase());
   };
 
   // Pool Manager functions to update actual scores
@@ -2895,6 +2671,7 @@ const handleCloseWeekAndConfigureNext = async (weekKey) => {
     
     // Calculate ONLY for completed weeks
     let playedPredicted = 0;
+    let totalDifference = 0;
     let hasAnyActual = false;
     
     const weekMap = { 1: 'wildcard', 2: 'divisional', 3: 'conference', 4: 'superbowl' };
@@ -2902,8 +2679,12 @@ const handleCloseWeekAndConfigureNext = async (weekKey) => {
     weeks.forEach(weekNum => {
       const weekName = weekMap[weekNum];
       const pred = calculatePredictedTotal(playerCode, weekName);
-      console.log(`🔍 Week ${weekNum} (${weekName}): pred=${pred}`);
+      const diff = calculateWeeklyTotal(playerCode, weekName);
+      console.log(`🔍 Week ${weekNum} (${weekName}): pred=${pred}, diff=${diff}`);
   
+//      if (pred) {
+//        fullPredicted += pred;
+      
       // ✅ FIXED: Check if actual scores have REAL values (not null/undefined/empty strings/zeros)
       const weekActualScores = actualScores[weekName];
       const hasActual = weekActualScores && Object.values(weekActualScores).some(game => {
@@ -2915,6 +2696,7 @@ const handleCloseWeekAndConfigureNext = async (weekKey) => {
       // ONLY include weeks that have actual scores
       if (pred && hasActual) {
         playedPredicted += pred;
+        totalDifference += diff;
         hasAnyActual = true;
       }
     });
@@ -2927,10 +2709,6 @@ const handleCloseWeekAndConfigureNext = async (weekKey) => {
         fontSize: '16px'
       };
     }
-    
-    // 🔥 FIX: Calculate difference from official grand total (simple subtraction, not adding weekly absolutes)
-    const officialGrandTotal = getGrandTotalHeaderValue();
-    const totalDifference = Math.abs(playedPredicted - (officialGrandTotal || 0));
     
     // Show only completed weeks total
     const tooltip = `Predicted: ${playedPredicted} | Off by: ${totalDifference}`;
@@ -4453,102 +4231,6 @@ const calculateAllPrizeWinners = () => {
   }, [allPicks, actualScores]);
   return (
     <div className="App">
-      {/* 🕐 PST CLOCK BANNER - Only shows Friday during playoffs */}
-      {showPSTClock && (
-        <div style={{
-          background: timeRemaining.hours === 0 && timeRemaining.minutes < 60 && !timeRemaining.expired ? '#dc3545' : '#667eea',
-          color: '#fff',
-          padding: '20px',
-          marginBottom: '20px',
-          borderRadius: '8px',
-          border: '3px solid ' + (timeRemaining.hours === 0 && timeRemaining.minutes < 60 && !timeRemaining.expired ? '#a71d2a' : '#5568d3'),
-          textAlign: 'center',
-          boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
-        }}>
-          {/* Header Warning - ALL TIMES ARE PST */}
-          <div style={{
-            fontSize: '1.1rem',
-            fontWeight: '700',
-            marginBottom: '15px',
-            letterSpacing: '0.5px',
-            borderBottom: '2px solid rgba(255,255,255,0.3)',
-            paddingBottom: '10px',
-            color: '#fff'
-          }}>
-            ⚠️ ALL TIMES IN THIS APP ARE IN PACIFIC STANDARD TIME (PST) ⚠️
-          </div>
-          
-          {/* Current PST Time */}
-          <div style={{
-            fontSize: '1.4rem',
-            fontWeight: 'bold',
-            marginBottom: '12px',
-            color: '#fff'
-          }}>
-            🕐 Current PST Time: {pstTime.toLocaleTimeString('en-US', {
-              timeZone: 'America/Los_Angeles',
-              hour: 'numeric',
-              minute: '2-digit',
-              second: '2-digit',
-              hour12: true
-            })} ({pstTime.toLocaleDateString('en-US', {
-              timeZone: 'America/Los_Angeles',
-              weekday: 'long',
-              month: 'short',
-              day: 'numeric'
-            })})
-          </div>
-          
-          {/* Countdown or Locked Message */}
-          {!timeRemaining.expired ? (
-            <div style={{
-              background: timeRemaining.hours === 0 && timeRemaining.minutes < 60 ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.2)',
-              padding: '15px',
-              borderRadius: '6px',
-              marginTop: '10px'
-            }}>
-              <div style={{
-                fontSize: timeRemaining.hours === 0 && timeRemaining.minutes < 60 ? '1.6rem' : '1.4rem',
-                fontWeight: '700',
-                marginBottom: '8px',
-                color: '#fff'
-              }}>
-                {timeRemaining.hours === 0 && timeRemaining.minutes < 60 ? '🚨' : '⏰'} PICKS LOCK IN: {timeRemaining.formatted} {timeRemaining.hours === 0 && timeRemaining.minutes < 60 ? '🚨' : ''}
-              </div>
-              <div style={{fontSize: '1.1rem', marginBottom: '5px', color: '#fff'}}>
-                Deadline: 11:59 PM PST Tonight
-              </div>
-              {timeRemaining.hours === 0 && timeRemaining.minutes < 60 && (
-                <div style={{
-                  fontSize: '1.2rem',
-                  fontWeight: '700',
-                  marginTop: '10px',
-                  animation: 'pulse 1s infinite',
-                  color: '#fff'
-                }}>
-                  ⚠️ SUBMIT YOUR PICKS NOW! ⚠️
-                </div>
-              )}
-            </div>
-          ) : (
-            <div style={{
-              background: '#28a745',
-              padding: '15px',
-              borderRadius: '6px',
-              fontSize: '1.3rem',
-              fontWeight: '700',
-              marginTop: '10px',
-              color: '#fff'
-            }}>
-              ✅ PICKS ARE LOCKED - Games In Progress
-              <div style={{fontSize: '1rem', marginTop: '8px', fontWeight: '500'}}>
-                Picks closed at: 11:59 PM PST
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-      
       <header>
         <h1>🏈 Richard's NFL Playoff Pool 2025</h1>
         <p>Enter your score predictions for each NFL Playoff 2025 game</p>
@@ -6132,7 +5814,6 @@ const calculateAllPrizeWinners = () => {
             isPoolManager={isPoolManager()}
             prizePool={prizePool}
             officialWinners={officialWinners}
-            publishedWinners={publishedWinners}
             onLogout={handleLogout}
           />) : currentView === 'winners' && codeValidated ? (
           <HowWinnersAreDetermined 
@@ -6754,105 +6435,39 @@ const calculateAllPrizeWinners = () => {
                         {/* Team codes row for Pool Manager */}
                         {isPoolManager() && (
                           <div style={{marginTop: '5px', display: 'flex', gap: '5px', justifyContent: 'center', alignItems: 'center'}}>
-                            <select
+                            <input
+                              type="text"
+                              maxLength="3"
                               value={teamCodes[currentWeek]?.[game.id]?.team1 || ''}
                               onChange={(e) => handleTeamCodeChange(game.id, 'team1', e.target.value)}
+                              placeholder="PIT"
                               style={{
-                                width: '80px',
-                                padding: '6px 4px',
+                                width: '45px',
+                                padding: '4px',
                                 textAlign: 'center',
-                                fontSize: '0.75rem',
+                                fontSize: '0.8rem',
                                 fontWeight: 'bold',
                                 border: '2px solid #667eea',
-                                borderRadius: '4px',
-                                background: '#fff',
-                                color: '#000'
+                                borderRadius: '4px'
                               }}
-                            >
-                              <option value="">--</option>
-                              <option value="ARI">ARI</option>
-                              <option value="ATL">ATL</option>
-                              <option value="BAL">BAL</option>
-                              <option value="BUF">BUF</option>
-                              <option value="CAR">CAR</option>
-                              <option value="CHI">CHI</option>
-                              <option value="CIN">CIN</option>
-                              <option value="CLE">CLE</option>
-                              <option value="DAL">DAL</option>
-                              <option value="DEN">DEN</option>
-                              <option value="DET">DET</option>
-                              <option value="GB">GB</option>
-                              <option value="HOU">HOU</option>
-                              <option value="IND">IND</option>
-                              <option value="JAC">JAC</option>
-                              <option value="KC">KC</option>
-                              <option value="LV">LV</option>
-                              <option value="LAC">LAC</option>
-                              <option value="LAR">LAR</option>
-                              <option value="MIA">MIA</option>
-                              <option value="MIN">MIN</option>
-                              <option value="NE">NE</option>
-                              <option value="NO">NO</option>
-                              <option value="NYG">NYG</option>
-                              <option value="NYJ">NYJ</option>
-                              <option value="PHI">PHI</option>
-                              <option value="PIT">PIT</option>
-                              <option value="SF">SF</option>
-                              <option value="SEA">SEA</option>
-                              <option value="TB">TB</option>
-                              <option value="TEN">TEN</option>
-                              <option value="WAS">WAS</option>
-                            </select>
-                            <span style={{fontSize: '0.8rem', fontWeight: 'bold'}}>@</span>
-                            <select
+                            />
+                            <span style={{fontSize: '0.8rem'}}>@</span>
+                            <input
+                              type="text"
+                              maxLength="3"
                               value={teamCodes[currentWeek]?.[game.id]?.team2 || ''}
                               onChange={(e) => handleTeamCodeChange(game.id, 'team2', e.target.value)}
+                              placeholder="BUF"
                               style={{
-                                width: '80px',
-                                padding: '6px 4px',
+                                width: '45px',
+                                padding: '4px',
                                 textAlign: 'center',
-                                fontSize: '0.75rem',
+                                fontSize: '0.8rem',
                                 fontWeight: 'bold',
                                 border: '2px solid #667eea',
-                                borderRadius: '4px',
-                                background: '#fff',
-                                color: '#000'
+                                borderRadius: '4px'
                               }}
-                            >
-                              <option value="">--</option>
-                              <option value="ARI">ARI</option>
-                              <option value="ATL">ATL</option>
-                              <option value="BAL">BAL</option>
-                              <option value="BUF">BUF</option>
-                              <option value="CAR">CAR</option>
-                              <option value="CHI">CHI</option>
-                              <option value="CIN">CIN</option>
-                              <option value="CLE">CLE</option>
-                              <option value="DAL">DAL</option>
-                              <option value="DEN">DEN</option>
-                              <option value="DET">DET</option>
-                              <option value="GB">GB</option>
-                              <option value="HOU">HOU</option>
-                              <option value="IND">IND</option>
-                              <option value="JAC">JAC</option>
-                              <option value="KC">KC</option>
-                              <option value="LV">LV</option>
-                              <option value="LAC">LAC</option>
-                              <option value="LAR">LAR</option>
-                              <option value="MIA">MIA</option>
-                              <option value="MIN">MIN</option>
-                              <option value="NE">NE</option>
-                              <option value="NO">NO</option>
-                              <option value="NYG">NYG</option>
-                              <option value="NYJ">NYJ</option>
-                              <option value="PHI">PHI</option>
-                              <option value="PIT">PIT</option>
-                              <option value="SF">SF</option>
-                              <option value="SEA">SEA</option>
-                              <option value="TB">TB</option>
-                              <option value="TEN">TEN</option>
-                              <option value="WAS">WAS</option>
-                            </select>
+                            />
                           </div>
                         )}
                         {/* 
@@ -7359,9 +6974,6 @@ const calculateAllPrizeWinners = () => {
                         {allPicks.filter(pick => pick.week === currentWeek && pick.predictions && Object.keys(pick.predictions).length > 0).length} Players
                       </div>
                       Submitted
-                      <div style={{fontSize: '0.75rem', color: '#f80707ff', fontWeight: 'bold', marginTop: '2px'}}>
-                        (PST)
-                      </div>
                       <div style={{marginTop: '4px'}}>
                         <button
                           onClick={() => handleSort('timestamp')}
@@ -7857,15 +7469,14 @@ const calculateAllPrizeWinners = () => {
                             </td>
                           )}
 
-                          <td className="timestamp" style={{color: '#000000'}}>
+                          <td className="timestamp">
                             {new Date(pick.lastUpdated || pick.timestamp).toLocaleString('en-US', {
-                              timeZone: 'America/Los_Angeles',
                               month: '2-digit',
                               day: '2-digit',
                               hour: '2-digit',
                               minute: '2-digit',
                               second: '2-digit'
-                            })} PST
+                            })}
                           </td>
                         </tr>
                       );
@@ -8302,310 +7913,6 @@ const calculateAllPrizeWinners = () => {
                   </div>
                 </div>
                 
-                {/* 🎯 PERFECT SCORE PRIZES SECTION - ALL BLACK TEXT */}
-                <div style={{
-                  marginTop: '25px',
-                  padding: '20px',
-                  background: '#fff3cd',
-                  border: '2px solid #ffc107',
-                  borderRadius: '8px',
-                  marginBottom: '20px'
-                }}>
-                  <h3 style={{
-                    margin: '0 0 15px 0',
-                    color: '#000',
-                    fontSize: '1.1rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '10px'
-                  }}>
-                    🎯 Perfect Score Prizes (Optional)
-                  </h3>
-                  
-                  <div style={{marginBottom: '15px'}}>
-                    <label style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '10px',
-                      cursor: 'pointer',
-                      color: '#000',
-                      fontWeight: '600',
-                      fontSize: '1rem'
-                    }}>
-                      <input
-                        type="checkbox"
-                        id="perfectScoreBonusEnabled"
-                        defaultChecked={prizePool.perfectScoreBonusEnabled || false}
-                        onChange={(e) => {
-                          const isEnabled = e.target.checked;
-                          const optionsDiv = document.getElementById('perfectScoreOptions');
-                          document.getElementById('perfectScorePrizeAmount').disabled = !isEnabled;
-                          document.getElementById('perfectScoreCutoff').disabled = !isEnabled;
-                          
-                          // Update parent div styling to enable/disable all controls
-                          if (optionsDiv) {
-                            optionsDiv.style.opacity = isEnabled ? '1' : '0.5';
-                            optionsDiv.style.pointerEvents = isEnabled ? 'auto' : 'none';
-                          }
-                        }}
-                        style={{
-                          width: '20px',
-                          height: '20px',
-                          cursor: 'pointer'
-                        }}
-                      />
-                      Enable Perfect Score Prizes
-                    </label>
-                    <div style={{
-                      fontSize: '0.85rem',
-                      color: '#000',
-                      marginTop: '5px',
-                      marginLeft: '30px',
-                      lineHeight: '1.5'
-                    }}>
-                      Award prizes for players who predict the exact final score of playoff games.<br/>
-                      Each perfect score prediction = 1 winning entry. Players can win multiple times.
-                    </div>
-                  </div>
-
-                  <div id="perfectScoreOptions" style={{
-                    marginLeft: '0px',
-                    opacity: prizePool.perfectScoreBonusEnabled ? '1' : '0.5',
-                    pointerEvents: prizePool.perfectScoreBonusEnabled ? 'auto' : 'none'
-                  }}>
-                    {/* Prize Amount Type Selection */}
-                    <div style={{marginBottom: '20px'}}>
-                      <label style={{
-                        display: 'block',
-                        marginBottom: '8px',
-                        fontWeight: '600',
-                        color: '#000',
-                        fontSize: '1rem'
-                      }}>
-                        Prize Amount Type:
-                      </label>
-                      <div style={{display: 'flex', gap: '20px', flexWrap: 'wrap', marginBottom: '10px'}}>
-                        <label style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '8px',
-                          cursor: 'pointer',
-                          color: '#000',
-                          minHeight: '44px'
-                        }}>
-                          <input
-                            type="radio"
-                            id="perfectScoreTypeDollar"
-                            name="perfectScoreType"
-                            value="dollar"
-                            defaultChecked={prizePool.perfectScorePrizeType === 'dollar' || !prizePool.perfectScorePrizeType}
-                            onChange={(e) => {
-                              const amountInput = document.getElementById('perfectScorePrizeAmount');
-                              const label = document.getElementById('prizeAmountLabel');
-                              const helper = document.getElementById('prizeAmountHelper');
-                              const totalFees = document.getElementById('totalFees').value || 560;
-                              label.textContent = 'Perfect Score Prize Pool Amount ($):';
-                              amountInput.placeholder = '60';
-                              amountInput.max = '';
-                              amountInput.step = '1';
-                              helper.innerHTML = `Total $ amount for perfect score prizes (e.g., $60 from $${totalFees} total pool)`;
-                              updatePerfectScoreExample();
-                            }}
-                            style={{width: '18px', height: '18px', cursor: 'pointer'}}
-                          />
-                          <span style={{fontSize: '0.95rem', fontWeight: '500'}}>Fixed Dollar Amount</span>
-                        </label>
-                        <label style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '8px',
-                          cursor: 'pointer',
-                          color: '#000',
-                          minHeight: '44px'
-                        }}>
-                          <input
-                            type="radio"
-                            id="perfectScoreTypePercent"
-                            name="perfectScoreType"
-                            value="percentage"
-                            defaultChecked={prizePool.perfectScorePrizeType === 'percentage'}
-                            onChange={(e) => {
-                              const amountInput = document.getElementById('perfectScorePrizeAmount');
-                              const label = document.getElementById('prizeAmountLabel');
-                              const helper = document.getElementById('prizeAmountHelper');
-                              const totalFees = document.getElementById('totalFees').value || 560;
-                              label.textContent = 'Perfect Score Prize Pool Percentage (%):';
-                              amountInput.placeholder = '10';
-                              amountInput.max = '100';
-                              amountInput.step = '0.1';
-                              const calcAmount = (totalFees * (amountInput.value || 10) / 100).toFixed(2);
-                              helper.innerHTML = `Percentage of total pool for perfect score prizes (e.g., ${amountInput.value || 10}% of $${totalFees} = $${calcAmount})`;
-                              updatePerfectScoreExample();
-                            }}
-                            style={{width: '18px', height: '18px', cursor: 'pointer'}}
-                          />
-                          <span style={{fontSize: '0.95rem', fontWeight: '500'}}>Percentage of Total Pool</span>
-                        </label>
-                      </div>
-                    </div>
-
-                    {/* Prize Amount Input */}
-                    <div style={{marginBottom: '20px'}}>
-                      <label id="prizeAmountLabel" style={{
-                        display: 'block',
-                        marginBottom: '8px',
-                        fontWeight: '600',
-                        color: '#000',
-                        fontSize: '1rem'
-                      }}>
-                        {prizePool.perfectScorePrizeType === 'percentage' 
-                          ? 'Perfect Score Prize Pool Percentage (%):' 
-                          : 'Perfect Score Prize Pool Amount ($):'}
-                      </label>
-                      <input
-                        type="number"
-                        id="perfectScorePrizeAmount"
-                        defaultValue={prizePool.perfectScorePrizeAmount || ''}
-                        placeholder={prizePool.perfectScorePrizeType === 'percentage' ? "10" : "60"}
-                        min="0"
-                        max={prizePool.perfectScorePrizeType === 'percentage' ? "100" : undefined}
-                        step={prizePool.perfectScorePrizeType === 'percentage' ? "0.1" : "1"}
-                        disabled={!prizePool.perfectScoreBonusEnabled}
-                        onChange={() => {
-                          updatePerfectScoreExample();
-                          const totalFees = document.getElementById('totalFees').value || 560;
-                          const amountInput = document.getElementById('perfectScorePrizeAmount');
-                          const helper = document.getElementById('prizeAmountHelper');
-                          const isPercent = document.getElementById('perfectScoreTypePercent')?.checked;
-                          if (isPercent) {
-                            const calcAmount = (totalFees * (amountInput.value || 10) / 100).toFixed(2);
-                            helper.innerHTML = `Percentage of total pool for perfect score prizes (e.g., ${amountInput.value || 10}% of $${totalFees} = $${calcAmount})`;
-                          } else {
-                            helper.innerHTML = `Total $ amount for perfect score prizes (e.g., $${amountInput.value || 60} from $${totalFees} total pool)`;
-                          }
-                        }}
-                        style={{
-                          width: '100%',
-                          padding: '12px',
-                          fontSize: '1rem',
-                          color: '#000',
-                          border: '2px solid #ffc107',
-                          borderRadius: '6px',
-                          minHeight: '44px',
-                          background: prizePool.perfectScoreBonusEnabled ? 'white' : '#f5f5f5'
-                        }}
-                      />
-                      <div id="prizeAmountHelper" style={{
-                        fontSize: '0.85rem',
-                        color: '#000',
-                        marginTop: '5px'
-                      }}>
-                        {prizePool.perfectScorePrizeType === 'percentage' 
-                          ? `Percentage of total pool for perfect score prizes (e.g., ${prizePool.perfectScorePrizeAmount || 10}% of $${prizePool.totalFees || 560} = $${((prizePool.totalFees || 560) * (prizePool.perfectScorePrizeAmount || 10) / 100).toFixed(2)})`
-                          : `Total $ amount for perfect score prizes (e.g., $${prizePool.perfectScorePrizeAmount || 60} from $${prizePool.totalFees || 560} total pool)`}
-                      </div>
-                    </div>
-
-                    {/* Cutoff Number */}
-                    <div style={{marginBottom: '15px'}}>
-                      <label style={{
-                        display: 'block',
-                        marginBottom: '8px',
-                        fontWeight: '600',
-                        color: '#000',
-                        fontSize: '1rem'
-                      }}>
-                        Cutoff Number (Max Perfect Scores):
-                      </label>
-                      <input
-                        type="number"
-                        id="perfectScoreCutoff"
-                        defaultValue={prizePool.perfectScoreCutoff || ''}
-                        placeholder="30"
-                        min="1"
-                        disabled={!prizePool.perfectScoreBonusEnabled}
-                        onChange={() => updatePerfectScoreExample()}
-                        style={{
-                          width: '100%',
-                          padding: '12px',
-                          fontSize: '1rem',
-                          color: '#000',
-                          border: '2px solid #ffc107',
-                          borderRadius: '6px',
-                          minHeight: '44px',
-                          background: prizePool.perfectScoreBonusEnabled ? 'white' : '#f5f5f5'
-                        }}
-                      />
-                      <div style={{
-                        fontSize: '0.85rem',
-                        color: '#000',
-                        marginTop: '5px'
-                      }}>
-                        If total perfect scores ≤ this number → pay out. If &gt; this number → cancel prizes, return money to main pool.
-                      </div>
-                    </div>
-
-                    {/* Example */}
-                    <div style={{
-                      marginTop: '15px',
-                      padding: '15px',
-                      background: 'rgba(255, 193, 7, 0.2)',
-                      borderRadius: '6px',
-                      border: '1px solid #ffc107'
-                    }}>
-                      <div style={{
-                        fontWeight: '600',
-                        marginBottom: '8px',
-                        color: '#000',
-                        fontSize: '0.95rem'
-                      }}>
-                        💡 Example:
-                      </div>
-                      <div id="perfectScoreExample" style={{
-                        fontSize: '0.85rem',
-                        color: '#000',
-                        lineHeight: '1.6'
-                      }}>
-                        $60 prize pool, 30 cutoff.<br/>
-                        If 6 perfect scores total → each gets $10.00.<br/>
-                        If 31+ perfect scores → nobody gets paid, money goes to main prizes.
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                
-                <script dangerouslySetInnerHTML={{__html: `
-                  function updatePerfectScoreExample() {
-                    const totalFees = parseFloat(document.getElementById('totalFees')?.value) || 560;
-                    const isPercent = document.getElementById('perfectScoreTypePercent')?.checked;
-                    const amount = parseFloat(document.getElementById('perfectScorePrizeAmount')?.value) || (isPercent ? 10 : 60);
-                    const cutoff = parseInt(document.getElementById('perfectScoreCutoff')?.value) || 30;
-                    
-                    let prizePool;
-                    if (isPercent) {
-                      prizePool = (totalFees * amount / 100).toFixed(2);
-                    } else {
-                      prizePool = amount.toFixed(2);
-                    }
-                    
-                    const perEntry = (prizePool / 6).toFixed(2);
-                    
-                    const example = document.getElementById('perfectScoreExample');
-                    if (example) {
-                      example.innerHTML = (isPercent 
-                        ? \`\${amount}% of $\${totalFees} = $\${prizePool} prize pool, \${cutoff} cutoff.\`
-                        : \`$\${prizePool} prize pool, \${cutoff} cutoff.\`) + 
-                        \`<br/>If 6 perfect scores total → each gets $\${perEntry}.<br/>If \${cutoff + 1}+ perfect scores → nobody gets paid, money goes to main prizes.\`;
-                    }
-                  }
-                  
-                  // Update on total fees change
-                  const totalFeesInput = document.getElementById('totalFees');
-                  if (totalFeesInput) {
-                    totalFeesInput.addEventListener('input', updatePerfectScoreExample);
-                  }
-                `}} />
-                
                 <div style={{display: 'flex', gap: '10px'}}>
                   <button
                     onClick={() => setShowPrizePoolSetup(false)}
@@ -8628,28 +7935,13 @@ const calculateAllPrizeWinners = () => {
                       const totalFees = document.getElementById('totalFees').value;
                       const numberOfPlayers = document.getElementById('numberOfPlayers').value;
                       const entryFee = document.getElementById('entryFee').value;
-                      const perfectScoreBonusEnabled = document.getElementById('perfectScoreBonusEnabled').checked;
-                      const perfectScorePrizeType = document.getElementById('perfectScoreTypePercent')?.checked ? 'percentage' : 'dollar';
-                      const perfectScorePrizeAmount = document.getElementById('perfectScorePrizeAmount').value;
-                      const perfectScoreCutoff = document.getElementById('perfectScoreCutoff').value;
                       
                       if (!totalFees || totalFees <= 0) {
                         alert('❌ Please enter a valid total pool amount.');
                         return;
                       }
                       
-                      if (perfectScoreBonusEnabled) {
-                        if (!perfectScorePrizeAmount || perfectScorePrizeAmount <= 0) {
-                          alert('❌ Please enter a Perfect Score Prize Amount.');
-                          return;
-                        }
-                        if (!perfectScoreCutoff || perfectScoreCutoff <= 0) {
-                          alert('❌ Please enter a Perfect Score Cutoff number.');
-                          return;
-                        }
-                      }
-                      
-                      savePrizePool(totalFees, numberOfPlayers, entryFee, perfectScoreBonusEnabled, perfectScorePrizeType, perfectScorePrizeAmount, perfectScoreCutoff);
+                      savePrizePool(totalFees, numberOfPlayers, entryFee);
                     }}
                     style={{
                       flex: '1',
@@ -9226,7 +8518,7 @@ const calculateAllPrizeWinners = () => {
                                     {pred?.team2 || '-'}
                                   </td>
                                   <td style={{padding: '10px', textAlign: 'center', fontSize: '12px', color: '#666'}}>
-                                    {player.lastUpdated ? new Date(player.lastUpdated).toLocaleString('en-US', {timeZone: 'America/Los_Angeles'}) + ' PST' : player.timestamp ? new Date(player.timestamp).toLocaleString('en-US', {timeZone: 'America/Los_Angeles'}) + ' PST' : '-'}
+                                    {player.lastUpdated ? new Date(player.lastUpdated).toLocaleString() : player.timestamp ? new Date(player.timestamp).toLocaleString() : '-'}
                                   </td>
                                 </tr>
                               );
@@ -9313,7 +8605,7 @@ const calculateAllPrizeWinners = () => {
                                     {pred?.team2 || '-'}
                                   </td>
                                   <td style={{padding: '10px', textAlign: 'center', fontSize: '12px', color: '#666'}}>
-                                    {player.lastUpdated ? new Date(player.lastUpdated).toLocaleString('en-US', {timeZone: 'America/Los_Angeles'}) + ' PST' : player.timestamp ? new Date(player.timestamp).toLocaleString('en-US', {timeZone: 'America/Los_Angeles'}) + ' PST' : '-'}
+                                    {player.lastUpdated ? new Date(player.lastUpdated).toLocaleString() : player.timestamp ? new Date(player.timestamp).toLocaleString() : '-'}
                                   </td>
                                 </tr>
                               );

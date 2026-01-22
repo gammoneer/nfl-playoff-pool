@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { initializeApp } from 'firebase/app';
 import { getDatabase, ref, push, onValue, set, update, get, remove } from 'firebase/database';
 import './App.css';
@@ -1930,18 +1930,8 @@ const exportPlayersToExcel = async () => {
   }, [currentWeek, allPicks, codeValidated, playerName]);
 
   // 📡 Initialize ESPN Auto-Refresh
-  // 🔥 FIX: Use ref to always call the latest version of handleESPNFetch
-  const handleESPNFetchRef = useRef();
-  
   useEffect(() => {
-    // Wrapper function that always calls the latest handleESPNFetch
-    const callESPNFetch = () => {
-      if (handleESPNFetchRef.current) {
-        handleESPNFetchRef.current();
-      }
-    };
-    
-    const autoRefresh = new ESPNAutoRefresh(callESPNFetch, 5);
+    const autoRefresh = new ESPNAutoRefresh(handleESPNFetch, 5);
     setEspnAutoRefresh(autoRefresh);
     // Cleanup on unmount
     return () => {
@@ -2042,10 +2032,6 @@ const exportPlayersToExcel = async () => {
       console.error('Error fetching ESPN scores:', error);
     }
   };
-  
-  // 🔥 FIX: Update ref to always point to latest handleESPNFetch
-  handleESPNFetchRef.current = handleESPNFetch;
-
 
   /**
    * Toggle game lock (prevent/allow ESPN updates)
@@ -7359,7 +7345,7 @@ const calculateAllPrizeWinners = () => {
                         {allPicks.filter(pick => pick.week === currentWeek && pick.predictions && Object.keys(pick.predictions).length > 0).length} Players
                       </div>
                       Submitted
-                      <div style={{fontSize: '0.75rem', color: '#f80707ff', fontWeight: 'bold', marginTop: '2px'}}>
+                      <div style={{fontSize: '0.75rem', color: '#050505ff', fontWeight: 'bold', marginTop: '2px'}}>
                         (PST)
                       </div>
                       <div style={{marginTop: '4px'}}>
