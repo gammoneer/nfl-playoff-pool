@@ -2942,6 +2942,171 @@ const handleCloseWeekAndConfigureNext = async (weekKey) => {
   };
   
   /**
+   * ============================================
+   * 🎯 PERFECT SCORE BONUS CALCULATION
+   * ============================================
+   * Calculate Perfect Score winners across all 13 playoff games
+   * A "perfect score" = exact match of both team scores for a game
+   * Prize is divided by total number of perfect scores across ALL players
+   */
+  const calculatePerfectScoreWinners = () => {
+    console.log('🎯 Calculating Perfect Score Winners...');
+    
+    // Check if Perfect Score is enabled
+    if (!prizePool.perfectScoreBonusEnabled) {
+      console.log('❌ Perfect Score bonus is disabled');
+      return {
+        enabled: false,
+        hasWinners: false,
+        totalPerfectScores: 0,
+        prizeAmount: 0,
+        winners: []
+      };
+    }
+
+    // Get all 13 playoff games
+    const allGames = [
+      ...PLAYOFF_WEEKS.wildcard.games,
+      ...PLAYOFF_WEEKS.divisional.games,
+      ...PLAYOFF_WEEKS.conference.games,
+      ...PLAYOFF_WEEKS.superbowl.games
+    ];
+    
+    console.log(`📊 Total games to check: ${allGames.length}`);
+
+    // Track perfect scores per player
+    const playerPerfectScores = {};
+    let totalPerfectScores = 0;
+
+    // Map week keys
+    const weekMap = {
+      wildcard: 'wildcard',
+      divisional: 'divisional', 
+      conference: 'conference',
+      superbowl: 'superbowl'
+    };
+
+    // Loop through all games
+    Object.keys(PLAYOFF_WEEKS).forEach(weekKey => {
+      const weekGames = PLAYOFF_WEEKS[weekKey].games;
+      
+      weekGames.forEach(game => {
+        // Get actual score for this game
+        const actualScore = actualScores[weekKey]?.[game.id];
+        
+        // Skip if no actual score yet
+        if (!actualScore || !actualScore.team1 || !actualScore.team2) {
+          console.log(`⏭️  Game ${game.id} (${weekKey}): No actual score yet`);
+          return;
+        }
+
+        const actualTeam1 = parseInt(actualScore.team1);
+        const actualTeam2 = parseInt(actualScore.team2);
+
+        console.log(`🏈 Game ${game.id} (${weekKey}): Actual ${actualTeam1}-${actualTeam2}`);
+
+        // Check all players' predictions for this game
+        allPicks.forEach(pick => {
+          if (pick.week !== weekKey) return;
+          if (!pick.predictions) return;
+
+          const prediction = pick.predictions[game.id];
+          if (!prediction) return;
+
+          const predTeam1 = parseInt(prediction.team1);
+          const predTeam2 = parseInt(prediction.team2);
+
+          // Check if PERFECT (exact match of both scores)
+          if (predTeam1 === actualTeam1 && predTeam2 === actualTeam2) {
+            console.log(`✨ PERFECT! ${pick.playerName} predicted ${predTeam1}-${predTeam2} for Game ${game.id}`);
+            
+            // Initialize player if needed
+            if (!playerPerfectScores[pick.playerCode]) {
+              playerPerfectScores[pick.playerCode] = {
+                playerName: pick.playerName,
+                playerCode: pick.playerCode,
+                perfectScores: 0,
+                games: []
+              };
+            }
+
+            // Increment count
+            playerPerfectScores[pick.playerCode].perfectScores++;
+            playerPerfectScores[pick.playerCode].games.push({
+              gameId: game.id,
+              week: weekKey,
+              score: `${predTeam1}-${predTeam2}`
+            });
+            totalPerfectScores++;
+          }
+        });
+      });
+    });
+
+    console.log(`🎯 Total Perfect Scores across all players: ${totalPerfectScores}`);
+
+    // If no perfect scores, money rolls back to main pool
+    if (totalPerfectScores === 0) {
+      console.log('❌ No perfect scores found - money rolls to main pool');
+      return {
+        enabled: true,
+        hasWinners: false,
+        totalPerfectScores: 0,
+        prizeAmount: 0,
+        prizePerScore: 0,
+        rollbackAmount: calculatePerfectScorePrizeAmount(),
+        winners: []
+      };
+    }
+
+    // Calculate prize amount
+    const totalPrizeAmount = calculatePerfectScorePrizeAmount();
+    const prizePerScore = totalPrizeAmount / totalPerfectScores;
+
+    console.log(`💰 Prize per perfect score: $${prizePerScore.toFixed(2)}`);
+
+    // Build winners array
+    const winners = Object.values(playerPerfectScores).map(player => ({
+      playerName: player.playerName,
+      playerCode: player.playerCode,
+      perfectScores: player.perfectScores,
+      games: player.games,
+      prizeAmount: player.perfectScores * prizePerScore
+    }));
+
+    // Sort by most perfect scores
+    winners.sort((a, b) => b.perfectScores - a.perfectScores);
+
+    console.log(`🏆 Winners:`, winners);
+
+    return {
+      enabled: true,
+      hasWinners: true,
+      totalPerfectScores: totalPerfectScores,
+      prizeAmount: totalPrizeAmount,
+      prizePerScore: prizePerScore,
+      winners: winners
+    };
+  };
+
+  /**
+   * Calculate Perfect Score Prize Amount
+   * Based on dollar or percentage type
+   */
+  const calculatePerfectScorePrizeAmount = () => {
+    if (!prizePool.perfectScoreBonusEnabled) return 0;
+
+    if (prizePool.perfectScorePrizeType === 'percentage') {
+      // Percentage of total pool
+      const percentage = parseFloat(prizePool.perfectScorePrizeAmount) || 0;
+      return (prizePool.totalFees * percentage) / 100;
+    } else {
+      // Fixed dollar amount
+      return parseFloat(prizePool.perfectScorePrizeAmount) || 0;
+    }
+  };
+  
+  /**
    * Calculate total actual points scored across all games in a week
    * This is for the header display (not player-specific)
    */
@@ -2991,629 +3156,6 @@ const handleCloseWeekAndConfigureNext = async (weekKey) => {
     
     const grandTotal = week1Total + week2Total + week3Total + week4Total;
     return grandTotal > 0 ? grandTotal : '';
-  };
-
-  // ============================================
-  // 🏆 COMPREHENSIVE RANKING & TIE-BREAKER SYSTEM
-  // ============================================
-  
-  /**
-   * Calculate player's correct winner count for a specific week
-   */
-  const calculateCorrectWinners = (playerCode, weekName) => {
-    const pick = allPicks.find(p => p.playerCode === playerCode && p.week === weekName);
-    if (!pick || !pick.predictions) return 0;
-    
-    const weekData = PLAYOFF_WEEKS[weekName];
-    if (!weekData) return 0;
-    
-    let correctCount = 0;
-    
-    weekData.games.forEach(game => {
-      const prediction = pick.predictions[game.id];
-      const actual = actualScores[weekName]?.[game.id];
-      
-      if (!prediction || !actual) return;
-      
-      const predTeam1 = parseInt(prediction.team1) || 0;
-      const predTeam2 = parseInt(prediction.team2) || 0;
-      const actualTeam1 = parseInt(actual.team1) || 0;
-      const actualTeam2 = parseInt(actual.team2) || 0;
-      
-      // Determine predicted winner
-      const predWinner = predTeam1 > predTeam2 ? 'team1' : predTeam1 < predTeam2 ? 'team2' : 'tie';
-      const actualWinner = actualTeam1 > actualTeam2 ? 'team1' : actualTeam1 < actualTeam2 ? 'team2' : 'tie';
-      
-      if (predWinner === actualWinner && predWinner !== 'tie') {
-        correctCount++;
-      }
-    });
-    
-    return correctCount;
-  };
-  
-  /**
-   * Calculate player's total correct winners across all 4 weeks
-   */
-  const calculateTotalCorrectWinners = (playerCode) => {
-    const week1 = calculateCorrectWinners(playerCode, 'wildcard');
-    const week2 = calculateCorrectWinners(playerCode, 'divisional');
-    const week3 = calculateCorrectWinners(playerCode, 'conference');
-    const week4 = calculateCorrectWinners(playerCode, 'superbowl');
-    return week1 + week2 + week3 + week4;
-  };
-  
-  /**
-   * Check if player picked correct Super Bowl winner
-   */
-  const pickedCorrectSuperBowlWinner = (playerCode) => {
-    const pick = allPicks.find(p => p.playerCode === playerCode && p.week === 'superbowl');
-    if (!pick || !pick.predictions) return false;
-    
-    const sbGame = PLAYOFF_WEEKS.superbowl.games[0]; // Game 13
-    const prediction = pick.predictions[sbGame.id];
-    const actual = actualScores.superbowl?.[sbGame.id];
-    
-    if (!prediction || !actual) return false;
-    
-    const predTeam1 = parseInt(prediction.team1) || 0;
-    const predTeam2 = parseInt(prediction.team2) || 0;
-    const actualTeam1 = parseInt(actual.team1) || 0;
-    const actualTeam2 = parseInt(actual.team2) || 0;
-    
-    const predWinner = predTeam1 > predTeam2 ? 'team1' : predTeam1 < predTeam2 ? 'team2' : 'tie';
-    const actualWinner = actualTeam1 > actualTeam2 ? 'team1' : actualTeam1 < actualTeam2 ? 'team2' : 'tie';
-    
-    return predWinner === actualWinner && predWinner !== 'tie';
-  };
-  
-  /**
-   * Check if a week is complete (all games final AND Pool Manager closed it)
-   */
-  const isWeekComplete = (weekName) => {
-    // Check if Pool Manager closed the week
-    const manuallyCompleted = weekCompletionStatus?.[weekName] === true;
-    
-    // Check if all games are final
-    const weekData = PLAYOFF_WEEKS[weekName];
-    if (!weekData) return false;
-    
-    const allGamesFinal = weekData.games.every(game => {
-      return gameStatus[weekName]?.[game.id] === 'final';
-    });
-    
-    return manuallyCompleted && allGamesFinal;
-  };
-  
-  /**
-   * Rank players for "Most Correct Winners" prize
-   * Primary: Correct count (high to low)
-   * Tie-breaker: That week's points difference (low to high)
-   * If still tied on points: Go back to previous weeks' correct count
-   */
-  const rankMostCorrectWinners = (weekName) => {
-    const playerRankings = [];
-    
-    // Get all unique players
-    const uniquePlayers = {};
-    allPicks.forEach(pick => {
-      if (!uniquePlayers[pick.playerCode]) {
-        uniquePlayers[pick.playerCode] = pick.playerName;
-      }
-    });
-    
-    // Calculate rankings for each player
-    Object.keys(uniquePlayers).forEach(playerCode => {
-      const playerName = uniquePlayers[playerCode];
-      const correctCount = calculateCorrectWinners(playerCode, weekName);
-      const weekDifference = calculateWeeklyTotal(playerCode, weekName);
-      
-      // Get previous weeks' POINTS DIFFERENCE for tie-breaking (NOT correct counts!)
-      const weekOrder = ['wildcard', 'divisional', 'conference', 'superbowl'];
-      const currentIndex = weekOrder.indexOf(weekName);
-      const previousWeeksDifference = [];
-      
-      for (let i = currentIndex - 1; i >= 0; i--) {
-        previousWeeksDifference.push({
-          week: weekOrder[i],
-          difference: calculateWeeklyTotal(playerCode, weekOrder[i])
-        });
-      }
-      
-      playerRankings.push({
-        playerName,
-        playerCode,
-        correctCount,
-        weekDifference,
-        previousWeeksDifference
-      });
-    });
-    
-    // Sort by correct count (high to low), then by week difference (low to high), then by previous weeks' POINTS
-    playerRankings.sort((a, b) => {
-      // Primary: Correct count (higher is better)
-      if (b.correctCount !== a.correctCount) {
-        return b.correctCount - a.correctCount;
-      }
-      
-      // Secondary: Week difference (lower is better)
-      if (a.weekDifference !== b.weekDifference) {
-        return a.weekDifference - b.weekDifference;
-      }
-      
-      // Tertiary: Go back through previous weeks' POINTS DIFFERENCE (not correct counts!)
-      for (let i = 0; i < Math.min(a.previousWeeksDifference.length, b.previousWeeksDifference.length); i++) {
-        const aDiff = a.previousWeeksDifference[i].difference;
-        const bDiff = b.previousWeeksDifference[i].difference;
-        if (aDiff !== bDiff) {
-          return aDiff - bDiff; // Lower is better
-        }
-      }
-      
-      return 0; // Complete tie - same rank
-    });
-    
-    // Assign ranks (players with identical stats get same rank)
-    let currentRank = 1;
-    playerRankings.forEach((player, index) => {
-      if (index === 0) {
-        player.rank = 1;
-      } else {
-        const prev = playerRankings[index - 1];
-        
-        // Check if completely identical to previous player
-        const sameCorrect = player.correctCount === prev.correctCount;
-        const sameDifference = player.weekDifference === prev.weekDifference;
-        
-        let samePreviousWeeks = true;
-        for (let i = 0; i < player.previousWeeksDifference.length; i++) {
-          if (player.previousWeeksDifference[i].difference !== prev.previousWeeksDifference[i].difference) {
-            samePreviousWeeks = false;
-            break;
-          }
-        }
-        
-        if (sameCorrect && sameDifference && samePreviousWeeks) {
-          player.rank = prev.rank; // Same rank (tie)
-          player.tied = true;
-        } else {
-          currentRank = index + 1;
-          player.rank = currentRank;
-        }
-      }
-    });
-    
-    return playerRankings;
-  };
-  
-  /**
-   * Rank players for "Closest Points" prize
-   * Primary: Points difference (low to high)
-   * Tie-breaker: Go back to previous weeks' points difference
-   */
-  const rankClosestPoints = (weekName) => {
-    const playerRankings = [];
-    
-    // Get all unique players
-    const uniquePlayers = {};
-    allPicks.forEach(pick => {
-      if (!uniquePlayers[pick.playerCode]) {
-        uniquePlayers[pick.playerCode] = pick.playerName;
-      }
-    });
-    
-    // Calculate rankings for each player
-    Object.keys(uniquePlayers).forEach(playerCode => {
-      const playerName = uniquePlayers[playerCode];
-      const weekDifference = calculateWeeklyTotal(playerCode, weekName);
-      
-      // Get previous weeks' differences for tie-breaking
-      const weekOrder = ['wildcard', 'divisional', 'conference', 'superbowl'];
-      const currentIndex = weekOrder.indexOf(weekName);
-      const previousWeeksDifference = [];
-      
-      for (let i = currentIndex - 1; i >= 0; i--) {
-        previousWeeksDifference.push({
-          week: weekOrder[i],
-          difference: calculateWeeklyTotal(playerCode, weekOrder[i])
-        });
-      }
-      
-      playerRankings.push({
-        playerName,
-        playerCode,
-        weekDifference,
-        previousWeeksDifference
-      });
-    });
-    
-    // Sort by difference (low to high), then by previous weeks
-    playerRankings.sort((a, b) => {
-      // Primary: Week difference (lower is better)
-      if (a.weekDifference !== b.weekDifference) {
-        return a.weekDifference - b.weekDifference;
-      }
-      
-      // Secondary: Go back through previous weeks' differences
-      for (let i = 0; i < Math.min(a.previousWeeksDifference.length, b.previousWeeksDifference.length); i++) {
-        const aDiff = a.previousWeeksDifference[i].difference;
-        const bDiff = b.previousWeeksDifference[i].difference;
-        if (aDiff !== bDiff) {
-          return aDiff - bDiff; // Lower is better
-        }
-      }
-      
-      return 0; // Complete tie
-    });
-    
-    // Assign ranks
-    let currentRank = 1;
-    playerRankings.forEach((player, index) => {
-      if (index === 0) {
-        player.rank = 1;
-      } else {
-        const prev = playerRankings[index - 1];
-        
-        // Check if completely identical
-        const sameDifference = player.weekDifference === prev.weekDifference;
-        
-        let samePreviousWeeks = true;
-        for (let i = 0; i < player.previousWeeksDifference.length; i++) {
-          if (player.previousWeeksDifference[i].difference !== prev.previousWeeksDifference[i].difference) {
-            samePreviousWeeks = false;
-            break;
-          }
-        }
-        
-        if (sameDifference && samePreviousWeeks) {
-          player.rank = prev.rank; // Same rank (tie)
-          player.tied = true;
-        } else {
-          currentRank = index + 1;
-          player.rank = currentRank;
-        }
-      }
-    });
-    
-    return playerRankings;
-  };
-  
-  /**
-   * Rank players for "Correct Super Bowl Winner" prize (Prize #1 in Week 4)
-   * Primary: Picked correct SB winner
-   * Tie-breaker: Go back to Week 3, 2, 1 correct counts
-   */
-  const rankCorrectSuperBowlWinner = () => {
-    const playerRankings = [];
-    
-    // Get all unique players
-    const uniquePlayers = {};
-    allPicks.forEach(pick => {
-      if (!uniquePlayers[pick.playerCode]) {
-        uniquePlayers[pick.playerCode] = pick.playerName;
-      }
-    });
-    
-    Object.keys(uniquePlayers).forEach(playerCode => {
-      const playerName = uniquePlayers[playerCode];
-      const pickedCorrect = pickedCorrectSuperBowlWinner(playerCode);
-      
-      // Get weeks' POINTS DIFFERENCE for tie-breaking (NOT correct counts!)
-      const week4Difference = calculateWeeklyTotal(playerCode, 'superbowl');
-      const week3Difference = calculateWeeklyTotal(playerCode, 'conference');
-      const week2Difference = calculateWeeklyTotal(playerCode, 'divisional');
-      const week1Difference = calculateWeeklyTotal(playerCode, 'wildcard');
-      
-      playerRankings.push({
-        playerName,
-        playerCode,
-        pickedCorrect,
-        week4Difference,
-        week3Difference,
-        week2Difference,
-        week1Difference
-      });
-    });
-    
-    // Sort: Picked correct first (true before false), then by Week 4, 3, 2, 1 POINTS DIFFERENCE
-    playerRankings.sort((a, b) => {
-      // Primary: Picked correct (true comes before false)
-      if (a.pickedCorrect !== b.pickedCorrect) {
-        return b.pickedCorrect - a.pickedCorrect;
-      }
-      
-      // If both picked correct (or both didn't), tie-break by Week 4 POINTS
-      if (a.week4Difference !== b.week4Difference) {
-        return a.week4Difference - b.week4Difference; // Lower is better
-      }
-      
-      // If still tied, Week 3 POINTS
-      if (a.week3Difference !== b.week3Difference) {
-        return a.week3Difference - b.week3Difference; // Lower is better
-      }
-      
-      // If still tied, Week 2 POINTS
-      if (a.week2Difference !== b.week2Difference) {
-        return a.week2Difference - b.week2Difference; // Lower is better
-      }
-      
-      // If still tied, Week 1 POINTS
-      if (a.week1Difference !== b.week1Difference) {
-        return a.week1Difference - b.week1Difference; // Lower is better
-      }
-      
-      return 0; // Complete tie
-    });
-    
-    // Assign ranks
-    let currentRank = 1;
-    playerRankings.forEach((player, index) => {
-      if (index === 0) {
-        player.rank = 1;
-      } else {
-        const prev = playerRankings[index - 1];
-        
-        const sameCorrect = player.pickedCorrect === prev.pickedCorrect;
-        const sameWeek4 = player.week4Difference === prev.week4Difference;
-        const sameWeek3 = player.week3Difference === prev.week3Difference;
-        const sameWeek2 = player.week2Difference === prev.week2Difference;
-        const sameWeek1 = player.week1Difference === prev.week1Difference;
-        
-        if (sameCorrect && sameWeek4 && sameWeek3 && sameWeek2 && sameWeek1) {
-          player.rank = prev.rank;
-          player.tied = true;
-        } else {
-          currentRank = index + 1;
-          player.rank = currentRank;
-        }
-      }
-    });
-    
-    return playerRankings;
-  };
-  
-  /**
-   * Rank players for "Most Correct All 4 Weeks" (Prize #9)
-   * Primary: Total correct across all 4 weeks
-   * Tie-breaker: Grand total points difference, then Week 4, 3, 2, 1 POINTS DIFFERENCE
-   */
-  const rankMostCorrectAllWeeks = () => {
-    const playerRankings = [];
-    
-    const uniquePlayers = {};
-    allPicks.forEach(pick => {
-      if (!uniquePlayers[pick.playerCode]) {
-        uniquePlayers[pick.playerCode] = pick.playerName;
-      }
-    });
-    
-    Object.keys(uniquePlayers).forEach(playerCode => {
-      const playerName = uniquePlayers[playerCode];
-      const totalCorrect = calculateTotalCorrectWinners(playerCode);
-      const grandDifference = calculateGrandTotal(playerCode);
-      
-      // Get POINTS DIFFERENCE for each week (not correct counts!)
-      const week4Difference = calculateWeeklyTotal(playerCode, 'superbowl');
-      const week3Difference = calculateWeeklyTotal(playerCode, 'conference');
-      const week2Difference = calculateWeeklyTotal(playerCode, 'divisional');
-      const week1Difference = calculateWeeklyTotal(playerCode, 'wildcard');
-      
-      playerRankings.push({
-        playerName,
-        playerCode,
-        totalCorrect,
-        grandDifference,
-        week4Difference,
-        week3Difference,
-        week2Difference,
-        week1Difference
-      });
-    });
-    
-    // Sort
-    playerRankings.sort((a, b) => {
-      // Primary: Total correct (higher is better)
-      if (b.totalCorrect !== a.totalCorrect) {
-        return b.totalCorrect - a.totalCorrect;
-      }
-      
-      // Secondary: Grand total difference (lower is better)
-      if (a.grandDifference !== b.grandDifference) {
-        return a.grandDifference - b.grandDifference;
-      }
-      
-      // Tertiary: Week 4, 3, 2, 1 POINTS DIFFERENCE (lower is better)
-      if (a.week4Difference !== b.week4Difference) return a.week4Difference - b.week4Difference;
-      if (a.week3Difference !== b.week3Difference) return a.week3Difference - b.week3Difference;
-      if (a.week2Difference !== b.week2Difference) return a.week2Difference - b.week2Difference;
-      if (a.week1Difference !== b.week1Difference) return a.week1Difference - b.week1Difference;
-      
-      return 0;
-    });
-    
-    // Assign ranks
-    let currentRank = 1;
-    playerRankings.forEach((player, index) => {
-      if (index === 0) {
-        player.rank = 1;
-      } else {
-        const prev = playerRankings[index - 1];
-        
-        if (player.totalCorrect === prev.totalCorrect &&
-            player.grandDifference === prev.grandDifference &&
-            player.week4Difference === prev.week4Difference &&
-            player.week3Difference === prev.week3Difference &&
-            player.week2Difference === prev.week2Difference &&
-            player.week1Difference === prev.week1Difference) {
-          player.rank = prev.rank;
-          player.tied = true;
-        } else {
-          currentRank = index + 1;
-          player.rank = currentRank;
-        }
-      }
-    });
-    
-    return playerRankings;
-  };
-  
-  /**
-   * Rank players for "Closest Points All 4 Weeks" (Prize #4 in Week 4)
-   * Primary: Grand total difference (low to high)
-   * Tie-breaker: Week 4, 3, 2, 1 differences
-   */
-  const rankClosestPointsAllWeeks = () => {
-    const playerRankings = [];
-    
-    const uniquePlayers = {};
-    allPicks.forEach(pick => {
-      if (!uniquePlayers[pick.playerCode]) {
-        uniquePlayers[pick.playerCode] = pick.playerName;
-      }
-    });
-    
-    Object.keys(uniquePlayers).forEach(playerCode => {
-      const playerName = uniquePlayers[playerCode];
-      const grandDifference = calculateGrandTotal(playerCode);
-      
-      const week4Difference = calculateWeeklyTotal(playerCode, 'superbowl');
-      const week3Difference = calculateWeeklyTotal(playerCode, 'conference');
-      const week2Difference = calculateWeeklyTotal(playerCode, 'divisional');
-      const week1Difference = calculateWeeklyTotal(playerCode, 'wildcard');
-      
-      playerRankings.push({
-        playerName,
-        playerCode,
-        grandDifference,
-        week4Difference,
-        week3Difference,
-        week2Difference,
-        week1Difference
-      });
-    });
-    
-    // Sort
-    playerRankings.sort((a, b) => {
-      // Primary: Grand difference (lower is better)
-      if (a.grandDifference !== b.grandDifference) {
-        return a.grandDifference - b.grandDifference;
-      }
-      
-      // Tie-breaker: Week 4, 3, 2, 1 differences (lower is better)
-      if (a.week4Difference !== b.week4Difference) return a.week4Difference - b.week4Difference;
-      if (a.week3Difference !== b.week3Difference) return a.week3Difference - b.week3Difference;
-      if (a.week2Difference !== b.week2Difference) return a.week2Difference - b.week2Difference;
-      if (a.week1Difference !== b.week1Difference) return a.week1Difference - b.week1Difference;
-      
-      return 0;
-    });
-    
-    // Assign ranks
-    let currentRank = 1;
-    playerRankings.forEach((player, index) => {
-      if (index === 0) {
-        player.rank = 1;
-      } else {
-        const prev = playerRankings[index - 1];
-        
-        if (player.grandDifference === prev.grandDifference &&
-            player.week4Difference === prev.week4Difference &&
-            player.week3Difference === prev.week3Difference &&
-            player.week2Difference === prev.week2Difference &&
-            player.week1Difference === prev.week1Difference) {
-          player.rank = prev.rank;
-          player.tied = true;
-        } else {
-          currentRank = index + 1;
-          player.rank = currentRank;
-        }
-      }
-    });
-    
-    return playerRankings;
-  };
-  
-  /**
-   * Rank players for "Closest Super Bowl Points" (Prize #8)
-   * Primary: Closest to SB total points
-   * Tie-breaker: Week 3, 2, 1 differences (SKIP Week 4 since it's redundant with SB)
-   */
-  const rankClosestSuperBowlPoints = () => {
-    const playerRankings = [];
-    
-    const uniquePlayers = {};
-    allPicks.forEach(pick => {
-      if (!uniquePlayers[pick.playerCode]) {
-        uniquePlayers[pick.playerCode] = pick.playerName;
-      }
-    });
-    
-    Object.keys(uniquePlayers).forEach(playerCode => {
-      const playerName = uniquePlayers[playerCode];
-      const sbDifference = calculateWeeklyTotal(playerCode, 'superbowl');
-      
-      // SKIP Week 4 for tie-breaking (it's the same as SB!)
-      const week3Difference = calculateWeeklyTotal(playerCode, 'conference');
-      const week2Difference = calculateWeeklyTotal(playerCode, 'divisional');
-      const week1Difference = calculateWeeklyTotal(playerCode, 'wildcard');
-      
-      playerRankings.push({
-        playerName,
-        playerCode,
-        weekDifference: sbDifference, // For display compatibility
-        week3Difference,
-        week2Difference,
-        week1Difference
-      });
-    });
-    
-    // Sort: SB difference first, then Week 3, 2, 1 (SKIP Week 4)
-    playerRankings.sort((a, b) => {
-      // Primary: SB difference (lower is better)
-      if (a.weekDifference !== b.weekDifference) {
-        return a.weekDifference - b.weekDifference;
-      }
-      
-      // Tie-breaker: Week 3 (SKIP Week 4!)
-      if (a.week3Difference !== b.week3Difference) {
-        return a.week3Difference - b.week3Difference;
-      }
-      
-      // If still tied, Week 2
-      if (a.week2Difference !== b.week2Difference) {
-        return a.week2Difference - b.week2Difference;
-      }
-      
-      // If still tied, Week 1
-      if (a.week1Difference !== b.week1Difference) {
-        return a.week1Difference - b.week1Difference;
-      }
-      
-      return 0; // Complete tie
-    });
-    
-    // Assign ranks
-    let currentRank = 1;
-    playerRankings.forEach((player, index) => {
-      if (index === 0) {
-        player.rank = 1;
-      } else {
-        const prev = playerRankings[index - 1];
-        
-        if (player.weekDifference === prev.weekDifference &&
-            player.week3Difference === prev.week3Difference &&
-            player.week2Difference === prev.week2Difference &&
-            player.week1Difference === prev.week1Difference) {
-          player.rank = prev.rank;
-          player.tied = true;
-        } else {
-          currentRank = index + 1;
-          player.rank = currentRank;
-        }
-      }
-    });
-    
-    return playerRankings;
   };
 
   // ============================================
@@ -6757,18 +6299,6 @@ const calculateAllPrizeWinners = () => {
             officialWinners={officialWinners}
             publishedWinners={publishedWinners}
             onLogout={handleLogout}
-            weekCompletionStatus={weekCompletionStatus}
-            rankMostCorrectWinners={rankMostCorrectWinners}
-            rankClosestPoints={rankClosestPoints}
-            rankCorrectSuperBowlWinner={rankCorrectSuperBowlWinner}
-            rankClosestSuperBowlPoints={rankClosestSuperBowlPoints}
-            rankMostCorrectAllWeeks={rankMostCorrectAllWeeks}
-            rankClosestPointsAllWeeks={rankClosestPointsAllWeeks}
-            isWeekComplete={isWeekComplete}
-            calculateCorrectWinners={calculateCorrectWinners}
-            calculateWeeklyTotal={calculateWeeklyTotal}
-            calculateTotalCorrectWinners={calculateTotalCorrectWinners}
-            calculateGrandTotal={calculateGrandTotal}
           />) : currentView === 'winners' && codeValidated ? (
           <HowWinnersAreDetermined 
             calculatedWinners={calculatedWinners}
@@ -8800,6 +8330,52 @@ const calculateAllPrizeWinners = () => {
                     >
                       💰 Set Up Prize Pool
                     </button>
+                    
+                    {/* 🎯 PERFECT SCORE TEST BUTTON */}
+                    {prizePool.perfectScoreBonusEnabled && (
+                      <button
+                        onClick={() => {
+                          const results = calculatePerfectScoreWinners();
+                          console.log('🎯 Perfect Score Results:', results);
+                          
+                          if (!results.hasWinners) {
+                            alert(
+                              `🎯 PERFECT SCORE BONUS - NO WINNERS\n\n` +
+                              `Total Perfect Scores: ${results.totalPerfectScores}\n` +
+                              `Prize Amount: $${results.rollbackAmount?.toFixed(2) || 0}\n\n` +
+                              `Money will be redistributed:\n` +
+                              `$${(results.rollbackAmount / 10).toFixed(2)} added to each of 10 prizes`
+                            );
+                          } else {
+                            const winnersList = results.winners.map(w => 
+                              `${w.playerName}: ${w.perfectScores} perfect × $${results.prizePerScore.toFixed(2)} = $${w.prizeAmount.toFixed(2)}`
+                            ).join('\n');
+                            
+                            alert(
+                              `🎯 PERFECT SCORE BONUS WINNERS!\n\n` +
+                              `Total Perfect Scores: ${results.totalPerfectScores}\n` +
+                              `Prize Pool: $${results.prizeAmount.toFixed(2)}\n` +
+                              `Per Perfect Score: $${results.prizePerScore.toFixed(2)}\n\n` +
+                              `WINNERS:\n${winnersList}`
+                            );
+                          }
+                        }}
+                        style={{
+                          marginTop: '15px',
+                          padding: '12px 20px',
+                          background: '#f39c12',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '8px',
+                          fontSize: '1rem',
+                          fontWeight: '600',
+                          cursor: 'pointer',
+                          width: '100%'
+                        }}
+                      >
+                        🎯 Test Perfect Score Calculation
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
@@ -8816,6 +8392,8 @@ const calculateAllPrizeWinners = () => {
                     onUnpublishWinners={handleUnpublishWinners}
                     isPoolManager={true}
                     totalPrizePool={prizePool.totalFees}
+                    prizePool={prizePool}
+                    calculatePerfectScoreWinners={calculatePerfectScoreWinners}
                     weekCompletionStatus={{
                       wildcard: weekCompletionStatus?.wildcard || false,
                       divisional: weekCompletionStatus?.divisional || false,

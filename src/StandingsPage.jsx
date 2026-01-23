@@ -4,22 +4,56 @@ import './StandingsPage.css';
 // Import scoring functions (we'll integrate these)
 // For now, we'll include the logic directly
 
-function StandingsPage({ allPicks, actualScores, gameStatus, currentWeek, playerName, playerCode, isPoolManager, prizePool, officialWinners, publishedWinners, onLogout }) {
+function StandingsPage({ 
+  allPicks, 
+  actualScores, 
+  gameStatus, 
+  currentWeek, 
+  playerName, 
+  playerCode, 
+  isPoolManager, 
+  prizePool, 
+  officialWinners, 
+  publishedWinners, 
+  onLogout,
+  weekCompletionStatus,
+  rankMostCorrectWinners,
+  rankClosestPoints,
+  rankCorrectSuperBowlWinner,
+  rankClosestSuperBowlPoints,
+  rankMostCorrectAllWeeks,
+  rankClosestPointsAllWeeks,
+  isWeekComplete,
+  calculateCorrectWinners,
+  calculateWeeklyTotal,
+  calculateTotalCorrectWinners,
+  calculateGrandTotal
+}) {
   
   // Track which prize week sections are expanded
   const [expandedPrizeWeeks, setExpandedPrizeWeeks] = useState({
     'Week 1': true,  // Default: Week 1 open
     'Week 2': false,
     'Week 3': false,
-    'Week 4': false,
-    'Grand Prizes': false
+    'Week 4': false
   });
+  
+  // Track which player lists are expanded (show all vs top 10)
+  const [expandedPlayerLists, setExpandedPlayerLists] = useState({});
 
   // Toggle a specific prize week section
   const togglePrizeWeek = (weekKey) => {
     setExpandedPrizeWeeks(prev => ({
       ...prev,
       [weekKey]: !prev[weekKey]
+    }));
+  };
+  
+  // Toggle player list expansion for a specific prize
+  const togglePlayerList = (prizeKey) => {
+    setExpandedPlayerLists(prev => ({
+      ...prev,
+      [prizeKey]: !prev[prizeKey]
     }));
   };
 
@@ -29,8 +63,7 @@ function StandingsPage({ allPicks, actualScores, gameStatus, currentWeek, player
       'Week 1': true,
       'Week 2': true,
       'Week 3': true,
-      'Week 4': true,
-      'Grand Prizes': true
+      'Week 4': true
     });
   };
 
@@ -40,8 +73,7 @@ function StandingsPage({ allPicks, actualScores, gameStatus, currentWeek, player
       'Week 1': false,
       'Week 2': false,
       'Week 3': false,
-      'Week 4': false,
-      'Grand Prizes': false
+      'Week 4': false
     });
   };
   
@@ -106,126 +138,9 @@ function StandingsPage({ allPicks, actualScores, gameStatus, currentWeek, player
   // ============================================
   // SCORING CALCULATION FUNCTIONS
   // ============================================
-  
-  /**
-   * Calculate how many games a player predicted the winner correctly
-   */
-  const calculateCorrectWinners = (playerPicks, actualScores, week) => {
-    if (!playerPicks || !actualScores || !actualScores[week]) {
-      return 0;
-    }
-
-    let correctCount = 0;
-    const weekScores = actualScores[week];
-
-    Object.keys(playerPicks).forEach(gameId => {
-      const prediction = playerPicks[gameId];
-      const actual = weekScores[gameId];
-
-      if (!prediction || !actual) return;
-
-      const predTeam1 = parseInt(prediction.team1);
-      const predTeam2 = parseInt(prediction.team2);
-      const actualTeam1 = parseInt(actual.team1);
-      const actualTeam2 = parseInt(actual.team2);
-
-      if (isNaN(predTeam1) || isNaN(predTeam2) || isNaN(actualTeam1) || isNaN(actualTeam2)) {
-        return;
-      }
-
-      // Determine winners
-      const predWinner = predTeam1 > predTeam2 ? 'team1' : predTeam2 > predTeam1 ? 'team2' : 'tie';
-      const actualWinner = actualTeam1 > actualTeam2 ? 'team1' : actualTeam2 > actualTeam1 ? 'team2' : 'tie';
-
-      if (predWinner === actualWinner && actualWinner !== 'tie') {
-        correctCount++;
-      }
-    });
-
-    return correctCount;
-  };
-
-  /**
-   * Calculate absolute difference between predicted and actual total points
-   */
-  const calculatePointsDifference = (playerPicks, actualScores, week) => {
-    if (!playerPicks || !actualScores || !actualScores[week]) {
-      return null;
-    }
-
-    let predictedTotal = 0;
-    let actualTotal = 0;
-    const weekScores = actualScores[week];
-
-    Object.keys(playerPicks).forEach(gameId => {
-      const prediction = playerPicks[gameId];
-      const actual = weekScores[gameId];
-
-      if (!prediction || !actual) return;
-
-      const predTeam1 = parseInt(prediction.team1);
-      const predTeam2 = parseInt(prediction.team2);
-      const actualTeam1 = parseInt(actual.team1);
-      const actualTeam2 = parseInt(actual.team2);
-
-      if (isNaN(predTeam1) || isNaN(predTeam2) || isNaN(actualTeam1) || isNaN(actualTeam2)) {
-        return;
-      }
-
-      predictedTotal += predTeam1 + predTeam2;
-      actualTotal += actualTeam1 + actualTeam2;
-    });
-
-    return Math.abs(predictedTotal - actualTotal);
-  };
-
-  /**
-   * Calculate cumulative stats across multiple weeks
-   */
-  const calculateCumulativeStats = (playerPicks, actualScores, weeks) => {
-    let totalCorrectWinners = 0;
-    let totalPointsDifference = 0;
-
-    weeks.forEach(week => {
-      const weekPick = playerPicks[week];
-      if (weekPick) {
-        totalCorrectWinners += calculateCorrectWinners(weekPick, actualScores, week);
-        const weekDiff = calculatePointsDifference(weekPick, actualScores, week);
-        if (weekDiff !== null) {
-          totalPointsDifference += weekDiff;
-        }
-      }
-    });
-
-    return {
-      correctWinners: totalCorrectWinners,
-      pointsDifference: totalPointsDifference
-    };
-  };
-
-  // ============================================
-  // CHECK IF ALL GAMES ARE FINAL
+  // CONVERSION HELPERS
   // ============================================
   
-  /**
-   * Check if all games for a specific week are final
-   */
-  const areAllGamesFinal = (week) => {
-    if (!gameStatus || !gameStatus[week]) {
-      return false;
-    }
-    
-    const weekStatuses = gameStatus[week];
-    const statusValues = Object.values(weekStatuses);
-    
-    // Return true only if ALL games have status 'final'
-    return statusValues.length > 0 && statusValues.every(status => status === 'final');
-  };
-
-  // ============================================
-  // PROCESS DATA FOR STANDINGS
-  // ============================================
-
   const weekMapping = {
     'wildcard': 'Week 1',
     'divisional': 'Week 2',
@@ -233,166 +148,306 @@ function StandingsPage({ allPicks, actualScores, gameStatus, currentWeek, player
     'superbowl': 'Week 4'
   };
 
-  // Group picks by player
-  const playerData = useMemo(() => {
-    const players = {};
-
-    allPicks.forEach(pick => {
-      const playerName = pick.playerName;
-      if (!players[playerName]) {
-        players[playerName] = {
-          wildcard: null,
-          divisional: null,
-          conference: null,
-          superbowl: null
-        };
-      }
-      players[playerName][pick.week] = pick.predictions;
-    });
-
-    return players;
-  }, [allPicks]);
-
   // ============================================
-  // CALCULATE PRIZE LEADERS
+  // PROCESS DATA FOR STANDINGS
   // ============================================
 
+  // ============================================
+  // NEW PRIZE LEADERS USING RANKING FUNCTIONS
+  // ============================================
+  
   const prizeLeaders = useMemo(() => {
     const prizes = [];
 
-    const weeks = ['wildcard', 'divisional', 'conference', 'superbowl'];
-
-    // Prizes 1-6: Weekly prizes
-    weeks.slice(0, 3).forEach((week, weekIndex) => {
-      const weekName = weekMapping[week];
-      
-      // Most Correct Predictions
-      const correctWinnersData = Object.entries(playerData)
-        .map(([playerName, picks]) => {
-          const correctWinners = calculateCorrectWinners(picks[week], actualScores, week);
-          const difference = calculatePointsDifference(picks[week], actualScores, week);
-          return {
-            playerName,
-            score: correctWinners,
-            difference: difference !== null ? difference : 9999
-          };
-        })
-        .filter(p => p.score > 0)
-        .sort((a, b) => {
-          // Sort by correct winners first
-          if (a.score !== b.score) {
-            return b.score - a.score;
-          }
-          // If tied, sort by difference (tiebreaker)
-          return a.difference - b.difference;
-        });
-
-      prizes.push({
-        prizeNumber: weekIndex * 2 + 1,
-        name: `${weekName} - Most Correct Predictions`,
-        week: week,
-        type: 'correctWinners',
-        leaders: correctWinnersData.slice(0, 5) // Top 5
-      });
-
-      // Closest Total Points
-      const pointsData = Object.entries(playerData)
-        .map(([playerName, picks]) => ({
-          playerName,
-          score: calculatePointsDifference(picks[week], actualScores, week)
-        }))
-        .filter(p => p.score !== null)
-        .sort((a, b) => a.score - b.score);
-
-      prizes.push({
-        prizeNumber: weekIndex * 2 + 2,
-        name: `${weekName} - Closest Total Points`,
-        week: week,
-        type: 'pointsDifference',
-        leaders: pointsData.slice(0, 5) // Top 5
-      });
+    // Week 1 (Wild Card)
+    const week1MostCorrect = rankMostCorrectWinners && rankMostCorrectWinners('wildcard');
+    const week1ClosestPoints = rankClosestPoints && rankClosestPoints('wildcard');
+    const week1Complete = isWeekComplete && isWeekComplete('wildcard');
+    
+    prizes.push({
+      prizeNumber: 1,
+      name: 'Most Correct NFL Winners',
+      week: 'wildcard',
+      weekName: 'Week 1',
+      type: 'correctWinners',
+      rankings: week1MostCorrect || [],
+      isComplete: week1Complete
+    });
+    
+    prizes.push({
+      prizeNumber: 2,
+      name: 'Closest Total Points',
+      week: 'wildcard',
+      weekName: 'Week 1',
+      type: 'pointsDifference',
+      rankings: week1ClosestPoints || [],
+      isComplete: week1Complete
     });
 
-    // Week 4 (Super Bowl) - 4 prizes
-    const superBowlWeek = 'superbowl';
+    // Week 2 (Divisional)
+    const week2MostCorrect = rankMostCorrectWinners && rankMostCorrectWinners('divisional');
+    const week2ClosestPoints = rankClosestPoints && rankClosestPoints('divisional');
+    const week2Complete = isWeekComplete && isWeekComplete('divisional');
     
-    // Prize 7: Week 4 Most Correct Predictions
-    const sb7Data = Object.entries(playerData)
-      .map(([playerName, picks]) => ({
-        playerName,
-        score: calculateCorrectWinners(picks[superBowlWeek], actualScores, superBowlWeek)
-      }))
-      .filter(p => p.score > 0)
-      .sort((a, b) => b.score - a.score);
+    prizes.push({
+      prizeNumber: 3,
+      name: 'Most Correct NFL Winners',
+      week: 'divisional',
+      weekName: 'Week 2',
+      type: 'correctWinners',
+      rankings: week2MostCorrect || [],
+      isComplete: week2Complete
+    });
+    
+    prizes.push({
+      prizeNumber: 4,
+      name: 'Closest Total Points',
+      week: 'divisional',
+      weekName: 'Week 2',
+      type: 'pointsDifference',
+      rankings: week2ClosestPoints || [],
+      isComplete: week2Complete
+    });
 
+    // Week 3 (Conference)
+    const week3MostCorrect = rankMostCorrectWinners && rankMostCorrectWinners('conference');
+    const week3ClosestPoints = rankClosestPoints && rankClosestPoints('conference');
+    const week3Complete = isWeekComplete && isWeekComplete('conference');
+    
+    prizes.push({
+      prizeNumber: 5,
+      name: 'Most Correct NFL Winners',
+      week: 'conference',
+      weekName: 'Week 3',
+      type: 'correctWinners',
+      rankings: week3MostCorrect || [],
+      isComplete: week3Complete
+    });
+    
+    prizes.push({
+      prizeNumber: 6,
+      name: 'Closest Total Points',
+      week: 'conference',
+      weekName: 'Week 3',
+      type: 'pointsDifference',
+      rankings: week3ClosestPoints || [],
+      isComplete: week3Complete
+    });
+
+    // Week 4 (Super Bowl) - FOUR PRIZES!
+    const sbWinnerRankings = rankCorrectSuperBowlWinner && rankCorrectSuperBowlWinner();
+    const sbPointsRankings = rankClosestSuperBowlPoints && rankClosestSuperBowlPoints();
+    const allWeeksMostCorrect = rankMostCorrectAllWeeks && rankMostCorrectAllWeeks();
+    const allWeeksClosestPoints = rankClosestPointsAllWeeks && rankClosestPointsAllWeeks();
+    const week4Complete = isWeekComplete && isWeekComplete('superbowl');
+    
     prizes.push({
       prizeNumber: 7,
-      name: 'Week 4 - Most Correct Predictions',
-      week: superBowlWeek,
-      type: 'correctWinners',
-      leaders: sb7Data.slice(0, 5)
+      name: 'Correct Super Bowl Winner',
+      subname: '(Super Bowl game only)',
+      week: 'superbowl',
+      weekName: 'Week 4',
+      type: 'superBowlWinner',
+      rankings: sbWinnerRankings || [],
+      isComplete: week4Complete
     });
-
-    // Prize 8: Week 4 Closest Total Points
-    const sb8Data = Object.entries(playerData)
-      .map(([playerName, picks]) => ({
-        playerName,
-        score: calculatePointsDifference(picks[superBowlWeek], actualScores, superBowlWeek)
-      }))
-      .filter(p => p.score !== null)
-      .sort((a, b) => a.score - b.score);
-
+    
     prizes.push({
       prizeNumber: 8,
-      name: 'Week 4 - Closest Total Points',
-      week: superBowlWeek,
+      name: 'Closest Super Bowl Points',
+      subname: '(Super Bowl game only)',
+      week: 'superbowl',
+      weekName: 'Week 4',
       type: 'pointsDifference',
-      leaders: sb8Data.slice(0, 5)
+      rankings: sbPointsRankings || [],
+      isComplete: week4Complete
     });
-
-    // Prize 9: Cumulative Most Correct Predictions (All 4 Weeks)
-    const cumulativeWinnersData = Object.entries(playerData)
-      .map(([playerName, picks]) => {
-        const stats = calculateCumulativeStats(picks, actualScores, weeks);
-        return {
-          playerName,
-          score: stats.correctWinners
-        };
-      })
-      .filter(p => p.score > 0)
-      .sort((a, b) => b.score - a.score);
-
+    
     prizes.push({
       prizeNumber: 9,
-      name: 'Cumulative (All 4 Weeks) - Most Correct Predictions',
+      name: 'Most Correct NFL Winners',
+      subname: '(Entire 4-week playoffs)',
       week: 'all',
-      type: 'correctWinners',
-      leaders: cumulativeWinnersData.slice(0, 5)
+      weekName: 'Week 4',
+      type: 'correctWinnersAll',
+      rankings: allWeeksMostCorrect || [],
+      isComplete: week4Complete
     });
-
-    // Prize 10: Cumulative Closest Total Points (All 4 Weeks)
-    const cumulativePointsData = Object.entries(playerData)
-      .map(([playerName, picks]) => {
-        const stats = calculateCumulativeStats(picks, actualScores, weeks);
-        return {
-          playerName,
-          score: stats.pointsDifference
-        };
-      })
-      .filter(p => p.score !== null && p.score >= 0)
-      .sort((a, b) => a.score - b.score);
-
+    
     prizes.push({
       prizeNumber: 10,
-      name: 'Cumulative (All 4 Weeks) - Closest Total Points',
+      name: 'Closest Total Points',
+      subname: '(Entire 4-week playoffs)',
       week: 'all',
-      type: 'pointsDifference',
-      leaders: cumulativePointsData.slice(0, 5)
+      weekName: 'Week 4',
+      type: 'pointsDifferenceAll',
+      rankings: allWeeksClosestPoints || [],
+      isComplete: week4Complete
     });
 
     return prizes;
-  }, [playerData, actualScores]);
-
+  }, [
+    rankMostCorrectWinners,
+    rankClosestPoints,
+    rankCorrectSuperBowlWinner,
+    rankClosestSuperBowlPoints,
+    rankMostCorrectAllWeeks,
+    rankClosestPointsAllWeeks,
+    isWeekComplete
+  ]);
+  
+  // ============================================
+  // HELPER: RENDER PRIZE CARD WITH RANKINGS
+  // ============================================
+  
+  const renderPrizeCard = (prize) => {
+    const prizeKey = `prize${prize.prizeNumber}`;
+    const isExpanded = expandedPlayerLists[prizeKey] || false;
+    const rankings = prize.rankings || [];
+    const displayCount = isExpanded ? rankings.length : Math.min(10, rankings.length);
+    const displayRankings = rankings.slice(0, displayCount);
+    
+    // Determine tooltip text
+    let tooltipText = '';
+    if (prize.type === 'correctWinners' || prize.type === 'correctWinnersAll' || prize.type === 'superBowlWinner') {
+      tooltipText = 'Players who correctly predicted the most winning teams';
+    } else {
+      tooltipText = 'Players whose predicted scores were closest to actual scores';
+    }
+    
+    // Format display value based on type
+    const formatDisplayValue = (ranking) => {
+      if (prize.type === 'correctWinners') {
+        return `${ranking.correctCount} correct (${ranking.weekDifference} pts diff)`;
+      } else if (prize.type === 'correctWinnersAll') {
+        return `${ranking.totalCorrect} correct (${ranking.grandDifference} pts diff)`;
+      } else if (prize.type === 'superBowlWinner') {
+        // Prize #7 now uses POINTS DIFFERENCE for tie-breaking (not correct counts!)
+        return ranking.pickedCorrect 
+          ? `✅ Correct (W4:${ranking.week4Difference}, W3:${ranking.week3Difference}, W2:${ranking.week2Difference}, W1:${ranking.week1Difference})`
+          : `❌ Incorrect (W4:${ranking.week4Difference}, W3:${ranking.week3Difference}, W2:${ranking.week2Difference}, W1:${ranking.week1Difference})`;
+      } else if (prize.type === 'pointsDifference') {
+        return `${ranking.weekDifference} pts off`;
+      } else if (prize.type === 'pointsDifferenceAll') {
+        const breakdown = `W1:${ranking.week1Difference}, W2:${ranking.week2Difference}, W3:${ranking.week3Difference}, W4:${ranking.week4Difference}`;
+        return `${ranking.grandDifference} pts off (${breakdown})`;
+      }
+      return '-';
+    };
+    
+    return (
+      <div key={prize.prizeNumber} className="prize-card">
+        <div className="prize-header">
+          <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '5px'}}>
+            <div className="prize-number">PRIZE #{prize.prizeNumber}</div>
+            <div 
+              title={tooltipText}
+              style={{
+                cursor: 'help',
+                fontSize: '1.1rem',
+                opacity: 0.7,
+                transition: 'opacity 0.2s'
+              }}
+              onMouseOver={(e) => e.target.style.opacity = '1'}
+              onMouseOut={(e) => e.target.style.opacity = '0.7'}
+            >
+              ℹ️
+            </div>
+          </div>
+          <div className="prize-name">{prize.name}</div>
+          {prize.subname && (
+            <div style={{fontSize: '0.85rem', color: '#666', fontStyle: 'italic'}}>
+              {prize.subname}
+            </div>
+          )}
+          <div style={{
+            fontSize: '0.85rem',
+            color: '#666',
+            fontWeight: '600',
+            marginTop: '5px',
+            fontStyle: 'italic'
+          }}>
+            Current Standings
+          </div>
+        </div>
+        
+        <div className="prize-leaders">
+          {rankings.length === 0 ? (
+            <div className="no-data">No data available yet</div>
+          ) : (
+            <>
+              <table className="leaders-table">
+                <thead>
+                  <tr>
+                    <th>Rank</th>
+                    <th>Player</th>
+                    <th>Score</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {displayRankings.map((ranking, idx) => {
+                    const isRank1 = ranking.rank === 1;
+                    const statusLabel = prize.isComplete ? 'WINNER' : 'LEADING';
+                    const statusColor = prize.isComplete ? '#28a745' : '#4facfe';
+                    
+                    return (
+                      <tr key={idx} className={isRank1 ? 'leader-first' : ''}>
+                        <td className="rank">
+                          {ranking.rank}
+                          {ranking.tied && <span style={{color: '#ff9800', marginLeft: '5px', fontSize: '0.8em'}}>(tied)</span>}
+                          {isRank1 && <span style={{marginLeft: '5px', fontSize: '0.8em'}}>👑</span>}
+                        </td>
+                        <td className="player-name">
+                          {ranking.playerName}
+                          {isRank1 && (
+                            <span style={{
+                              marginLeft: '8px',
+                              fontSize: '0.7rem',
+                              background: statusColor,
+                              color: 'white',
+                              padding: '2px 6px',
+                              borderRadius: '4px',
+                              fontWeight: '600'
+                            }}>
+                              ✅ {statusLabel}
+                            </span>
+                          )}
+                        </td>
+                        <td className="score">
+                          {formatDisplayValue(ranking)}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+              
+              {rankings.length > 10 && (
+                <button
+                  onClick={() => togglePlayerList(prizeKey)}
+                  style={{
+                    marginTop: '15px',
+                    padding: '8px 16px',
+                    background: '#667eea',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '0.9rem',
+                    fontWeight: '600',
+                    width: '100%'
+                  }}
+                >
+                  {isExpanded ? `▲ Show Top 10 Only` : `▼ Show All ${rankings.length} Players`}
+                </button>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+    );
+  };
+  
   // ============================================
   // RENDER
   // ============================================
@@ -709,116 +764,7 @@ function StandingsPage({ allPicks, actualScores, gameStatus, currentWeek, player
           
           {expandedPrizeWeeks['Week 1'] && (
             <div className="prizes-grid">
-              {prizeLeaders.filter(p => p.prizeNumber >= 1 && p.prizeNumber <= 2).map(prize => {
-                const tooltipText = prize.type === 'correctWinners' 
-                  ? 'Players who correctly predicted the most game outcomes (which team won)'
-                  : 'Players whose predicted total scores were closest to the actual combined scores';
-                
-                return (
-                  <div key={prize.prizeNumber} className="prize-card">
-                    <div className="prize-header">
-                      <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '5px'}}>
-                        <div className="prize-number">PRIZE #{prize.prizeNumber}</div>
-                        <div 
-                          title={tooltipText}
-                          style={{
-                            cursor: 'help',
-                            fontSize: '1.1rem',
-                            opacity: 0.7,
-                            transition: 'opacity 0.2s'
-                          }}
-                          onMouseOver={(e) => e.target.style.opacity = '1'}
-                          onMouseOut={(e) => e.target.style.opacity = '0.7'}
-                        >
-                          ℹ️
-                        </div>
-                      </div>
-                      <div className="prize-name">{prize.name}</div>
-                      <div style={{
-                        fontSize: '0.85rem',
-                        color: '#666',
-                        fontWeight: '600',
-                        marginTop: '5px',
-                        fontStyle: 'italic'
-                      }}>
-                        Current Leaders
-                      </div>
-                    </div>
-                    
-                    <div className="prize-leaders">
-                      {prize.leaders.length === 0 ? (
-                        <div className="no-data">No data available yet</div>
-                      ) : (
-                        <table className="leaders-table">
-                          <thead>
-                            <tr>
-                              <th>Rank</th>
-                              <th>Player</th>
-                              <th>{prize.type === 'correctWinners' ? 'Correct' : 'Difference'}</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {prize.leaders.map((leader, idx) => {
-                              const isTied = idx > 0 && leader.score === prize.leaders[idx - 1].score;
-                              const displayRank = isTied ? '=' : idx + 1;
-                              const isLeading = idx === 0 && !isTied;
-                              
-                              return (
-                                <tr key={idx} className={isLeading ? 'leader-first' : ''}>
-                                  <td className="rank">
-                                    {displayRank}
-                                    {isLeading && <span style={{marginLeft: '5px', fontSize: '0.8em'}}>👑</span>}
-                                  </td>
-                                  <td className="player-name">
-                                    {leader.playerName}
-                                    {isLeading && (() => {
-                                      // Check if winners are officially published by prize number
-                                      const pn = prize.prizeNumber;
-                                      let isPublished = false;
-                                      
-                                      if (pn === 1 || pn === 2) {
-                                        isPublished = publishedWinners?.week1_prize1 && publishedWinners?.week1_prize2;
-                                      } else if (pn === 3 || pn === 4) {
-                                        isPublished = publishedWinners?.week2_prize1 && publishedWinners?.week2_prize2;
-                                      } else if (pn === 5 || pn === 6) {
-                                        isPublished = publishedWinners?.week3_prize1 && publishedWinners?.week3_prize2;
-                                      } else if (pn === 7 || pn === 8) {
-                                        isPublished = publishedWinners?.week4_prize1 && publishedWinners?.week4_prize2;
-                                      } else if (pn === 9 || pn === 10) {
-                                        isPublished = publishedWinners?.grand_prize1 && publishedWinners?.grand_prize2;
-                                      }
-                                      
-                                      return (
-                                        <span style={{
-                                          marginLeft: '8px',
-                                          fontSize: '0.7rem',
-                                          background: isPublished ? '#28a745' : '#4facfe',
-                                          color: 'white',
-                                          padding: '2px 6px',
-                                          borderRadius: '4px',
-                                          fontWeight: '600'
-                                        }}>
-                                          {isPublished ? 'WINNER' : 'LEADING'}
-                                        </span>
-                                      );
-                                    })()}
-                                  </td>
-                                  <td className="score">
-                                    {prize.type === 'correctWinners' 
-                                      ? `${leader.score} correct` 
-                                      : `${leader.score} pts`
-                                    }
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
+              {prizeLeaders.filter(p => p.prizeNumber >= 1 && p.prizeNumber <= 2).map(prize => renderPrizeCard(prize))}
             </div>
           )}
         </div>
@@ -859,103 +805,7 @@ function StandingsPage({ allPicks, actualScores, gameStatus, currentWeek, player
           
           {expandedPrizeWeeks['Week 2'] && (
             <div className="prizes-grid">
-              {prizeLeaders.filter(p => p.prizeNumber >= 3 && p.prizeNumber <= 4).map(prize => {
-                const tooltipText = prize.type === 'correctWinners' 
-                  ? 'Players who correctly predicted the most game outcomes (which team won)'
-                  : 'Players whose predicted total scores were closest to the actual combined scores';
-                
-                return (
-                  <div key={prize.prizeNumber} className="prize-card">
-                    <div className="prize-header">
-                      <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '5px'}}>
-                        <div className="prize-number">PRIZE #{prize.prizeNumber}</div>
-                        <div 
-                          title={tooltipText}
-                          style={{
-                            cursor: 'help',
-                            fontSize: '1.1rem',
-                            opacity: 0.7,
-                            transition: 'opacity 0.2s'
-                          }}
-                          onMouseOver={(e) => e.target.style.opacity = '1'}
-                          onMouseOut={(e) => e.target.style.opacity = '0.7'}
-                        >
-                          ℹ️
-                        </div>
-                      </div>
-                      <div className="prize-name">{prize.name}</div>
-                      <div style={{
-                        fontSize: '0.85rem',
-                        color: '#666',
-                        fontWeight: '600',
-                        marginTop: '5px',
-                        fontStyle: 'italic'
-                      }}>
-                        Current Leaders
-                      </div>
-                    </div>
-                    
-                    <div className="prize-leaders">
-                      {prize.leaders.length === 0 ? (
-                        <div className="no-data">No data available yet</div>
-                      ) : (
-                        <table className="leaders-table">
-                          <thead>
-                            <tr>
-                              <th>Rank</th>
-                              <th>Player</th>
-                              <th>{prize.type === 'correctWinners' ? 'Correct' : 'Difference'}</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {prize.leaders.map((leader, idx) => {
-                              const isTied = idx > 0 && leader.score === prize.leaders[idx - 1].score;
-                              const displayRank = isTied ? '=' : idx + 1;
-                              const isLeading = idx === 0 && !isTied;
-                              
-                              return (
-                                <tr key={idx} className={isLeading ? 'leader-first' : ''}>
-                                  <td className="rank">
-                                    {displayRank}
-                                    {isLeading && <span style={{marginLeft: '5px', fontSize: '0.8em'}}>👑</span>}
-                                  </td>
-                                  <td className="player-name">
-                                    {leader.playerName}
-                                    {isLeading && (() => {
-                                      // Week 2 is prizes 3-4
-                                      const isPublished = publishedWinners?.week2_prize1 && publishedWinners?.week2_prize2;
-                                      
-                                      return (
-                                        <span style={{
-                                          marginLeft: '8px',
-                                          fontSize: '0.7rem',
-                                          background: isPublished ? '#28a745' : '#4facfe',
-                                          color: 'white',
-                                          padding: '2px 6px',
-                                          borderRadius: '4px',
-                                          fontWeight: '600'
-                                        }}>
-                                          {isPublished ? 'WINNER' : 'LEADING'}
-                                        </span>
-                                      );
-                                    })()}
-                                  </td>
-                                  <td className="score">
-                                    {prize.type === 'correctWinners' 
-                                      ? `${leader.score} correct` 
-                                      : `${leader.score} pts`
-                                    }
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
+              {prizeLeaders.filter(p => p.prizeNumber >= 3 && p.prizeNumber <= 4).map(prize => renderPrizeCard(prize))}
             </div>
           )}
         </div>
@@ -996,103 +846,7 @@ function StandingsPage({ allPicks, actualScores, gameStatus, currentWeek, player
           
           {expandedPrizeWeeks['Week 3'] && (
             <div className="prizes-grid">
-              {prizeLeaders.filter(p => p.prizeNumber >= 5 && p.prizeNumber <= 6).map(prize => {
-                const tooltipText = prize.type === 'correctWinners' 
-                  ? 'Players who correctly predicted the most game outcomes (which team won)'
-                  : 'Players whose predicted total scores were closest to the actual combined scores';
-                
-                return (
-                  <div key={prize.prizeNumber} className="prize-card">
-                    <div className="prize-header">
-                      <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '5px'}}>
-                        <div className="prize-number">PRIZE #{prize.prizeNumber}</div>
-                        <div 
-                          title={tooltipText}
-                          style={{
-                            cursor: 'help',
-                            fontSize: '1.1rem',
-                            opacity: 0.7,
-                            transition: 'opacity 0.2s'
-                          }}
-                          onMouseOver={(e) => e.target.style.opacity = '1'}
-                          onMouseOut={(e) => e.target.style.opacity = '0.7'}
-                        >
-                          ℹ️
-                        </div>
-                      </div>
-                      <div className="prize-name">{prize.name}</div>
-                      <div style={{
-                        fontSize: '0.85rem',
-                        color: '#666',
-                        fontWeight: '600',
-                        marginTop: '5px',
-                        fontStyle: 'italic'
-                      }}>
-                        Current Leaders
-                      </div>
-                    </div>
-                    
-                    <div className="prize-leaders">
-                      {prize.leaders.length === 0 ? (
-                        <div className="no-data">No data available yet</div>
-                      ) : (
-                        <table className="leaders-table">
-                          <thead>
-                            <tr>
-                              <th>Rank</th>
-                              <th>Player</th>
-                              <th>{prize.type === 'correctWinners' ? 'Correct' : 'Difference'}</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {prize.leaders.map((leader, idx) => {
-                              const isTied = idx > 0 && leader.score === prize.leaders[idx - 1].score;
-                              const displayRank = isTied ? '=' : idx + 1;
-                              const isLeading = idx === 0 && !isTied;
-                              
-                              return (
-                                <tr key={idx} className={isLeading ? 'leader-first' : ''}>
-                                  <td className="rank">
-                                    {displayRank}
-                                    {isLeading && <span style={{marginLeft: '5px', fontSize: '0.8em'}}>👑</span>}
-                                  </td>
-                                  <td className="player-name">
-                                    {leader.playerName}
-                                    {isLeading && (() => {
-                                      // Grand prizes are 9-10
-                                      const isPublished = publishedWinners?.grand_prize1 && publishedWinners?.grand_prize2;
-                                      
-                                      return (
-                                        <span style={{
-                                          marginLeft: '8px',
-                                          fontSize: '0.7rem',
-                                          background: isPublished ? '#28a745' : '#4facfe',
-                                          color: 'white',
-                                          padding: '2px 6px',
-                                          borderRadius: '4px',
-                                          fontWeight: '600'
-                                        }}>
-                                          {isPublished ? 'WINNER' : 'LEADING'}
-                                        </span>
-                                      );
-                                    })()}
-                                  </td>
-                                  <td className="score">
-                                    {prize.type === 'correctWinners' 
-                                      ? `${leader.score} correct` 
-                                      : `${leader.score} pts`
-                                    }
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
+              {prizeLeaders.filter(p => p.prizeNumber >= 5 && p.prizeNumber <= 6).map(prize => renderPrizeCard(prize))}
             </div>
           )}
         </div>
@@ -1132,238 +886,55 @@ function StandingsPage({ allPicks, actualScores, gameStatus, currentWeek, player
           </h3>
           
           {expandedPrizeWeeks['Week 4'] && (
-            <div className="prizes-grid">
-              {prizeLeaders.filter(p => p.prizeNumber >= 7 && p.prizeNumber <= 8).map(prize => {
-                const tooltipText = prize.type === 'correctWinners' 
-                  ? 'Players who correctly predicted the most game outcomes (which team won)'
-                  : 'Players whose predicted total scores were closest to the actual combined scores';
-                
-                return (
-                  <div key={prize.prizeNumber} className="prize-card">
-                    <div className="prize-header">
-                      <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '5px'}}>
-                        <div className="prize-number">PRIZE #{prize.prizeNumber}</div>
-                        <div 
-                          title={tooltipText}
-                          style={{
-                            cursor: 'help',
-                            fontSize: '1.1rem',
-                            opacity: 0.7,
-                            transition: 'opacity 0.2s'
-                          }}
-                          onMouseOver={(e) => e.target.style.opacity = '1'}
-                          onMouseOut={(e) => e.target.style.opacity = '0.7'}
-                        >
-                          ℹ️
-                        </div>
-                      </div>
-                      <div className="prize-name">{prize.name}</div>
-                      <div style={{
-                        fontSize: '0.85rem',
-                        color: '#666',
-                        fontWeight: '600',
-                        marginTop: '5px',
-                        fontStyle: 'italic'
-                      }}>
-                        Current Leaders
-                      </div>
-                    </div>
-                    
-                    <div className="prize-leaders">
-                      {prize.leaders.length === 0 ? (
-                        <div className="no-data">No data available yet</div>
-                      ) : (
-                        <table className="leaders-table">
-                          <thead>
-                            <tr>
-                              <th>Rank</th>
-                              <th>Player</th>
-                              <th>{prize.type === 'correctWinners' ? 'Correct' : 'Difference'}</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {prize.leaders.map((leader, idx) => {
-                              const isTied = idx > 0 && leader.score === prize.leaders[idx - 1].score;
-                              const displayRank = isTied ? '=' : idx + 1;
-                              const isLeading = idx === 0 && !isTied;
-                              
-                              return (
-                                <tr key={idx} className={isLeading ? 'leader-first' : ''}>
-                                  <td className="rank">
-                                    {displayRank}
-                                    {isLeading && <span style={{marginLeft: '5px', fontSize: '0.8em'}}>👑</span>}
-                                  </td>
-                                  <td className="player-name">
-                                    {leader.playerName}
-                                    {isLeading && (
-                                      <span style={{
-                                        marginLeft: '8px',
-                                        fontSize: '0.7rem',
-                                        background: '#4facfe',
-                                        color: 'white',
-                                        padding: '2px 6px',
-                                        borderRadius: '4px',
-                                        fontWeight: '600'
-                                      }}>
-                                        LEADING
-                                      </span>
-                                    )}
-                                  </td>
-                                  <td className="score">
-                                    {prize.type === 'correctWinners' 
-                                      ? `${leader.score} correct` 
-                                      : `${leader.score} pts`
-                                    }
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
+            <div>
+              {/* Super Bowl Game Only Section */}
+              <div style={{
+                background: '#f8f9fa',
+                padding: '15px',
+                borderRadius: '8px',
+                marginBottom: '20px',
+                border: '2px solid #667eea'
+              }}>
+                <h4 style={{
+                  margin: '0 0 15px 0',
+                  color: '#667eea',
+                  fontSize: '1.1rem',
+                  fontWeight: 'bold',
+                  textAlign: 'center'
+                }}>
+                  🏈 SUPER BOWL GAME ONLY
+                </h4>
+                <div className="prizes-grid">
+                  {prizeLeaders.filter(p => p.prizeNumber === 7 || p.prizeNumber === 8).map(prize => renderPrizeCard(prize))}
+                </div>
+              </div>
+              
+              {/* Entire 4-Week Playoffs Section */}
+              <div style={{
+                background: '#fff8e1',
+                padding: '15px',
+                borderRadius: '8px',
+                border: '2px solid #ffa726'
+              }}>
+                <h4 style={{
+                  margin: '0 0 15px 0',
+                  color: '#f57c00',
+                  fontSize: '1.1rem',
+                  fontWeight: 'bold',
+                  textAlign: 'center'
+                }}>
+                  🏆 ENTIRE 4-WEEK PLAYOFFS
+                </h4>
+                <div className="prizes-grid">
+                  {prizeLeaders.filter(p => p.prizeNumber === 9 || p.prizeNumber === 10).map(prize => renderPrizeCard(prize))}
+                </div>
+              </div>
             </div>
           )}
         </div>
-
-        {/* Grand Prizes */}
-        <div style={{marginBottom: '20px'}}>
-          <h3 
-            onClick={() => togglePrizeWeek('Grand Prizes')}
-            style={{
-              cursor: 'pointer',
-              userSelect: 'none',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              padding: '15px 20px',
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              color: 'white',
-              borderRadius: '8px',
-              transition: 'all 0.3s',
-              marginBottom: expandedPrizeWeeks['Grand Prizes'] ? '20px' : '0',
-              borderBottomLeftRadius: expandedPrizeWeeks['Grand Prizes'] ? '0' : '8px',
-              borderBottomRightRadius: expandedPrizeWeeks['Grand Prizes'] ? '0' : '8px'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateX(5px)';
-              e.currentTarget.style.boxShadow = '0 4px 15px rgba(102, 126, 234, 0.4)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateX(0)';
-              e.currentTarget.style.boxShadow = 'none';
-            }}
-          >
-            <span style={{fontSize: '1.2rem', transition: 'transform 0.3s'}}>
-              {expandedPrizeWeeks['Grand Prizes'] ? '▼' : '►'}
-            </span>
-            Grand Prizes (All Weeks Combined)
-          </h3>
-          
-          {expandedPrizeWeeks['Grand Prizes'] && (
-            <div className="prizes-grid">
-              {prizeLeaders.filter(p => p.prizeNumber >= 9 && p.prizeNumber <= 10).map(prize => {
-                const tooltipText = prize.type === 'correctWinners' 
-                  ? 'Players who correctly predicted the most game outcomes (which team won)'
-                  : 'Players whose predicted total scores were closest to the actual combined scores';
-                
-                return (
-                  <div key={prize.prizeNumber} className="prize-card">
-                    <div className="prize-header">
-                      <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '5px'}}>
-                        <div className="prize-number">PRIZE #{prize.prizeNumber}</div>
-                        <div 
-                          title={tooltipText}
-                          style={{
-                            cursor: 'help',
-                            fontSize: '1.1rem',
-                            opacity: 0.7,
-                            transition: 'opacity 0.2s'
-                          }}
-                          onMouseOver={(e) => e.target.style.opacity = '1'}
-                          onMouseOut={(e) => e.target.style.opacity = '0.7'}
-                        >
-                          ℹ️
-                        </div>
-                      </div>
-                      <div className="prize-name">{prize.name}</div>
-                      <div style={{
-                        fontSize: '0.85rem',
-                        color: '#666',
-                        fontWeight: '600',
-                        marginTop: '5px',
-                        fontStyle: 'italic'
-                      }}>
-                        Current Leaders
-                      </div>
-                    </div>
-                    
-                    <div className="prize-leaders">
-                      {prize.leaders.length === 0 ? (
-                        <div className="no-data">No data available yet</div>
-                      ) : (
-                        <table className="leaders-table">
-                          <thead>
-                            <tr>
-                              <th>Rank</th>
-                              <th>Player</th>
-                              <th>{prize.type === 'correctWinners' ? 'Correct' : 'Difference'}</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {prize.leaders.map((leader, idx) => {
-                              const isTied = idx > 0 && leader.score === prize.leaders[idx - 1].score;
-                              const displayRank = isTied ? '=' : idx + 1;
-                              const isLeading = idx === 0 && !isTied;
-                              
-                              return (
-                                <tr key={idx} className={isLeading ? 'leader-first' : ''}>
-                                  <td className="rank">
-                                    {displayRank}
-                                    {isLeading && <span style={{marginLeft: '5px', fontSize: '0.8em'}}>👑</span>}
-                                  </td>
-                                  <td className="player-name">
-                                    {leader.playerName}
-                                    {isLeading && (
-                                      <span style={{
-                                        marginLeft: '8px',
-                                        fontSize: '0.7rem',
-                                        background: '#4facfe',
-                                        color: 'white',
-                                        padding: '2px 6px',
-                                        borderRadius: '4px',
-                                        fontWeight: '600'
-                                      }}>
-                                        LEADING
-                                      </span>
-                                    )}
-                                  </td>
-                                  <td className="score">
-                                    {prize.type === 'correctWinners' 
-                                      ? `${leader.score} correct` 
-                                      : `${leader.score} pts`
-                                    }
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
 
         <div className="standings-note">
-          <p><strong>Note:</strong> Tied players are shown with "=" rank. Pool Manager will resolve ties and declare official prize awards after all games are completed.</p>
+          <p><strong>Note:</strong> Tied players are shown with tied indicators. Rankings use official tie-breaker rules. Pool Manager will declare official winners after all games are completed.</p>
         </div>
       </div>
     </div>

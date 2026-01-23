@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { initializeApp } from 'firebase/app';
 import { getDatabase, ref, push, onValue, set, update, get, remove } from 'firebase/database';
 import './App.css';
@@ -369,66 +369,6 @@ const NFL_2025_SCORING_DATA = [
              item.visitor + item.home >= 5 ? 'less-common' : 'rare'
 }));
 
-// 🕐 PST TIME HELPER FUNCTIONS (for timezone clock)
-const getPSTTime = () => {
-  const now = new Date();
-  const pstTime = new Date(now.toLocaleString("en-US", {timeZone: "America/Los_Angeles"}));
-  return pstTime;
-};
-
-const formatPSTTimestamp = (timestamp) => {
-  const date = new Date(timestamp);
-  const options = {
-    timeZone: 'America/Los_Angeles',
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true
-  };
-  return date.toLocaleString('en-US', options) + ' PST';
-};
-
-const getDeadline = () => {
-  const pst = getPSTTime();
-  const dayOfWeek = pst.getDay(); // 0=Sun, 5=Fri
-  
-  // Find next Friday 11:59 PM PST
-  let daysUntilFriday = (5 - dayOfWeek + 7) % 7;
-  if (dayOfWeek === 5 && pst.getHours() >= 23 && pst.getMinutes() >= 59) {
-    daysUntilFriday = 7; // Next Friday
-  }
-  if (daysUntilFriday === 0 && (pst.getHours() < 23 || (pst.getHours() === 23 && pst.getMinutes() < 59))) {
-    daysUntilFriday = 0; // This Friday
-  }
-  
-  const deadline = new Date(pst);
-  deadline.setDate(deadline.getDate() + daysUntilFriday);
-  deadline.setHours(23, 59, 59, 999);
-  return deadline;
-};
-
-const getTimeRemaining = () => {
-  const now = getPSTTime();
-  const deadline = getDeadline();
-  const diff = deadline - now;
-  
-  if (diff <= 0) return { expired: true, hours: 0, minutes: 0, seconds: 0, formatted: '00:00:00' };
-  
-  const hours = Math.floor(diff / (1000 * 60 * 60));
-  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-  const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-  
-  return {
-    expired: false,
-    hours: hours,
-    minutes: minutes,
-    seconds: seconds,
-    formatted: `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
-  };
-};
-
 function App() {
   // Navigation state for switching between views
   const [currentView, setCurrentView] = useState('picks'); // 'picks' or 'standings'
@@ -491,11 +431,6 @@ function App() {
   
   // NFL Scoring Guide modal state
   const [showScoringGuide, setShowScoringGuide] = useState(false);
-
-  // 🕐 PST CLOCK STATE
-  const [pstTime, setPstTime] = useState(getPSTTime());
-  const [timeRemaining, setTimeRemaining] = useState(getTimeRemaining());
-  const [showPSTClock, setShowPSTClock] = useState(false);
 
   // ============================================
   // 🆕 STEP 5: COMPLETE FEATURE STATE
@@ -1680,36 +1615,6 @@ const exportPlayersToExcel = async () => {
     });
   }, []);
 
-  // 🕐 PST CLOCK: Update check (DISABLED updates to prevent dropdown closing)
-  useEffect(() => {
-    const updateClock = () => {
-      const pst = getPSTTime();
-      setPstTime(pst);
-      setTimeRemaining(getTimeRemaining());
-      
-      // Determine if clock should show:
-      // 1. Only on Fridays (day 5)
-      // 2. Between 12:01 AM and 11:59 PM PST
-      // 3. Only while playoffs are ongoing (not all weeks completed)
-      const dayOfWeek = pst.getDay();
-      const isFriday = dayOfWeek === 5;
-      
-      // Check if all playoff weeks are complete (Super Bowl is final)
-      const playoffsComplete = gameStatus?.superbowl && 
-        Object.values(gameStatus.superbowl || {}).every(status => status === 'final');
-      
-      // Show clock only on Fridays during active playoff season
-      setShowPSTClock(isFriday && !playoffsComplete);
-    };
-    
-    // Update ONCE on mount only - NO INTERVAL to prevent dropdown closing
-    updateClock();
-    
-    // NO setInterval - commenting out to fix dropdown issue
-    // const interval = setInterval(updateClock, 5000);
-    // return () => clearInterval(interval);
-  }, [gameStatus]);
-
   // 🔒 NEW: Pool Manager function to manually lock/unlock a week
   const handleWeekLockToggle = (weekKey) => {
     const newLockStatus = !weekLockStatus[weekKey].locked;
@@ -1930,18 +1835,8 @@ const exportPlayersToExcel = async () => {
   }, [currentWeek, allPicks, codeValidated, playerName]);
 
   // 📡 Initialize ESPN Auto-Refresh
-  // 🔥 FIX: Use ref to always call the latest version of handleESPNFetch
-  const handleESPNFetchRef = useRef();
-  
   useEffect(() => {
-    // Wrapper function that always calls the latest handleESPNFetch
-    const callESPNFetch = () => {
-      if (handleESPNFetchRef.current) {
-        handleESPNFetchRef.current();
-      }
-    };
-    
-    const autoRefresh = new ESPNAutoRefresh(callESPNFetch, 5);
+    const autoRefresh = new ESPNAutoRefresh(handleESPNFetch, 5);
     setEspnAutoRefresh(autoRefresh);
     // Cleanup on unmount
     return () => {
@@ -2042,10 +1937,6 @@ const exportPlayersToExcel = async () => {
       console.error('Error fetching ESPN scores:', error);
     }
   };
-  
-  // 🔥 FIX: Update ref to always point to latest handleESPNFetch
-  handleESPNFetchRef.current = handleESPNFetch;
-
 
   /**
    * Toggle game lock (prevent/allow ESPN updates)
@@ -2143,9 +2034,6 @@ const exportPlayersToExcel = async () => {
   };
 
   // Pool Manager functions to update team codes
-  // 🐛 FIX: Debounced team code save to prevent dropdown from closing
-  const teamCodeSaveTimers = React.useRef({});
-  
   const handleTeamCodeChange = (gameId, team, code) => {
     const updatedCodes = {
       ...teamCodes,
@@ -2159,41 +2047,8 @@ const exportPlayersToExcel = async () => {
     };
     setTeamCodes(updatedCodes);
     
-    // 🔥 CRITICAL FIX: Also update playoffTeams so players see the correct team names!
-    if (currentWeek === 'conference') {
-      const teamCode = code.toUpperCase();
-      const teamObject = { name: teamCode }; // Save as object with name property
-      
-      const updatedPlayoffTeams = {
-        ...playoffTeams,
-        week3: {
-          ...(playoffTeams.week3 || {}),
-          afcChampionship: gameId === 11 ? {
-            ...(playoffTeams.week3?.afcChampionship || {}),
-            [team]: teamObject
-          } : playoffTeams.week3?.afcChampionship || {},
-          nfcChampionship: gameId === 12 ? {
-            ...(playoffTeams.week3?.nfcChampionship || {}),
-            [team]: teamObject
-          } : playoffTeams.week3?.nfcChampionship || {}
-        }
-      };
-      setPlayoffTeams(updatedPlayoffTeams);
-      
-      // Save playoffTeams to Firebase immediately
-      set(ref(database, 'playoffTeams/week3'), updatedPlayoffTeams.week3);
-    }
-    
-    // Clear existing timer for this specific input
-    const timerKey = `${currentWeek}-${gameId}-${team}`;
-    if (teamCodeSaveTimers.current[timerKey]) {
-      clearTimeout(teamCodeSaveTimers.current[timerKey]);
-    }
-    
-    // Save to Firebase after 3 SECONDS of no typing (debounced) - gives time to select from dropdown
-    teamCodeSaveTimers.current[timerKey] = setTimeout(() => {
-      set(ref(database, `teamCodes/${currentWeek}/${gameId}/${team}`), code.toUpperCase());
-    }, 3000);
+    // Save to Firebase
+    set(ref(database, `teamCodes/${currentWeek}/${gameId}/${team}`), code.toUpperCase());
   };
 
   // Pool Manager functions to update actual scores
@@ -2895,6 +2750,7 @@ const handleCloseWeekAndConfigureNext = async (weekKey) => {
     
     // Calculate ONLY for completed weeks
     let playedPredicted = 0;
+    let totalDifference = 0;
     let hasAnyActual = false;
     
     const weekMap = { 1: 'wildcard', 2: 'divisional', 3: 'conference', 4: 'superbowl' };
@@ -2902,8 +2758,12 @@ const handleCloseWeekAndConfigureNext = async (weekKey) => {
     weeks.forEach(weekNum => {
       const weekName = weekMap[weekNum];
       const pred = calculatePredictedTotal(playerCode, weekName);
-      console.log(`🔍 Week ${weekNum} (${weekName}): pred=${pred}`);
+      const diff = calculateWeeklyTotal(playerCode, weekName);
+      console.log(`🔍 Week ${weekNum} (${weekName}): pred=${pred}, diff=${diff}`);
   
+//      if (pred) {
+//        fullPredicted += pred;
+      
       // ✅ FIXED: Check if actual scores have REAL values (not null/undefined/empty strings/zeros)
       const weekActualScores = actualScores[weekName];
       const hasActual = weekActualScores && Object.values(weekActualScores).some(game => {
@@ -2915,6 +2775,7 @@ const handleCloseWeekAndConfigureNext = async (weekKey) => {
       // ONLY include weeks that have actual scores
       if (pred && hasActual) {
         playedPredicted += pred;
+        totalDifference += diff;
         hasAnyActual = true;
       }
     });
@@ -2927,10 +2788,6 @@ const handleCloseWeekAndConfigureNext = async (weekKey) => {
         fontSize: '16px'
       };
     }
-    
-    // 🔥 FIX: Calculate difference from official grand total (simple subtraction, not adding weekly absolutes)
-    const officialGrandTotal = getGrandTotalHeaderValue();
-    const totalDifference = Math.abs(playedPredicted - (officialGrandTotal || 0));
     
     // Show only completed weeks total
     const tooltip = `Predicted: ${playedPredicted} | Off by: ${totalDifference}`;
@@ -2991,629 +2848,6 @@ const handleCloseWeekAndConfigureNext = async (weekKey) => {
     
     const grandTotal = week1Total + week2Total + week3Total + week4Total;
     return grandTotal > 0 ? grandTotal : '';
-  };
-
-  // ============================================
-  // 🏆 COMPREHENSIVE RANKING & TIE-BREAKER SYSTEM
-  // ============================================
-  
-  /**
-   * Calculate player's correct winner count for a specific week
-   */
-  const calculateCorrectWinners = (playerCode, weekName) => {
-    const pick = allPicks.find(p => p.playerCode === playerCode && p.week === weekName);
-    if (!pick || !pick.predictions) return 0;
-    
-    const weekData = PLAYOFF_WEEKS[weekName];
-    if (!weekData) return 0;
-    
-    let correctCount = 0;
-    
-    weekData.games.forEach(game => {
-      const prediction = pick.predictions[game.id];
-      const actual = actualScores[weekName]?.[game.id];
-      
-      if (!prediction || !actual) return;
-      
-      const predTeam1 = parseInt(prediction.team1) || 0;
-      const predTeam2 = parseInt(prediction.team2) || 0;
-      const actualTeam1 = parseInt(actual.team1) || 0;
-      const actualTeam2 = parseInt(actual.team2) || 0;
-      
-      // Determine predicted winner
-      const predWinner = predTeam1 > predTeam2 ? 'team1' : predTeam1 < predTeam2 ? 'team2' : 'tie';
-      const actualWinner = actualTeam1 > actualTeam2 ? 'team1' : actualTeam1 < actualTeam2 ? 'team2' : 'tie';
-      
-      if (predWinner === actualWinner && predWinner !== 'tie') {
-        correctCount++;
-      }
-    });
-    
-    return correctCount;
-  };
-  
-  /**
-   * Calculate player's total correct winners across all 4 weeks
-   */
-  const calculateTotalCorrectWinners = (playerCode) => {
-    const week1 = calculateCorrectWinners(playerCode, 'wildcard');
-    const week2 = calculateCorrectWinners(playerCode, 'divisional');
-    const week3 = calculateCorrectWinners(playerCode, 'conference');
-    const week4 = calculateCorrectWinners(playerCode, 'superbowl');
-    return week1 + week2 + week3 + week4;
-  };
-  
-  /**
-   * Check if player picked correct Super Bowl winner
-   */
-  const pickedCorrectSuperBowlWinner = (playerCode) => {
-    const pick = allPicks.find(p => p.playerCode === playerCode && p.week === 'superbowl');
-    if (!pick || !pick.predictions) return false;
-    
-    const sbGame = PLAYOFF_WEEKS.superbowl.games[0]; // Game 13
-    const prediction = pick.predictions[sbGame.id];
-    const actual = actualScores.superbowl?.[sbGame.id];
-    
-    if (!prediction || !actual) return false;
-    
-    const predTeam1 = parseInt(prediction.team1) || 0;
-    const predTeam2 = parseInt(prediction.team2) || 0;
-    const actualTeam1 = parseInt(actual.team1) || 0;
-    const actualTeam2 = parseInt(actual.team2) || 0;
-    
-    const predWinner = predTeam1 > predTeam2 ? 'team1' : predTeam1 < predTeam2 ? 'team2' : 'tie';
-    const actualWinner = actualTeam1 > actualTeam2 ? 'team1' : actualTeam1 < actualTeam2 ? 'team2' : 'tie';
-    
-    return predWinner === actualWinner && predWinner !== 'tie';
-  };
-  
-  /**
-   * Check if a week is complete (all games final AND Pool Manager closed it)
-   */
-  const isWeekComplete = (weekName) => {
-    // Check if Pool Manager closed the week
-    const manuallyCompleted = weekCompletionStatus?.[weekName] === true;
-    
-    // Check if all games are final
-    const weekData = PLAYOFF_WEEKS[weekName];
-    if (!weekData) return false;
-    
-    const allGamesFinal = weekData.games.every(game => {
-      return gameStatus[weekName]?.[game.id] === 'final';
-    });
-    
-    return manuallyCompleted && allGamesFinal;
-  };
-  
-  /**
-   * Rank players for "Most Correct Winners" prize
-   * Primary: Correct count (high to low)
-   * Tie-breaker: That week's points difference (low to high)
-   * If still tied on points: Go back to previous weeks' correct count
-   */
-  const rankMostCorrectWinners = (weekName) => {
-    const playerRankings = [];
-    
-    // Get all unique players
-    const uniquePlayers = {};
-    allPicks.forEach(pick => {
-      if (!uniquePlayers[pick.playerCode]) {
-        uniquePlayers[pick.playerCode] = pick.playerName;
-      }
-    });
-    
-    // Calculate rankings for each player
-    Object.keys(uniquePlayers).forEach(playerCode => {
-      const playerName = uniquePlayers[playerCode];
-      const correctCount = calculateCorrectWinners(playerCode, weekName);
-      const weekDifference = calculateWeeklyTotal(playerCode, weekName);
-      
-      // Get previous weeks' POINTS DIFFERENCE for tie-breaking (NOT correct counts!)
-      const weekOrder = ['wildcard', 'divisional', 'conference', 'superbowl'];
-      const currentIndex = weekOrder.indexOf(weekName);
-      const previousWeeksDifference = [];
-      
-      for (let i = currentIndex - 1; i >= 0; i--) {
-        previousWeeksDifference.push({
-          week: weekOrder[i],
-          difference: calculateWeeklyTotal(playerCode, weekOrder[i])
-        });
-      }
-      
-      playerRankings.push({
-        playerName,
-        playerCode,
-        correctCount,
-        weekDifference,
-        previousWeeksDifference
-      });
-    });
-    
-    // Sort by correct count (high to low), then by week difference (low to high), then by previous weeks' POINTS
-    playerRankings.sort((a, b) => {
-      // Primary: Correct count (higher is better)
-      if (b.correctCount !== a.correctCount) {
-        return b.correctCount - a.correctCount;
-      }
-      
-      // Secondary: Week difference (lower is better)
-      if (a.weekDifference !== b.weekDifference) {
-        return a.weekDifference - b.weekDifference;
-      }
-      
-      // Tertiary: Go back through previous weeks' POINTS DIFFERENCE (not correct counts!)
-      for (let i = 0; i < Math.min(a.previousWeeksDifference.length, b.previousWeeksDifference.length); i++) {
-        const aDiff = a.previousWeeksDifference[i].difference;
-        const bDiff = b.previousWeeksDifference[i].difference;
-        if (aDiff !== bDiff) {
-          return aDiff - bDiff; // Lower is better
-        }
-      }
-      
-      return 0; // Complete tie - same rank
-    });
-    
-    // Assign ranks (players with identical stats get same rank)
-    let currentRank = 1;
-    playerRankings.forEach((player, index) => {
-      if (index === 0) {
-        player.rank = 1;
-      } else {
-        const prev = playerRankings[index - 1];
-        
-        // Check if completely identical to previous player
-        const sameCorrect = player.correctCount === prev.correctCount;
-        const sameDifference = player.weekDifference === prev.weekDifference;
-        
-        let samePreviousWeeks = true;
-        for (let i = 0; i < player.previousWeeksDifference.length; i++) {
-          if (player.previousWeeksDifference[i].difference !== prev.previousWeeksDifference[i].difference) {
-            samePreviousWeeks = false;
-            break;
-          }
-        }
-        
-        if (sameCorrect && sameDifference && samePreviousWeeks) {
-          player.rank = prev.rank; // Same rank (tie)
-          player.tied = true;
-        } else {
-          currentRank = index + 1;
-          player.rank = currentRank;
-        }
-      }
-    });
-    
-    return playerRankings;
-  };
-  
-  /**
-   * Rank players for "Closest Points" prize
-   * Primary: Points difference (low to high)
-   * Tie-breaker: Go back to previous weeks' points difference
-   */
-  const rankClosestPoints = (weekName) => {
-    const playerRankings = [];
-    
-    // Get all unique players
-    const uniquePlayers = {};
-    allPicks.forEach(pick => {
-      if (!uniquePlayers[pick.playerCode]) {
-        uniquePlayers[pick.playerCode] = pick.playerName;
-      }
-    });
-    
-    // Calculate rankings for each player
-    Object.keys(uniquePlayers).forEach(playerCode => {
-      const playerName = uniquePlayers[playerCode];
-      const weekDifference = calculateWeeklyTotal(playerCode, weekName);
-      
-      // Get previous weeks' differences for tie-breaking
-      const weekOrder = ['wildcard', 'divisional', 'conference', 'superbowl'];
-      const currentIndex = weekOrder.indexOf(weekName);
-      const previousWeeksDifference = [];
-      
-      for (let i = currentIndex - 1; i >= 0; i--) {
-        previousWeeksDifference.push({
-          week: weekOrder[i],
-          difference: calculateWeeklyTotal(playerCode, weekOrder[i])
-        });
-      }
-      
-      playerRankings.push({
-        playerName,
-        playerCode,
-        weekDifference,
-        previousWeeksDifference
-      });
-    });
-    
-    // Sort by difference (low to high), then by previous weeks
-    playerRankings.sort((a, b) => {
-      // Primary: Week difference (lower is better)
-      if (a.weekDifference !== b.weekDifference) {
-        return a.weekDifference - b.weekDifference;
-      }
-      
-      // Secondary: Go back through previous weeks' differences
-      for (let i = 0; i < Math.min(a.previousWeeksDifference.length, b.previousWeeksDifference.length); i++) {
-        const aDiff = a.previousWeeksDifference[i].difference;
-        const bDiff = b.previousWeeksDifference[i].difference;
-        if (aDiff !== bDiff) {
-          return aDiff - bDiff; // Lower is better
-        }
-      }
-      
-      return 0; // Complete tie
-    });
-    
-    // Assign ranks
-    let currentRank = 1;
-    playerRankings.forEach((player, index) => {
-      if (index === 0) {
-        player.rank = 1;
-      } else {
-        const prev = playerRankings[index - 1];
-        
-        // Check if completely identical
-        const sameDifference = player.weekDifference === prev.weekDifference;
-        
-        let samePreviousWeeks = true;
-        for (let i = 0; i < player.previousWeeksDifference.length; i++) {
-          if (player.previousWeeksDifference[i].difference !== prev.previousWeeksDifference[i].difference) {
-            samePreviousWeeks = false;
-            break;
-          }
-        }
-        
-        if (sameDifference && samePreviousWeeks) {
-          player.rank = prev.rank; // Same rank (tie)
-          player.tied = true;
-        } else {
-          currentRank = index + 1;
-          player.rank = currentRank;
-        }
-      }
-    });
-    
-    return playerRankings;
-  };
-  
-  /**
-   * Rank players for "Correct Super Bowl Winner" prize (Prize #1 in Week 4)
-   * Primary: Picked correct SB winner
-   * Tie-breaker: Go back to Week 3, 2, 1 correct counts
-   */
-  const rankCorrectSuperBowlWinner = () => {
-    const playerRankings = [];
-    
-    // Get all unique players
-    const uniquePlayers = {};
-    allPicks.forEach(pick => {
-      if (!uniquePlayers[pick.playerCode]) {
-        uniquePlayers[pick.playerCode] = pick.playerName;
-      }
-    });
-    
-    Object.keys(uniquePlayers).forEach(playerCode => {
-      const playerName = uniquePlayers[playerCode];
-      const pickedCorrect = pickedCorrectSuperBowlWinner(playerCode);
-      
-      // Get weeks' POINTS DIFFERENCE for tie-breaking (NOT correct counts!)
-      const week4Difference = calculateWeeklyTotal(playerCode, 'superbowl');
-      const week3Difference = calculateWeeklyTotal(playerCode, 'conference');
-      const week2Difference = calculateWeeklyTotal(playerCode, 'divisional');
-      const week1Difference = calculateWeeklyTotal(playerCode, 'wildcard');
-      
-      playerRankings.push({
-        playerName,
-        playerCode,
-        pickedCorrect,
-        week4Difference,
-        week3Difference,
-        week2Difference,
-        week1Difference
-      });
-    });
-    
-    // Sort: Picked correct first (true before false), then by Week 4, 3, 2, 1 POINTS DIFFERENCE
-    playerRankings.sort((a, b) => {
-      // Primary: Picked correct (true comes before false)
-      if (a.pickedCorrect !== b.pickedCorrect) {
-        return b.pickedCorrect - a.pickedCorrect;
-      }
-      
-      // If both picked correct (or both didn't), tie-break by Week 4 POINTS
-      if (a.week4Difference !== b.week4Difference) {
-        return a.week4Difference - b.week4Difference; // Lower is better
-      }
-      
-      // If still tied, Week 3 POINTS
-      if (a.week3Difference !== b.week3Difference) {
-        return a.week3Difference - b.week3Difference; // Lower is better
-      }
-      
-      // If still tied, Week 2 POINTS
-      if (a.week2Difference !== b.week2Difference) {
-        return a.week2Difference - b.week2Difference; // Lower is better
-      }
-      
-      // If still tied, Week 1 POINTS
-      if (a.week1Difference !== b.week1Difference) {
-        return a.week1Difference - b.week1Difference; // Lower is better
-      }
-      
-      return 0; // Complete tie
-    });
-    
-    // Assign ranks
-    let currentRank = 1;
-    playerRankings.forEach((player, index) => {
-      if (index === 0) {
-        player.rank = 1;
-      } else {
-        const prev = playerRankings[index - 1];
-        
-        const sameCorrect = player.pickedCorrect === prev.pickedCorrect;
-        const sameWeek4 = player.week4Difference === prev.week4Difference;
-        const sameWeek3 = player.week3Difference === prev.week3Difference;
-        const sameWeek2 = player.week2Difference === prev.week2Difference;
-        const sameWeek1 = player.week1Difference === prev.week1Difference;
-        
-        if (sameCorrect && sameWeek4 && sameWeek3 && sameWeek2 && sameWeek1) {
-          player.rank = prev.rank;
-          player.tied = true;
-        } else {
-          currentRank = index + 1;
-          player.rank = currentRank;
-        }
-      }
-    });
-    
-    return playerRankings;
-  };
-  
-  /**
-   * Rank players for "Most Correct All 4 Weeks" (Prize #9)
-   * Primary: Total correct across all 4 weeks
-   * Tie-breaker: Grand total points difference, then Week 4, 3, 2, 1 POINTS DIFFERENCE
-   */
-  const rankMostCorrectAllWeeks = () => {
-    const playerRankings = [];
-    
-    const uniquePlayers = {};
-    allPicks.forEach(pick => {
-      if (!uniquePlayers[pick.playerCode]) {
-        uniquePlayers[pick.playerCode] = pick.playerName;
-      }
-    });
-    
-    Object.keys(uniquePlayers).forEach(playerCode => {
-      const playerName = uniquePlayers[playerCode];
-      const totalCorrect = calculateTotalCorrectWinners(playerCode);
-      const grandDifference = calculateGrandTotal(playerCode);
-      
-      // Get POINTS DIFFERENCE for each week (not correct counts!)
-      const week4Difference = calculateWeeklyTotal(playerCode, 'superbowl');
-      const week3Difference = calculateWeeklyTotal(playerCode, 'conference');
-      const week2Difference = calculateWeeklyTotal(playerCode, 'divisional');
-      const week1Difference = calculateWeeklyTotal(playerCode, 'wildcard');
-      
-      playerRankings.push({
-        playerName,
-        playerCode,
-        totalCorrect,
-        grandDifference,
-        week4Difference,
-        week3Difference,
-        week2Difference,
-        week1Difference
-      });
-    });
-    
-    // Sort
-    playerRankings.sort((a, b) => {
-      // Primary: Total correct (higher is better)
-      if (b.totalCorrect !== a.totalCorrect) {
-        return b.totalCorrect - a.totalCorrect;
-      }
-      
-      // Secondary: Grand total difference (lower is better)
-      if (a.grandDifference !== b.grandDifference) {
-        return a.grandDifference - b.grandDifference;
-      }
-      
-      // Tertiary: Week 4, 3, 2, 1 POINTS DIFFERENCE (lower is better)
-      if (a.week4Difference !== b.week4Difference) return a.week4Difference - b.week4Difference;
-      if (a.week3Difference !== b.week3Difference) return a.week3Difference - b.week3Difference;
-      if (a.week2Difference !== b.week2Difference) return a.week2Difference - b.week2Difference;
-      if (a.week1Difference !== b.week1Difference) return a.week1Difference - b.week1Difference;
-      
-      return 0;
-    });
-    
-    // Assign ranks
-    let currentRank = 1;
-    playerRankings.forEach((player, index) => {
-      if (index === 0) {
-        player.rank = 1;
-      } else {
-        const prev = playerRankings[index - 1];
-        
-        if (player.totalCorrect === prev.totalCorrect &&
-            player.grandDifference === prev.grandDifference &&
-            player.week4Difference === prev.week4Difference &&
-            player.week3Difference === prev.week3Difference &&
-            player.week2Difference === prev.week2Difference &&
-            player.week1Difference === prev.week1Difference) {
-          player.rank = prev.rank;
-          player.tied = true;
-        } else {
-          currentRank = index + 1;
-          player.rank = currentRank;
-        }
-      }
-    });
-    
-    return playerRankings;
-  };
-  
-  /**
-   * Rank players for "Closest Points All 4 Weeks" (Prize #4 in Week 4)
-   * Primary: Grand total difference (low to high)
-   * Tie-breaker: Week 4, 3, 2, 1 differences
-   */
-  const rankClosestPointsAllWeeks = () => {
-    const playerRankings = [];
-    
-    const uniquePlayers = {};
-    allPicks.forEach(pick => {
-      if (!uniquePlayers[pick.playerCode]) {
-        uniquePlayers[pick.playerCode] = pick.playerName;
-      }
-    });
-    
-    Object.keys(uniquePlayers).forEach(playerCode => {
-      const playerName = uniquePlayers[playerCode];
-      const grandDifference = calculateGrandTotal(playerCode);
-      
-      const week4Difference = calculateWeeklyTotal(playerCode, 'superbowl');
-      const week3Difference = calculateWeeklyTotal(playerCode, 'conference');
-      const week2Difference = calculateWeeklyTotal(playerCode, 'divisional');
-      const week1Difference = calculateWeeklyTotal(playerCode, 'wildcard');
-      
-      playerRankings.push({
-        playerName,
-        playerCode,
-        grandDifference,
-        week4Difference,
-        week3Difference,
-        week2Difference,
-        week1Difference
-      });
-    });
-    
-    // Sort
-    playerRankings.sort((a, b) => {
-      // Primary: Grand difference (lower is better)
-      if (a.grandDifference !== b.grandDifference) {
-        return a.grandDifference - b.grandDifference;
-      }
-      
-      // Tie-breaker: Week 4, 3, 2, 1 differences (lower is better)
-      if (a.week4Difference !== b.week4Difference) return a.week4Difference - b.week4Difference;
-      if (a.week3Difference !== b.week3Difference) return a.week3Difference - b.week3Difference;
-      if (a.week2Difference !== b.week2Difference) return a.week2Difference - b.week2Difference;
-      if (a.week1Difference !== b.week1Difference) return a.week1Difference - b.week1Difference;
-      
-      return 0;
-    });
-    
-    // Assign ranks
-    let currentRank = 1;
-    playerRankings.forEach((player, index) => {
-      if (index === 0) {
-        player.rank = 1;
-      } else {
-        const prev = playerRankings[index - 1];
-        
-        if (player.grandDifference === prev.grandDifference &&
-            player.week4Difference === prev.week4Difference &&
-            player.week3Difference === prev.week3Difference &&
-            player.week2Difference === prev.week2Difference &&
-            player.week1Difference === prev.week1Difference) {
-          player.rank = prev.rank;
-          player.tied = true;
-        } else {
-          currentRank = index + 1;
-          player.rank = currentRank;
-        }
-      }
-    });
-    
-    return playerRankings;
-  };
-  
-  /**
-   * Rank players for "Closest Super Bowl Points" (Prize #8)
-   * Primary: Closest to SB total points
-   * Tie-breaker: Week 3, 2, 1 differences (SKIP Week 4 since it's redundant with SB)
-   */
-  const rankClosestSuperBowlPoints = () => {
-    const playerRankings = [];
-    
-    const uniquePlayers = {};
-    allPicks.forEach(pick => {
-      if (!uniquePlayers[pick.playerCode]) {
-        uniquePlayers[pick.playerCode] = pick.playerName;
-      }
-    });
-    
-    Object.keys(uniquePlayers).forEach(playerCode => {
-      const playerName = uniquePlayers[playerCode];
-      const sbDifference = calculateWeeklyTotal(playerCode, 'superbowl');
-      
-      // SKIP Week 4 for tie-breaking (it's the same as SB!)
-      const week3Difference = calculateWeeklyTotal(playerCode, 'conference');
-      const week2Difference = calculateWeeklyTotal(playerCode, 'divisional');
-      const week1Difference = calculateWeeklyTotal(playerCode, 'wildcard');
-      
-      playerRankings.push({
-        playerName,
-        playerCode,
-        weekDifference: sbDifference, // For display compatibility
-        week3Difference,
-        week2Difference,
-        week1Difference
-      });
-    });
-    
-    // Sort: SB difference first, then Week 3, 2, 1 (SKIP Week 4)
-    playerRankings.sort((a, b) => {
-      // Primary: SB difference (lower is better)
-      if (a.weekDifference !== b.weekDifference) {
-        return a.weekDifference - b.weekDifference;
-      }
-      
-      // Tie-breaker: Week 3 (SKIP Week 4!)
-      if (a.week3Difference !== b.week3Difference) {
-        return a.week3Difference - b.week3Difference;
-      }
-      
-      // If still tied, Week 2
-      if (a.week2Difference !== b.week2Difference) {
-        return a.week2Difference - b.week2Difference;
-      }
-      
-      // If still tied, Week 1
-      if (a.week1Difference !== b.week1Difference) {
-        return a.week1Difference - b.week1Difference;
-      }
-      
-      return 0; // Complete tie
-    });
-    
-    // Assign ranks
-    let currentRank = 1;
-    playerRankings.forEach((player, index) => {
-      if (index === 0) {
-        player.rank = 1;
-      } else {
-        const prev = playerRankings[index - 1];
-        
-        if (player.weekDifference === prev.weekDifference &&
-            player.week3Difference === prev.week3Difference &&
-            player.week2Difference === prev.week2Difference &&
-            player.week1Difference === prev.week1Difference) {
-          player.rank = prev.rank;
-          player.tied = true;
-        } else {
-          currentRank = index + 1;
-          player.rank = currentRank;
-        }
-      }
-    });
-    
-    return playerRankings;
   };
 
   // ============================================
@@ -5076,102 +4310,6 @@ const calculateAllPrizeWinners = () => {
   }, [allPicks, actualScores]);
   return (
     <div className="App">
-      {/* 🕐 PST CLOCK BANNER - Only shows Friday during playoffs */}
-      {showPSTClock && (
-        <div style={{
-          background: timeRemaining.hours === 0 && timeRemaining.minutes < 60 && !timeRemaining.expired ? '#dc3545' : '#667eea',
-          color: '#fff',
-          padding: '20px',
-          marginBottom: '20px',
-          borderRadius: '8px',
-          border: '3px solid ' + (timeRemaining.hours === 0 && timeRemaining.minutes < 60 && !timeRemaining.expired ? '#a71d2a' : '#5568d3'),
-          textAlign: 'center',
-          boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
-        }}>
-          {/* Header Warning - ALL TIMES ARE PST */}
-          <div style={{
-            fontSize: '1.1rem',
-            fontWeight: '700',
-            marginBottom: '15px',
-            letterSpacing: '0.5px',
-            borderBottom: '2px solid rgba(255,255,255,0.3)',
-            paddingBottom: '10px',
-            color: '#fff'
-          }}>
-            ⚠️ ALL TIMES IN THIS APP ARE IN PACIFIC STANDARD TIME (PST) ⚠️
-          </div>
-          
-          {/* Current PST Time */}
-          <div style={{
-            fontSize: '1.4rem',
-            fontWeight: 'bold',
-            marginBottom: '12px',
-            color: '#fff'
-          }}>
-            🕐 Current PST Time: {pstTime.toLocaleTimeString('en-US', {
-              timeZone: 'America/Los_Angeles',
-              hour: 'numeric',
-              minute: '2-digit',
-              second: '2-digit',
-              hour12: true
-            })} ({pstTime.toLocaleDateString('en-US', {
-              timeZone: 'America/Los_Angeles',
-              weekday: 'long',
-              month: 'short',
-              day: 'numeric'
-            })})
-          </div>
-          
-          {/* Countdown or Locked Message */}
-          {!timeRemaining.expired ? (
-            <div style={{
-              background: timeRemaining.hours === 0 && timeRemaining.minutes < 60 ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.2)',
-              padding: '15px',
-              borderRadius: '6px',
-              marginTop: '10px'
-            }}>
-              <div style={{
-                fontSize: timeRemaining.hours === 0 && timeRemaining.minutes < 60 ? '1.6rem' : '1.4rem',
-                fontWeight: '700',
-                marginBottom: '8px',
-                color: '#fff'
-              }}>
-                {timeRemaining.hours === 0 && timeRemaining.minutes < 60 ? '🚨' : '⏰'} PICKS LOCK IN: {timeRemaining.formatted} {timeRemaining.hours === 0 && timeRemaining.minutes < 60 ? '🚨' : ''}
-              </div>
-              <div style={{fontSize: '1.1rem', marginBottom: '5px', color: '#fff'}}>
-                Deadline: 11:59 PM PST Tonight
-              </div>
-              {timeRemaining.hours === 0 && timeRemaining.minutes < 60 && (
-                <div style={{
-                  fontSize: '1.2rem',
-                  fontWeight: '700',
-                  marginTop: '10px',
-                  animation: 'pulse 1s infinite',
-                  color: '#fff'
-                }}>
-                  ⚠️ SUBMIT YOUR PICKS NOW! ⚠️
-                </div>
-              )}
-            </div>
-          ) : (
-            <div style={{
-              background: '#28a745',
-              padding: '15px',
-              borderRadius: '6px',
-              fontSize: '1.3rem',
-              fontWeight: '700',
-              marginTop: '10px',
-              color: '#fff'
-            }}>
-              ✅ PICKS ARE LOCKED - Games In Progress
-              <div style={{fontSize: '1rem', marginTop: '8px', fontWeight: '500'}}>
-                Picks closed at: 11:59 PM PST
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-      
       <header>
         <h1>🏈 Richard's NFL Playoff Pool 2025</h1>
         <p>Enter your score predictions for each NFL Playoff 2025 game</p>
@@ -6757,18 +5895,6 @@ const calculateAllPrizeWinners = () => {
             officialWinners={officialWinners}
             publishedWinners={publishedWinners}
             onLogout={handleLogout}
-            weekCompletionStatus={weekCompletionStatus}
-            rankMostCorrectWinners={rankMostCorrectWinners}
-            rankClosestPoints={rankClosestPoints}
-            rankCorrectSuperBowlWinner={rankCorrectSuperBowlWinner}
-            rankClosestSuperBowlPoints={rankClosestSuperBowlPoints}
-            rankMostCorrectAllWeeks={rankMostCorrectAllWeeks}
-            rankClosestPointsAllWeeks={rankClosestPointsAllWeeks}
-            isWeekComplete={isWeekComplete}
-            calculateCorrectWinners={calculateCorrectWinners}
-            calculateWeeklyTotal={calculateWeeklyTotal}
-            calculateTotalCorrectWinners={calculateTotalCorrectWinners}
-            calculateGrandTotal={calculateGrandTotal}
           />) : currentView === 'winners' && codeValidated ? (
           <HowWinnersAreDetermined 
             calculatedWinners={calculatedWinners}
@@ -7389,105 +6515,39 @@ const calculateAllPrizeWinners = () => {
                         {/* Team codes row for Pool Manager */}
                         {isPoolManager() && (
                           <div style={{marginTop: '5px', display: 'flex', gap: '5px', justifyContent: 'center', alignItems: 'center'}}>
-                            <select
+                            <input
+                              type="text"
+                              maxLength="3"
                               value={teamCodes[currentWeek]?.[game.id]?.team1 || ''}
                               onChange={(e) => handleTeamCodeChange(game.id, 'team1', e.target.value)}
+                              placeholder="PIT"
                               style={{
-                                width: '80px',
-                                padding: '6px 4px',
+                                width: '45px',
+                                padding: '4px',
                                 textAlign: 'center',
-                                fontSize: '0.75rem',
+                                fontSize: '0.8rem',
                                 fontWeight: 'bold',
                                 border: '2px solid #667eea',
-                                borderRadius: '4px',
-                                background: '#fff',
-                                color: '#000'
+                                borderRadius: '4px'
                               }}
-                            >
-                              <option value="">--</option>
-                              <option value="ARI">ARI</option>
-                              <option value="ATL">ATL</option>
-                              <option value="BAL">BAL</option>
-                              <option value="BUF">BUF</option>
-                              <option value="CAR">CAR</option>
-                              <option value="CHI">CHI</option>
-                              <option value="CIN">CIN</option>
-                              <option value="CLE">CLE</option>
-                              <option value="DAL">DAL</option>
-                              <option value="DEN">DEN</option>
-                              <option value="DET">DET</option>
-                              <option value="GB">GB</option>
-                              <option value="HOU">HOU</option>
-                              <option value="IND">IND</option>
-                              <option value="JAC">JAC</option>
-                              <option value="KC">KC</option>
-                              <option value="LV">LV</option>
-                              <option value="LAC">LAC</option>
-                              <option value="LAR">LAR</option>
-                              <option value="MIA">MIA</option>
-                              <option value="MIN">MIN</option>
-                              <option value="NE">NE</option>
-                              <option value="NO">NO</option>
-                              <option value="NYG">NYG</option>
-                              <option value="NYJ">NYJ</option>
-                              <option value="PHI">PHI</option>
-                              <option value="PIT">PIT</option>
-                              <option value="SF">SF</option>
-                              <option value="SEA">SEA</option>
-                              <option value="TB">TB</option>
-                              <option value="TEN">TEN</option>
-                              <option value="WAS">WAS</option>
-                            </select>
-                            <span style={{fontSize: '0.8rem', fontWeight: 'bold'}}>@</span>
-                            <select
+                            />
+                            <span style={{fontSize: '0.8rem'}}>@</span>
+                            <input
+                              type="text"
+                              maxLength="3"
                               value={teamCodes[currentWeek]?.[game.id]?.team2 || ''}
                               onChange={(e) => handleTeamCodeChange(game.id, 'team2', e.target.value)}
+                              placeholder="BUF"
                               style={{
-                                width: '80px',
-                                padding: '6px 4px',
+                                width: '45px',
+                                padding: '4px',
                                 textAlign: 'center',
-                                fontSize: '0.75rem',
+                                fontSize: '0.8rem',
                                 fontWeight: 'bold',
                                 border: '2px solid #667eea',
-                                borderRadius: '4px',
-                                background: '#fff',
-                                color: '#000'
+                                borderRadius: '4px'
                               }}
-                            >
-                              <option value="">--</option>
-                              <option value="ARI">ARI</option>
-                              <option value="ATL">ATL</option>
-                              <option value="BAL">BAL</option>
-                              <option value="BUF">BUF</option>
-                              <option value="CAR">CAR</option>
-                              <option value="CHI">CHI</option>
-                              <option value="CIN">CIN</option>
-                              <option value="CLE">CLE</option>
-                              <option value="DAL">DAL</option>
-                              <option value="DEN">DEN</option>
-                              <option value="DET">DET</option>
-                              <option value="GB">GB</option>
-                              <option value="HOU">HOU</option>
-                              <option value="IND">IND</option>
-                              <option value="JAC">JAC</option>
-                              <option value="KC">KC</option>
-                              <option value="LV">LV</option>
-                              <option value="LAC">LAC</option>
-                              <option value="LAR">LAR</option>
-                              <option value="MIA">MIA</option>
-                              <option value="MIN">MIN</option>
-                              <option value="NE">NE</option>
-                              <option value="NO">NO</option>
-                              <option value="NYG">NYG</option>
-                              <option value="NYJ">NYJ</option>
-                              <option value="PHI">PHI</option>
-                              <option value="PIT">PIT</option>
-                              <option value="SF">SF</option>
-                              <option value="SEA">SEA</option>
-                              <option value="TB">TB</option>
-                              <option value="TEN">TEN</option>
-                              <option value="WAS">WAS</option>
-                            </select>
+                            />
                           </div>
                         )}
                         {/* 
@@ -7994,9 +7054,6 @@ const calculateAllPrizeWinners = () => {
                         {allPicks.filter(pick => pick.week === currentWeek && pick.predictions && Object.keys(pick.predictions).length > 0).length} Players
                       </div>
                       Submitted
-                      <div style={{fontSize: '0.95rem', color: '#040404ff', fontWeight: 'bold', marginTop: '2px'}}>
-                        (PST)
-                      </div>
                       <div style={{marginTop: '4px'}}>
                         <button
                           onClick={() => handleSort('timestamp')}
@@ -8492,15 +7549,14 @@ const calculateAllPrizeWinners = () => {
                             </td>
                           )}
 
-                          <td className="timestamp" style={{color: '#000000'}}>
+                          <td className="timestamp">
                             {new Date(pick.lastUpdated || pick.timestamp).toLocaleString('en-US', {
-                              timeZone: 'America/Los_Angeles',
                               month: '2-digit',
                               day: '2-digit',
                               hour: '2-digit',
                               minute: '2-digit',
                               second: '2-digit'
-                            })} PST
+                            })}
                           </td>
                         </tr>
                       );
@@ -9861,7 +8917,7 @@ const calculateAllPrizeWinners = () => {
                                     {pred?.team2 || '-'}
                                   </td>
                                   <td style={{padding: '10px', textAlign: 'center', fontSize: '12px', color: '#666'}}>
-                                    {player.lastUpdated ? new Date(player.lastUpdated).toLocaleString('en-US', {timeZone: 'America/Los_Angeles'}) + ' PST' : player.timestamp ? new Date(player.timestamp).toLocaleString('en-US', {timeZone: 'America/Los_Angeles'}) + ' PST' : '-'}
+                                    {player.lastUpdated ? new Date(player.lastUpdated).toLocaleString() : player.timestamp ? new Date(player.timestamp).toLocaleString() : '-'}
                                   </td>
                                 </tr>
                               );
@@ -9948,7 +9004,7 @@ const calculateAllPrizeWinners = () => {
                                     {pred?.team2 || '-'}
                                   </td>
                                   <td style={{padding: '10px', textAlign: 'center', fontSize: '12px', color: '#666'}}>
-                                    {player.lastUpdated ? new Date(player.lastUpdated).toLocaleString('en-US', {timeZone: 'America/Los_Angeles'}) + ' PST' : player.timestamp ? new Date(player.timestamp).toLocaleString('en-US', {timeZone: 'America/Los_Angeles'}) + ' PST' : '-'}
+                                    {player.lastUpdated ? new Date(player.lastUpdated).toLocaleString() : player.timestamp ? new Date(player.timestamp).toLocaleString() : '-'}
                                   </td>
                                 </tr>
                               );
