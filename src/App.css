@@ -431,7 +431,7 @@ header p {
 /* Picks Table */
 .picks-table-container {
   overflow-x: auto;
-  max-height: 600px;
+  max-height: 1400px;
   overflow-y: auto;
   position: relative;
 }
@@ -589,7 +589,7 @@ footer {
 
   /* Mobile sticky header fix */
   .picks-table-container {
-    max-height: 500px;
+    max-height: 1200px;
     -webkit-overflow-scrolling: touch;
   }
   
