@@ -5101,98 +5101,57 @@ const calculateAllPrizeWinners = () => {
             ⚠️ ALL TIMES IN THIS APP ARE IN PACIFIC STANDARD TIME (PST) ⚠️
           </div>
           
-          {/* Session Info - Static, no live updates */}
+          {/* Current PST Time */}
           <div style={{
-            fontSize: '1.1rem',
-            fontWeight: '600',
-            marginBottom: '15px',
-            color: '#fff',
-            backgroundColor: 'rgba(255,255,255,0.1)',
-            padding: '15px',
-            borderRadius: '8px',
-            lineHeight: '1.8'
+            fontSize: '1.4rem',
+            fontWeight: 'bold',
+            marginBottom: '12px',
+            color: '#fff'
           }}>
-            <div style={{fontSize: '1.2rem', fontWeight: '700', marginBottom: '10px'}}>
-              🕐 Your Session Info:
-            </div>
-            
-            <div style={{
-              backgroundColor: 'rgba(255,193,7,0.2)',
-              border: '1px solid #ffc107',
-              padding: '10px',
-              borderRadius: '6px',
-              marginBottom: '12px',
-              fontSize: '0.95rem',
-              lineHeight: '1.5'
-            }}>
-              ⚠️ IMPORTANT: Times below are from when you loaded this page.<br/>
-              They do NOT update automatically. Reload to see current time.
-            </div>
-            
-            <div style={{paddingLeft: '10px'}}>
-              • Player logged in and loaded page at: {pstTime.toLocaleTimeString('en-US', {
-                timeZone: 'America/Los_Angeles',
-                hour: 'numeric',
-                minute: '2-digit',
-                hour12: true
-              })} PST
-            </div>
-            <div style={{paddingLeft: '10px'}}>
-              • Today's date: {pstTime.toLocaleDateString('en-US', {
-                timeZone: 'America/Los_Angeles',
-                weekday: 'long',
-                month: 'long',
-                day: 'numeric',
-                year: 'numeric'
-              })}
-            </div>
-            <div style={{paddingLeft: '10px'}}>
-              • Current deadline: 11:59 PM PST tonight
-            </div>
-            <div style={{paddingLeft: '10px', marginTop: '8px', fontWeight: '700', color: '#080808ff'}}>
-              • Based on your login time, you have approximately {(() => {
-                const deadline = new Date(pstTime);
-                deadline.setHours(23, 59, 59, 999);
-                const msRemaining = deadline - pstTime;
-                const hoursRemaining = Math.floor(msRemaining / (1000 * 60 * 60));
-                const minutesRemaining = Math.floor((msRemaining % (1000 * 60 * 60)) / (1000 * 60));
-                return `${hoursRemaining} hours and ${minutesRemaining} minutes`;
-              })()} to submit your picks
-            </div>
+            🕐 Current PST Time: {pstTime.toLocaleTimeString('en-US', {
+              timeZone: 'America/Los_Angeles',
+              hour: 'numeric',
+              minute: '2-digit',
+              second: '2-digit',
+              hour12: true
+            })} ({pstTime.toLocaleDateString('en-US', {
+              timeZone: 'America/Los_Angeles',
+              weekday: 'long',
+              month: 'short',
+              day: 'numeric'
+            })})
           </div>
           
-          {/* Deadline Warning */}
+          {/* Countdown or Locked Message */}
           {!timeRemaining.expired ? (
             <div style={{
-              background: 'rgba(255,193,7,0.2)',
-              border: '2px solid #ffc107',
+              background: timeRemaining.hours === 0 && timeRemaining.minutes < 60 ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.2)',
               padding: '15px',
-              borderRadius: '8px',
+              borderRadius: '6px',
               marginTop: '10px'
             }}>
               <div style={{
-                fontSize: '1.4rem',
+                fontSize: timeRemaining.hours === 0 && timeRemaining.minutes < 60 ? '1.6rem' : '1.4rem',
                 fontWeight: '700',
                 marginBottom: '8px',
                 color: '#fff'
               }}>
-                ⏰ IMPORTANT: Picks must be submitted before 11:59 PM PST tonight!
+                {timeRemaining.hours === 0 && timeRemaining.minutes < 60 ? '🚨' : '⏰'} PICKS LOCK IN: {timeRemaining.formatted} {timeRemaining.hours === 0 && timeRemaining.minutes < 60 ? '🚨' : ''}
               </div>
-              <div style={{
-                fontSize: '1rem',
-                marginTop: '12px',
-                padding: '12px',
-                background: 'rgba(255,255,255,0.15)',
-                borderRadius: '6px',
-                color: '#fff',
-                lineHeight: '1.6'
-              }}>
-                💡 TIP: This time doesn't update automatically.<br/>
-                Reload your browser to see the most current information.<br/>
-                <span style={{fontSize: '0.9rem', opacity: 0.9}}>
-                  (On mobile: Pull down to refresh. On computer: Press F5)
-                </span>
+              <div style={{fontSize: '1.1rem', marginBottom: '5px', color: '#fff'}}>
+                Deadline: 11:59 PM PST Tonight
               </div>
+              {timeRemaining.hours === 0 && timeRemaining.minutes < 60 && (
+                <div style={{
+                  fontSize: '1.2rem',
+                  fontWeight: '700',
+                  marginTop: '10px',
+                  animation: 'pulse 1s infinite',
+                  color: '#fff'
+                }}>
+                  ⚠️ SUBMIT YOUR PICKS NOW! ⚠️
+                </div>
+              )}
             </div>
           ) : (
             <div style={{

@@ -5115,20 +5115,6 @@ const calculateAllPrizeWinners = () => {
             <div style={{fontSize: '1.2rem', fontWeight: '700', marginBottom: '10px'}}>
               🕐 Your Session Info:
             </div>
-            
-            <div style={{
-              backgroundColor: 'rgba(255,193,7,0.2)',
-              border: '1px solid #ffc107',
-              padding: '10px',
-              borderRadius: '6px',
-              marginBottom: '12px',
-              fontSize: '0.95rem',
-              lineHeight: '1.5'
-            }}>
-              ⚠️ IMPORTANT: Times below are from when you loaded this page.<br/>
-              They do NOT update automatically. Reload to see current time.
-            </div>
-            
             <div style={{paddingLeft: '10px'}}>
               • Player logged in and loaded page at: {pstTime.toLocaleTimeString('en-US', {
                 timeZone: 'America/Los_Angeles',
@@ -5148,16 +5134,6 @@ const calculateAllPrizeWinners = () => {
             </div>
             <div style={{paddingLeft: '10px'}}>
               • Current deadline: 11:59 PM PST tonight
-            </div>
-            <div style={{paddingLeft: '10px', marginTop: '8px', fontWeight: '700', color: '#080808ff'}}>
-              • Based on your login time, you have approximately {(() => {
-                const deadline = new Date(pstTime);
-                deadline.setHours(23, 59, 59, 999);
-                const msRemaining = deadline - pstTime;
-                const hoursRemaining = Math.floor(msRemaining / (1000 * 60 * 60));
-                const minutesRemaining = Math.floor((msRemaining % (1000 * 60 * 60)) / (1000 * 60));
-                return `${hoursRemaining} hours and ${minutesRemaining} minutes`;
-              })()} to submit your picks
             </div>
           </div>
           
