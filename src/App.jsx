@@ -208,7 +208,7 @@ const PLAYOFF_WEEKS = {
     name: "Super Bowl LIX (Feb 8, 2026)",
     deadline: "Friday, February 6, 2026 at 11:59 PM PST",
     games: [
-      { id: 13, team1: "AFC Champion", team2: "NFC Champion" }
+      { id: 13, team1: "NE", team2: "SEA" }
     ]
   }
 };
