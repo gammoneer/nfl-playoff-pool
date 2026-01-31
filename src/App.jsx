@@ -91,7 +91,7 @@ const AUTO_LOCK_DATES = {
 // Wild Card Weekend: January 10-12, 2026 (Sat-Sun-Mon) - Locks Sat Jan 10 @ 12:01 AM
 // Divisional Round: January 17-18, 2026 (Sat-Sun) - Locks Sat Jan 17 @ 12:01 AM
 // Conference Championships: January 25, 2026 (Sunday) - Locks Sun Jan 25 @ 12:01 AM
-// Super Bowl LIX: February 8, 2026 (Sunday) - Locks Sun Feb 8 @ 12:01 AM
+// Super Bowl LX: February 8, 2026 (Sunday) - Locks Sun Feb 8 @ 12:01 AM
 // PLAYER RULE: All picks must be submitted by 11:59 PM on the Friday before games!
 // TO CHANGE: Just edit the dates above!
 // ============================================
@@ -205,10 +205,10 @@ const PLAYOFF_WEEKS = {
     ]
   },
   superbowl: {
-    name: "Super Bowl LIX (Feb 8, 2026)",
+    name: "Super Bowl LX (Feb 8, 2026)",
     deadline: "Friday, February 6, 2026 at 11:59 PM PST",
     games: [
-      { id: 13, team1: "NE", team2: "SEA" }
+      { id: 13, team1: "SEA", team2: "NE" }
     ]
   }
 };
