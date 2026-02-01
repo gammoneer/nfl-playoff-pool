@@ -445,8 +445,7 @@ function App() {
   const [playerName, setPlayerName] = useState('');
   const [playerCode, setPlayerCode] = useState('');
   const [codeValidated, setCodeValidated] = useState(false);
-  //const [currentWeek, setCurrentWeek] = useState('wildcard');
-  const [currentWeek, setCurrentWeek] = useState('superbowl');
+  const [currentWeek, setCurrentWeek] = useState('wildcard');
   const [predictions, setPredictions] = useState({});
   const [allPicks, setAllPicks] = useState([]);
   const [submitted, setSubmitted] = useState(false);
@@ -3996,25 +3995,23 @@ const handleCloseWeekAndConfigureNext = async (weekKey) => {
     const hours = pstTime.getHours();
     const minutes = pstTime.getMinutes();
     
-    // Only block on weekends when there are ACTUAL games being played
-    // Check each week's auto lock date to see if THIS weekend has games
-    const gameWeekends = Object.values(AUTO_LOCK_DATES).map(date => {
-      const gameDay = new Date(date + 'T00:00:00');
-      const fri = new Date(gameDay);
-      fri.setDate(fri.getDate() - 1);
-      fri.setHours(23, 59, 0, 0);
-      const mon = new Date(gameDay);
-      mon.setDate(mon.getDate() + (gameDay.getDay() === 0 ? 1 : 2));
-      mon.setHours(0, 1, 0, 0);
-      return { start: fri, end: mon };
-    });
-
-    // Check if current time falls within ANY game weekend
-    const isGameWeekend = gameWeekends.some(weekend => 
-      pstTime >= weekend.start && pstTime <= weekend.end
-    );
-
-    if (isGameWeekend) {
+    // Block on Friday after 11:59 PM (starting Saturday 00:00)
+    if (day === 5 && (hours === 23 && minutes >= 59)) {
+      return false;
+    }
+    
+    // Block all day Saturday (day 6)
+    if (day === 6) {
+      return false;
+    }
+    
+    // Block all day Sunday (day 0)
+    if (day === 0) {
+      return false;
+    }
+    
+    // Block Monday until 12:01 AM (first minute of Monday)
+    if (day === 1 && hours === 0 && minutes === 0) {
       return false;
     }
     
