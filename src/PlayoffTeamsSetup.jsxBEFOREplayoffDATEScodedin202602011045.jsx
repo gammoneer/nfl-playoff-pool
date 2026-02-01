@@ -50,103 +50,8 @@ function PlayoffTeamsSetup({
   onSavePlayoffTeams,
   isPoolManager,
   database,
-  weekCompletionStatus = {},
-  playoffDates,
-  onSavePlayoffDates
+  weekCompletionStatus = {}
 }) {
-  // Playoff Dates State
-  const [dates, setDates] = useState({
-    firstFriday: playoffDates?.firstFriday || '',
-    lastMonday: playoffDates?.lastMonday || '',
-    wildcard: playoffDates?.autoLockDates?.wildcard || '',
-    divisional: playoffDates?.autoLockDates?.divisional || '',
-    conference: playoffDates?.autoLockDates?.conference || '',
-    superbowl: playoffDates?.autoLockDates?.superbowl || ''
-  });
-
-  // Update dates state when playoffDates prop changes (loaded from Firebase)
-  useEffect(() => {
-    if (playoffDates) {
-      setDates({
-        firstFriday: playoffDates.firstFriday || '',
-        lastMonday: playoffDates.lastMonday || '',
-        wildcard: playoffDates.autoLockDates?.wildcard || '',
-        divisional: playoffDates.autoLockDates?.divisional || '',
-        conference: playoffDates.autoLockDates?.conference || '',
-        superbowl: playoffDates.autoLockDates?.superbowl || ''
-      });
-    }
-  }, [playoffDates]);
-
-  // Handle date input changes
-  const handleDateChange = (field, value) => {
-    setDates(prev => ({ ...prev, [field]: value }));
-  };
-
-  // Calculate and show what Friday each game date locks on
-  const getLockFriday = (dateStr) => {
-    if (!dateStr) return 'Not set';
-    const gameDay = new Date(dateStr + 'T00:00:00');
-    const dayOfWeek = gameDay.getDay();
-    const daysBackToFriday = dayOfWeek === 6 ? 1 : dayOfWeek === 0 ? 2 : (dayOfWeek - 5 + 7) % 7;
-    const friday = new Date(gameDay);
-    friday.setDate(friday.getDate() - daysBackToFriday);
-    return friday.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
-  };
-
-  // Get day name for a date
-  const getDayName = (dateStr) => {
-    if (!dateStr) return '';
-    const date = new Date(dateStr + 'T00:00:00');
-    return date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
-  };
-
-  // Save playoff dates to Firebase
-  const handleSaveDates = async () => {
-    // Validate all dates are filled
-    if (!dates.firstFriday || !dates.lastMonday || !dates.wildcard || !dates.divisional || !dates.conference || !dates.superbowl) {
-      alert('⚠️ Please fill in ALL date fields before saving!');
-      return;
-    }
-
-    // Confirm before saving
-    if (!window.confirm(
-      '⚠️ CONFIRM SAVE PLAYOFF DATES\n\n' +
-      'This will change lock dates for ALL players!\n\n' +
-      'First Friday: ' + getDayName(dates.firstFriday) + '\n' +
-      'Last Monday: ' + getDayName(dates.lastMonday) + '\n' +
-      'Wild Card: ' + getDayName(dates.wildcard) + ' → Locks ' + getLockFriday(dates.wildcard) + '\n' +
-      'Divisional: ' + getDayName(dates.divisional) + ' → Locks ' + getLockFriday(dates.divisional) + '\n' +
-      'Conference: ' + getDayName(dates.conference) + ' → Locks ' + getLockFriday(dates.conference) + '\n' +
-      'Super Bowl: ' + getDayName(dates.superbowl) + ' → Locks ' + getLockFriday(dates.superbowl) + '\n\n' +
-      'Are you sure?'
-    )) {
-      return;
-    }
-
-    try {
-      const { ref, set } = await import('firebase/database');
-      const playoffDatesData = {
-        firstFriday: dates.firstFriday,
-        lastMonday: dates.lastMonday,
-        autoLockDates: {
-          wildcard: dates.wildcard,
-          divisional: dates.divisional,
-          conference: dates.conference,
-          superbowl: dates.superbowl
-        }
-      };
-      await set(ref(database, 'playoffDates'), playoffDatesData);
-      if (onSavePlayoffDates) {
-        onSavePlayoffDates(playoffDatesData);
-      }
-      alert('✅ Playoff dates saved successfully!\n\nLock dates will update automatically for all players.');
-    } catch (error) {
-      console.error('Error saving playoff dates:', error);
-      alert('⚠️ Error saving dates. Check console.');
-    }
-  };
-
   // Week 1 Manual Setup State
   const [week1Teams, setWeek1Teams] = useState({
     afc: {
@@ -317,7 +222,21 @@ function PlayoffTeamsSetup({
     }
 
     const { ref, set } = await import('firebase/database');
-    const playoffData = { week3Manual: week3Games };
+    
+    // 🔥 FIX: Save in the structure that App.jsx expects!
+    const playoffData = { 
+      week3Manual: week3Games,
+      week3: {
+        afcChampionship: {
+          team1: week3Games.game11.away,
+          team2: week3Games.game11.home
+        },
+        nfcChampionship: {
+          team1: week3Games.game12.away,
+          team2: week3Games.game12.home
+        }
+      }
+    };
     onSavePlayoffTeams(playoffData);
 
     try {
@@ -340,7 +259,17 @@ function PlayoffTeamsSetup({
     }
 
     const { ref, set } = await import('firebase/database');
-    const playoffData = { week4Manual: week4Game };
+    
+    // 🔥 FIX: Save in the structure that App.jsx expects!
+    const playoffData = { 
+      week4Manual: week4Game,
+      week4: {
+        superBowl: {
+          team1: week4Game.game13.away,
+          team2: week4Game.game13.home
+        }
+      }
+    };
     onSavePlayoffTeams(playoffData);
 
     try {
@@ -463,157 +392,9 @@ function PlayoffTeamsSetup({
 
   return (
     <div className="playoff-setup-container">
-      <h2>⚙️ Playoff Dates/Teams Setup</h2>
-
-      {/* 📅 SECTION 1: PLAYOFF DATES */}
-      <div className="setup-section" style={{
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        borderRadius: '12px',
-        padding: '24px',
-        marginBottom: '24px',
-        color: 'white'
-      }}>
-        <h3 style={{ margin: '0 0 8px 0', fontSize: '1.3rem' }}>📅 PLAYOFF DATES</h3>
-        <p style={{ margin: '0 0 20px 0', opacity: 0.85, fontSize: '0.9rem' }}>
-          Set the game day dates below. Lock dates (Friday 11:59 PM) are calculated automatically.
-        </p>
-
-        {/* Season Setup Row */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
-          {/* First Friday */}
-          <div style={{ background: 'rgba(255,255,255,0.15)', borderRadius: '8px', padding: '16px' }}>
-            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '6px', fontSize: '0.85rem', opacity: 0.9 }}>
-              📌 First Friday (Season Start)
-            </label>
-            <input
-              type="date"
-              value={dates.firstFriday}
-              onChange={(e) => handleDateChange('firstFriday', e.target.value)}
-              style={{ width: '100%', padding: '10px', borderRadius: '6px', border: 'none', fontSize: '1rem', boxSizing: 'border-box' }}
-            />
-            {dates.firstFriday && (
-              <div style={{ fontSize: '0.78rem', marginTop: '4px', opacity: 0.8 }}>
-                {getDayName(dates.firstFriday)}
-              </div>
-            )}
-          </div>
-
-          {/* Last Monday */}
-          <div style={{ background: 'rgba(255,255,255,0.15)', borderRadius: '8px', padding: '16px' }}>
-            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '6px', fontSize: '0.85rem', opacity: 0.9 }}>
-              🏁 Last Monday (Season End)
-            </label>
-            <input
-              type="date"
-              value={dates.lastMonday}
-              onChange={(e) => handleDateChange('lastMonday', e.target.value)}
-              style={{ width: '100%', padding: '10px', borderRadius: '6px', border: 'none', fontSize: '1rem', boxSizing: 'border-box' }}
-            />
-            {dates.lastMonday && (
-              <div style={{ fontSize: '0.78rem', marginTop: '4px', opacity: 0.8 }}>
-                {getDayName(dates.lastMonday)}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Game Day Dates Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
-          {/* Wild Card */}
-          <div style={{ background: 'rgba(255,255,255,0.15)', borderRadius: '8px', padding: '16px' }}>
-            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '6px', fontSize: '0.85rem', opacity: 0.9 }}>
-              🏈 Week 1 - Wild Card Game Day
-            </label>
-            <input
-              type="date"
-              value={dates.wildcard}
-              onChange={(e) => handleDateChange('wildcard', e.target.value)}
-              style={{ width: '100%', padding: '10px', borderRadius: '6px', border: 'none', fontSize: '1rem', boxSizing: 'border-box' }}
-            />
-            {dates.wildcard && (
-              <div style={{ fontSize: '0.78rem', marginTop: '4px', opacity: 0.8 }}>
-                {getDayName(dates.wildcard)} → 🔒 Locks {getLockFriday(dates.wildcard)} @ 11:59 PM
-              </div>
-            )}
-          </div>
-
-          {/* Divisional */}
-          <div style={{ background: 'rgba(255,255,255,0.15)', borderRadius: '8px', padding: '16px' }}>
-            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '6px', fontSize: '0.85rem', opacity: 0.9 }}>
-              🏈 Week 2 - Divisional Game Day
-            </label>
-            <input
-              type="date"
-              value={dates.divisional}
-              onChange={(e) => handleDateChange('divisional', e.target.value)}
-              style={{ width: '100%', padding: '10px', borderRadius: '6px', border: 'none', fontSize: '1rem', boxSizing: 'border-box' }}
-            />
-            {dates.divisional && (
-              <div style={{ fontSize: '0.78rem', marginTop: '4px', opacity: 0.8 }}>
-                {getDayName(dates.divisional)} → 🔒 Locks {getLockFriday(dates.divisional)} @ 11:59 PM
-              </div>
-            )}
-          </div>
-
-          {/* Conference */}
-          <div style={{ background: 'rgba(255,255,255,0.15)', borderRadius: '8px', padding: '16px' }}>
-            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '6px', fontSize: '0.85rem', opacity: 0.9 }}>
-              🏈 Week 3 - Conference Game Day
-            </label>
-            <input
-              type="date"
-              value={dates.conference}
-              onChange={(e) => handleDateChange('conference', e.target.value)}
-              style={{ width: '100%', padding: '10px', borderRadius: '6px', border: 'none', fontSize: '1rem', boxSizing: 'border-box' }}
-            />
-            {dates.conference && (
-              <div style={{ fontSize: '0.78rem', marginTop: '4px', opacity: 0.8 }}>
-                {getDayName(dates.conference)} → 🔒 Locks {getLockFriday(dates.conference)} @ 11:59 PM
-              </div>
-            )}
-          </div>
-
-          {/* Super Bowl */}
-          <div style={{ background: 'rgba(255,255,255,0.15)', borderRadius: '8px', padding: '16px' }}>
-            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '6px', fontSize: '0.85rem', opacity: 0.9 }}>
-              🏆 Week 4 - Super Bowl Game Day
-            </label>
-            <input
-              type="date"
-              value={dates.superbowl}
-              onChange={(e) => handleDateChange('superbowl', e.target.value)}
-              style={{ width: '100%', padding: '10px', borderRadius: '6px', border: 'none', fontSize: '1rem', boxSizing: 'border-box' }}
-            />
-            {dates.superbowl && (
-              <div style={{ fontSize: '0.78rem', marginTop: '4px', opacity: 0.8 }}>
-                {getDayName(dates.superbowl)} → 🔒 Locks {getLockFriday(dates.superbowl)} @ 11:59 PM
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Save Dates Button */}
-        <button
-          onClick={handleSaveDates}
-          style={{
-            width: '100%',
-            padding: '14px',
-            fontSize: '1.1rem',
-            fontWeight: 'bold',
-            background: 'white',
-            color: '#667eea',
-            border: 'none',
-            borderRadius: '8px',
-            cursor: 'pointer'
-          }}
-        >
-          💾 Save Playoff Dates
-        </button>
-      </div>
-
-      {/* 🏈 SECTION 2: PLAYOFF TEAMS (existing code below) */}
-      <div style={{ borderTop: '2px solid #ddd', paddingTop: '24px' }}>
-      <h3 style={{ marginTop: 0 }}>🏈 PLAYOFF TEAMS</h3>
+      <h2>⚙️ Playoff Teams Setup</h2>
+      
+      <div className="setup-status">
         <h3>📊 Current Status</h3>
         <div className="status-grid">
           <div className={`status-item ${isWeek1Configured() ? 'configured' : 'not-configured'}`}>
@@ -830,7 +611,6 @@ function PlayoffTeamsSetup({
           )}
         </div>
       )}
-      </div>
     </div>
   );
 }

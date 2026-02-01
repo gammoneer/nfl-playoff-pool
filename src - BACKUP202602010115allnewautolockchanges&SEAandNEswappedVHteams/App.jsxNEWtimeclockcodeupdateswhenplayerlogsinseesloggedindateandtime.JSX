@@ -64,27 +64,34 @@ const database = getDatabase(app);
 // Define when the playoff season starts and ends
 // Submissions lock on WEEKENDS ONLY during playoff season
 // Format: YYYY-MM-DD
-// ============================================
-// 📅 FALLBACK DATES - Used only if Firebase has no dates saved yet
-// Pool Manager sets actual dates via the app (Setup Playoff Dates/Teams tab)
-// These are overridden at runtime by playoffDates loaded from Firebase
-// ============================================
-const PLAYOFF_SEASON_FALLBACK = {
-  firstFriday: "2026-01-09",
-  lastMonday: "2026-02-09"
+const PLAYOFF_SEASON = {
+  firstFriday: "2026-01-09",  // Friday before Wild Card weekend (last day to submit)
+  lastMonday: "2026-02-09"    // Monday after Super Bowl (season ends)
 };
+// Before firstFriday: NO LOCKS - players can submit anytime
+// During playoffs: Locks Friday 11:59 PM - Monday 12:01 AM each weekend
+// After lastMonday: Season over
+// TO CHANGE: Edit dates above when you know actual playoff schedule
+// ============================================
 
-const AUTO_LOCK_DATES_FALLBACK = {
-  wildcard: "2026-01-10",
-  divisional: "2026-01-17",
-  conference: "2026-01-25",
-  superbowl: "2026-02-08"
+// ============================================
+// 📅 AUTOMATIC WEEK LOCK DATES - ACTUAL 2025 NFL PLAYOFFS
+// ============================================
+// Weeks automatically lock on these dates at 12:01 AM PST
+// Pool Manager can override manually anytime
+// Format: YYYY-MM-DD (12:01 AM PST)
+// RULE: All picks lock on the FRIDAY before the weekend games are played
+const AUTO_LOCK_DATES = {
+  wildcard: "2026-01-10",    // Saturday 12:01 AM - Games: Sat-Sun-Mon (Jan 10-12) - Deadline: Fri Jan 9 @ 11:59 PM
+  divisional: "2026-01-17",  // Saturday 12:01 AM - Games: Sat-Sun (Jan 17-18) - Deadline: Fri Jan 16 @ 11:59 PM
+  conference: "2026-01-25",  // Sunday 12:01 AM - Games: Sunday (Jan 25) - Deadline: Fri Jan 23 @ 11:59 PM
+  superbowl: "2026-02-08"    // Sunday 12:01 AM - Game: Sunday (Feb 8) - Deadline: Fri Feb 6 @ 11:59 PM
 };
 // ✅ UPDATED WITH ACTUAL NFL PLAYOFF 2025 DATES!
 // Wild Card Weekend: January 10-12, 2026 (Sat-Sun-Mon) - Locks Sat Jan 10 @ 12:01 AM
 // Divisional Round: January 17-18, 2026 (Sat-Sun) - Locks Sat Jan 17 @ 12:01 AM
 // Conference Championships: January 25, 2026 (Sunday) - Locks Sun Jan 25 @ 12:01 AM
-// Super Bowl LX: February 8, 2026 (Sunday) - Locks Sun Feb 8 @ 12:01 AM
+// Super Bowl LIX: February 8, 2026 (Sunday) - Locks Sun Feb 8 @ 12:01 AM
 // PLAYER RULE: All picks must be submitted by 11:59 PM on the Friday before games!
 // TO CHANGE: Just edit the dates above!
 // ============================================
@@ -198,10 +205,10 @@ const PLAYOFF_WEEKS = {
     ]
   },
   superbowl: {
-    name: "Super Bowl LX (Feb 8, 2026)",
+    name: "Super Bowl LIX (Feb 8, 2026)",
     deadline: "Friday, February 6, 2026 at 11:59 PM PST",
     games: [
-      { id: 13, team1: "SEA", team2: "NE" }
+      { id: 13, team1: "AFC Champion", team2: "NFC Champion" }
     ]
   }
 };
@@ -210,16 +217,6 @@ const PLAYOFF_WEEKS = {
  * Get real team name from playoff teams configuration
  * Falls back to placeholder if not configured yet
  * Handles enhanced display like "KC (AFC #1)" or "BUF (Game #1 Winner)"
- * ## 🎯 **SUPER BOWL 2025/2026 SUPER BOWL LX (60) HOME/AWAY:**
-
-**For Super Bowl, the "home" team is determined by:**
-*- AFC Champion = designated "home" (even years) RDB make NOTE of this AFC Champion is EVEN YEARs so NE is home in 2026
-*- NFC Champion = designated "home" (odd years) RDB make NOTE of this NFC Champion is ODD YEARs so SEA is visitor in 2026
-
-**2025 Super Bowl (Feb 8, 2026):**
-*- This is Super Bowl LX
-*- **AFC Champion (NE Patriots) = HOME team** 🏠
-*- **NFC Champion (SEA Seahawks) = AWAY team** ✈️
  */
 const getTeamName = (week, gameId, teamPosition, playoffTeams) => {
   // If playoff teams not configured, return placeholder
@@ -464,7 +461,6 @@ function App() {
   const [publishedWinners, setPublishedWinners] = useState({});
   // Playoff Teams Configuration
   const [playoffTeams, setPlayoffTeams] = useState({});
-  const [playoffDates, setPlayoffDates] = useState(null);
   const [showWinnersPage, setShowWinnersPage] = useState(false);
 
   // Track which totals are manually overridden (vs auto-calculated)
@@ -478,10 +474,10 @@ function App() {
 
   // 🔒 NEW: Week lock status state
   const [weekLockStatus, setWeekLockStatus] = useState({
-    wildcard: { locked: false, lockDate: null, autoLockDate: AUTO_LOCK_DATES_FALLBACK.wildcard },
-    divisional: { locked: false, lockDate: null, autoLockDate: AUTO_LOCK_DATES_FALLBACK.divisional },
-    conference: { locked: false, lockDate: null, autoLockDate: AUTO_LOCK_DATES_FALLBACK.conference },
-    superbowl: { locked: false, lockDate: null, autoLockDate: AUTO_LOCK_DATES_FALLBACK.superbowl }
+    wildcard: { locked: false, lockDate: null, autoLockDate: AUTO_LOCK_DATES.wildcard },
+    divisional: { locked: false, lockDate: null, autoLockDate: AUTO_LOCK_DATES.divisional },
+    conference: { locked: false, lockDate: null, autoLockDate: AUTO_LOCK_DATES.conference },
+    superbowl: { locked: false, lockDate: null, autoLockDate: AUTO_LOCK_DATES.superbowl }
   });
 
   // 📡 ESPN API states
@@ -1624,24 +1620,20 @@ const exportPlayersToExcel = async () => {
   };
 
   // 🔒 Check if a week should be automatically locked based on date
-  // Reads game dates from Firebase (set by Pool Manager) with fallback to hardcoded defaults
-  // Always locks on FRIDAY at 11:59 PM regardless of whether game is Saturday or Sunday
+  // Locks at Friday 11:59 PM (before the games start on Saturday)
   const shouldAutoLock = (weekKey) => {
-    // Use Firebase dates if available, otherwise fallback
-    const autoLockDates = playoffDates?.autoLockDates || AUTO_LOCK_DATES_FALLBACK;
-    const autoLockDate = autoLockDates[weekKey];
+    const autoLockDate = AUTO_LOCK_DATES[weekKey];
     if (!autoLockDate) return false;
     
     const now = new Date();
     const pstTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
     
-    // Always go back to FRIDAY regardless of whether game is Saturday or Sunday
+    // Auto-lock date is Saturday (game day)
+    // We want to lock on FRIDAY at 11:59 PM (day before)
     const gameDayDate = new Date(autoLockDate + 'T00:00:00');
     const lockDateTime = new Date(gameDayDate);
-    const dayOfWeek = gameDayDate.getDay(); // 0=Sun, 6=Sat
-    const daysBackToFriday = dayOfWeek === 6 ? 1 : dayOfWeek === 0 ? 2 : (dayOfWeek - 5 + 7) % 7;
-    lockDateTime.setDate(lockDateTime.getDate() - daysBackToFriday);
-    lockDateTime.setHours(23, 59, 59, 999); // Friday 11:59:59.999 PM
+    lockDateTime.setDate(lockDateTime.getDate() - 1); // Go back 1 day (Friday)
+    lockDateTime.setHours(23, 59, 59, 999); // Set to 11:59:59.999 PM
     
     return pstTime >= lockDateTime;
   };
@@ -1674,21 +1666,19 @@ const exportPlayersToExcel = async () => {
     onValue(weekLockRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
-        // Use Firebase dates if available, otherwise fallback
-        const autoLockDates = playoffDates?.autoLockDates || AUTO_LOCK_DATES_FALLBACK;
         // Merge with auto-lock dates
         const mergedStatus = {};
-        Object.keys(autoLockDates).forEach(weekKey => {
+        Object.keys(AUTO_LOCK_DATES).forEach(weekKey => {
           mergedStatus[weekKey] = {
             locked: data[weekKey]?.locked || false,
             lockDate: data[weekKey]?.lockDate || null,
-            autoLockDate: autoLockDates[weekKey]
+            autoLockDate: AUTO_LOCK_DATES[weekKey]
           };
         });
         setWeekLockStatus(mergedStatus);
       }
     });
-  }, [playoffDates]);
+  }, []);
 
   // 🕐 PST CLOCK: Update check (DISABLED updates to prevent dropdown closing)
   useEffect(() => {
@@ -1740,7 +1730,7 @@ const exportPlayersToExcel = async () => {
     set(ref(database, `weekLockStatus/${weekKey}`), {
       locked: newLockStatus,
       lockDate: lockDate,
-      autoLockDate: (playoffDates?.autoLockDates || AUTO_LOCK_DATES_FALLBACK)[weekKey]
+      autoLockDate: AUTO_LOCK_DATES[weekKey]
     });
     
     alert(newLockStatus 
@@ -1894,18 +1884,6 @@ const exportPlayersToExcel = async () => {
         console.log('📊 Loaded playoff teams:', data);
       } else {
         setPlayoffTeams({});
-      }
-    });
-  }, []);
-
-  // 📅 Load playoff dates from Firebase
-  useEffect(() => {
-    const playoffDatesRef = ref(database, 'playoffDates');
-    onValue(playoffDatesRef, (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        setPlayoffDates(data);
-        console.log('📅 Loaded playoff dates:', data);
       }
     });
   }, []);
@@ -2422,7 +2400,7 @@ const handleCloseWeekAndConfigureNext = async (weekKey) => {
       if (nextWeek) {
         alert(
           `✅ ${currentWeekName} closed successfully!\n\n` +
-          `You can now configure ${nextWeekName} teams in the "Setup Playoff Dates/Teams" page.`
+          `You can now configure ${nextWeekName} teams in the "Setup Playoff Teams" page.`
         );
       } else {
         alert(`✅ ${currentWeekName} closed successfully!\n\nAll playoffs complete!`);
@@ -3979,7 +3957,6 @@ const handleCloseWeekAndConfigureNext = async (weekKey) => {
 
   // Check if submissions are allowed based on day/time (PST)
   // Pool Manager bypasses lockout
-  // Reads dates from Firebase (set by Pool Manager) with fallback to hardcoded defaults
   const isSubmissionAllowed = () => {
     // Pool Manager can always submit
     if (isPoolManager()) {
@@ -3989,57 +3966,46 @@ const handleCloseWeekAndConfigureNext = async (weekKey) => {
     const now = new Date();
     const pstTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
     
-    // Use Firebase dates if available, otherwise fallback
-    const season = {
-      firstFriday: playoffDates?.firstFriday || PLAYOFF_SEASON_FALLBACK.firstFriday,
-      lastMonday: playoffDates?.lastMonday || PLAYOFF_SEASON_FALLBACK.lastMonday
-    };
-    const autoLockDates = playoffDates?.autoLockDates || AUTO_LOCK_DATES_FALLBACK;
-
     // Check if we're in playoff season
-    const playoffStart = new Date(season.firstFriday + 'T00:00:00');
-    const playoffEnd = new Date(season.lastMonday + 'T23:59:59');
+    const playoffStart = new Date(PLAYOFF_SEASON.firstFriday + 'T00:00:00');
+    const playoffEnd = new Date(PLAYOFF_SEASON.lastMonday + 'T23:59:59');
     
-    // If BEFORE playoff season starts: Allow submissions anytime!
+    // If BEFORE playoff season starts: Allow submissions anytime! ✅
     if (pstTime < playoffStart) {
       return true;
     }
     
     // If AFTER playoff season ends: Season is over
     if (pstTime > playoffEnd) {
+      return false;  // You can change this if you want to keep it open
+    }
+    
+    // We're IN playoff season - apply weekend locks
+    const day = pstTime.getDay(); // 0=Sunday, 1=Monday, ..., 5=Friday, 6=Saturday
+    const hours = pstTime.getHours();
+    const minutes = pstTime.getMinutes();
+    
+    // Block on Friday after 11:59 PM (starting Saturday 00:00)
+    if (day === 5 && (hours === 23 && minutes >= 59)) {
       return false;
     }
     
-    // We're IN playoff season - only block on weekends when ACTUAL games are being played
-    // Calculate each game weekend: Friday 11:59 PM through Monday 12:01 AM
-    const gameWeekends = Object.values(autoLockDates).map(date => {
-      const gameDay = new Date(date + 'T00:00:00');
-      
-      // Always calculate back to FRIDAY regardless of game day (Sat or Sun)
-      const dayOfWeek = gameDay.getDay(); // 0=Sun, 6=Sat
-      const daysBackToFriday = dayOfWeek === 6 ? 1 : dayOfWeek === 0 ? 2 : (dayOfWeek - 5 + 7) % 7;
-      
-      const fri = new Date(gameDay);
-      fri.setDate(fri.getDate() - daysBackToFriday);
-      fri.setHours(23, 59, 0, 0); // Friday 11:59 PM
-      
-      const mon = new Date(gameDay);
-      mon.setDate(mon.getDate() + (gameDay.getDay() === 0 ? 1 : 2)); // Monday after
-      mon.setHours(0, 1, 0, 0); // Monday 12:01 AM
-      
-      return { start: fri, end: mon };
-    });
-
-    // Check if current time falls within ANY game weekend
-    const isGameWeekend = gameWeekends.some(weekend => 
-      pstTime >= weekend.start && pstTime <= weekend.end
-    );
-
-    if (isGameWeekend) {
+    // Block all day Saturday (day 6)
+    if (day === 6) {
       return false;
     }
     
-    // All other times during playoff season are allowed (including bye weekends!)
+    // Block all day Sunday (day 0)
+    if (day === 0) {
+      return false;
+    }
+    
+    // Block Monday until 12:01 AM (first minute of Monday)
+    if (day === 1 && hours === 0 && minutes === 0) {
+      return false;
+    }
+    
+    // All other times during playoff season are allowed
     return true;
   };
 
@@ -5149,20 +5115,6 @@ const calculateAllPrizeWinners = () => {
             <div style={{fontSize: '1.2rem', fontWeight: '700', marginBottom: '10px'}}>
               🕐 Your Session Info:
             </div>
-            
-            <div style={{
-              backgroundColor: 'rgba(255,193,7,0.2)',
-              border: '1px solid #ffc107',
-              padding: '10px',
-              borderRadius: '6px',
-              marginBottom: '12px',
-              fontSize: '0.95rem',
-              lineHeight: '1.5'
-            }}>
-              ⚠️ IMPORTANT: Times below are from when you loaded this page.<br/>
-              They do NOT update automatically. Reload to see current time.
-            </div>
-            
             <div style={{paddingLeft: '10px'}}>
               • Player logged in and loaded page at: {pstTime.toLocaleTimeString('en-US', {
                 timeZone: 'America/Los_Angeles',
@@ -5182,16 +5134,6 @@ const calculateAllPrizeWinners = () => {
             </div>
             <div style={{paddingLeft: '10px'}}>
               • Current deadline: 11:59 PM PST tonight
-            </div>
-            <div style={{paddingLeft: '10px', marginTop: '8px', fontWeight: '700', color: '#080808ff'}}>
-              • Based on your login time, you have approximately {(() => {
-                const deadline = new Date(pstTime);
-                deadline.setHours(23, 59, 59, 999);
-                const msRemaining = deadline - pstTime;
-                const hoursRemaining = Math.floor(msRemaining / (1000 * 60 * 60));
-                const minutesRemaining = Math.floor((msRemaining % (1000 * 60 * 60)) / (1000 * 60));
-                return `${hoursRemaining} hours and ${minutesRemaining} minutes`;
-              })()} to submit your picks
             </div>
           </div>
           
@@ -6448,7 +6390,7 @@ const calculateAllPrizeWinners = () => {
                 className={`nav-btn ${currentView === 'playoffSetup' ? 'active' : ''}`}
                 onClick={() => setCurrentView('playoffSetup')}
               >
-                ⚙️ Setup Playoff Dates/Teams
+                ⚙️ Setup Playoff Teams
                 <span style={{
                   marginLeft: '8px',
                   fontSize: '0.7rem',
@@ -6893,8 +6835,6 @@ const calculateAllPrizeWinners = () => {
             isPoolManager={isPoolManager()}
             database={database}
             weekCompletionStatus={weekCompletionStatus}
-            playoffDates={playoffDates}
-            onSavePlayoffDates={setPlayoffDates}
           />
         ) : (
           <>

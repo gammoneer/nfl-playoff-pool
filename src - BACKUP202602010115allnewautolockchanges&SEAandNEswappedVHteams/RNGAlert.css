@@ -1,0 +1,337 @@
+/* ============================================================================
+   RNG ALERT - STYLES WITH ELIGIBILITY INDICATORS
+   ============================================================================ */
+
+.rng-alert-container {
+  max-width: 900px;
+  margin: 30px auto;
+  background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+  border: 4px solid #ff9800;
+  border-radius: 15px;
+  box-shadow: 0 8px 24px rgba(255, 152, 0, 0.4);
+  animation: alertPulse 2s ease-in-out infinite;
+}
+
+@keyframes alertPulse {
+  0%, 100% {
+    box-shadow: 0 8px 24px rgba(255, 152, 0, 0.4);
+  }
+  50% {
+    box-shadow: 0 8px 32px rgba(255, 152, 0, 0.6);
+  }
+}
+
+.rng-alert-header {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  background: #ff9800;
+  color: white;
+  padding: 20px 25px;
+  border-radius: 11px 11px 0 0;
+  position: relative;
+}
+
+.alert-icon {
+  font-size: 2rem;
+  animation: shake 0.5s ease-in-out infinite;
+}
+
+@keyframes shake {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-10deg); }
+  75% { transform: rotate(10deg); }
+}
+
+.rng-alert-header h3 {
+  flex: 1;
+  margin: 0;
+  font-size: 1.4rem;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.dismiss-alert-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: 2px solid white;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: all 0.2s;
+}
+
+.dismiss-alert-btn:hover {
+  background: rgba(255, 255, 255, 0.4);
+  transform: scale(1.1);
+}
+
+.rng-alert-content {
+  padding: 25px;
+  background: white;
+  border-radius: 0 0 11px 11px;
+}
+
+.alert-week-info {
+  padding: 15px;
+  background: #e3f2fd;
+  border-left: 4px solid #2196f3;
+  border-radius: 6px;
+  margin-bottom: 20px;
+  font-size: 1.1rem;
+  color: #1a202c;
+}
+
+.alert-week-info strong {
+  color: #2196f3;
+}
+
+/* Eligibility Notice */
+.eligibility-notice {
+  padding: 15px;
+  background: #d1fae5;
+  border-left: 4px solid #10b981;
+  border-radius: 6px;
+  margin-bottom: 25px;
+  font-size: 1rem;
+  color: #065f46;
+  line-height: 1.6;
+}
+
+.eligibility-notice strong {
+  color: #047857;
+}
+
+/* Players List */
+.players-list-section {
+  margin-bottom: 25px;
+}
+
+.players-list-section h4 {
+  margin: 0 0 15px 0;
+  color: #1a202c;
+  font-size: 1.2rem;
+}
+
+.players-missing-list {
+  background: #f8f9fa;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 15px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.missing-player-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  background: white;
+  border: 2px solid #10b981;
+  border-radius: 6px;
+  margin-bottom: 10px;
+  transition: all 0.2s;
+}
+
+.missing-player-item:last-child {
+  margin-bottom: 0;
+}
+
+.missing-player-item:hover {
+  background: #ecfdf5;
+  border-color: #059669;
+  transform: translateX(5px);
+}
+
+.player-number {
+  font-weight: 700;
+  color: #6b7280;
+  min-width: 30px;
+}
+
+.player-name-rng {
+  flex: 1;
+  font-weight: 600;
+  color: #1a202c;
+  font-size: 1.05rem;
+}
+
+.player-code-rng {
+  font-family: 'Courier New', monospace;
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+.picks-status {
+  padding: 4px 12px;
+  background: #fee2e2;
+  color: #dc2626;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.eligibility-indicator {
+  padding: 4px 12px;
+  background: #d1fae5;
+  color: #065f46;
+  border: 2px solid #10b981;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+/* Action Buttons */
+.rng-action-buttons {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.rng-btn {
+  flex: 1;
+  min-width: 200px;
+  padding: 15px 25px;
+  border: none;
+  border-radius: 10px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.rng-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+}
+
+.rng-btn:active {
+  transform: translateY(0);
+}
+
+.apply-all-btn {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+}
+
+.apply-all-btn:hover {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+}
+
+.review-btn {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+}
+
+.review-btn:hover {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+}
+
+.dismiss-btn {
+  background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+  color: white;
+  flex: 0 0 auto;
+}
+
+.dismiss-btn:hover {
+  background: linear-gradient(135deg, #4b5563 0%, #374151 100%);
+}
+
+/* Info Note */
+.rng-info-note {
+  padding: 15px;
+  background: #e0f2fe;
+  border-left: 4px solid #0ea5e9;
+  border-radius: 6px;
+  color: #1a202c;
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+.rng-info-note strong {
+  color: #0ea5e9;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .rng-alert-container {
+    margin: 15px;
+  }
+
+  .rng-alert-header {
+    padding: 15px;
+    flex-wrap: wrap;
+  }
+
+  .rng-alert-header h3 {
+    font-size: 1.1rem;
+    width: 100%;
+    margin-bottom: 10px;
+  }
+
+  .alert-icon {
+    font-size: 1.5rem;
+  }
+
+  .rng-alert-content {
+    padding: 15px;
+  }
+
+  .rng-action-buttons {
+    flex-direction: column;
+  }
+
+  .rng-btn {
+    min-width: 100%;
+    font-size: 1rem;
+    padding: 12px 20px;
+  }
+
+  .missing-player-item {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .player-number {
+    min-width: 25px;
+  }
+
+  .player-name-rng {
+    width: 100%;
+    order: 2;
+  }
+
+  .player-code-rng {
+    order: 3;
+  }
+
+  .picks-status {
+    order: 4;
+  }
+
+  .eligibility-indicator {
+    order: 5;
+  }
+}
+
+/* Scrollbar Styling */
+.players-missing-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.players-missing-list::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.players-missing-list::-webkit-scrollbar-thumb {
+  background: #cbd5e0;
+  border-radius: 4px;
+}
+
+.players-missing-list::-webkit-scrollbar-thumb:hover {
+  background: #a0aec0;
+}

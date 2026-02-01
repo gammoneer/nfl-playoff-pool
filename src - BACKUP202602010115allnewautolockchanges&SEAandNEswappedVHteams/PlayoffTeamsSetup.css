@@ -1,0 +1,212 @@
+.playoff-setup-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.playoff-setup-container h2 {
+  color: #667eea;
+  text-align: center;
+  margin-bottom: 30px;
+  font-size: 2rem;
+}
+
+/* Status Grid */
+.setup-status {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 20px;
+  border-radius: 12px;
+  margin-bottom: 30px;
+}
+
+.setup-status h3 {
+  margin: 0 0 15px 0;
+  font-size: 1.3rem;
+}
+
+.status-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+}
+
+.status-item {
+  background: rgba(255, 255, 255, 0.2);
+  padding: 15px;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.status-item.configured {
+  background: rgba(76, 175, 80, 0.3);
+  border: 2px solid #4caf50;
+}
+
+.status-item.not-configured {
+  background: rgba(255, 152, 0, 0.3);
+  border: 2px solid #ff9800;
+}
+
+/* Setup Section */
+.setup-section {
+  background: white;
+  border: 2px solid #667eea;
+  border-radius: 12px;
+  padding: 25px;
+  margin-bottom: 30px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.setup-section h3 {
+  color: #667eea;
+  margin: 0 0 10px 0;
+  font-size: 1.5rem;
+}
+
+.setup-section p {
+  color: #666;
+  margin-bottom: 20px;
+}
+
+/* Conference Setup (Week 1) */
+.conference-setup {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+  margin-bottom: 20px;
+}
+
+.conference-column h4 {
+  color: #764ba2;
+  margin: 0 0 15px 0;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #764ba2;
+}
+
+.seed-selector {
+  margin-bottom: 15px;
+}
+
+.seed-selector label {
+  display: block;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 5px;
+}
+
+.seed-selector select {
+  width: 100%;
+  padding: 10px;
+  border: 2px solid #ddd;
+  border-radius: 6px;
+  font-size: 1rem;
+  transition: border-color 0.3s;
+}
+
+.seed-selector select:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+/* Buttons */
+.save-btn,
+.generate-btn,
+.confirm-btn {
+  padding: 12px 30px;
+  font-size: 1rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s;
+  margin-right: 10px;
+}
+
+.save-btn {
+  background: #4caf50;
+  color: white;
+}
+
+.save-btn:hover {
+  background: #45a049;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(76, 175, 80, 0.3);
+}
+
+.generate-btn {
+  background: #667eea;
+  color: white;
+}
+
+.generate-btn:hover {
+  background: #5568d3;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
+}
+
+.confirm-btn {
+  background: #4caf50;
+  color: white;
+  margin-top: 15px;
+}
+
+.confirm-btn:hover {
+  background: #45a049;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(76, 175, 80, 0.3);
+}
+
+/* Proposed Matchups */
+.proposed-matchups {
+  background: #f0f4f8;
+  padding: 20px;
+  border-radius: 8px;
+  margin-top: 15px;
+}
+
+.proposed-matchups h4 {
+  color: #667eea;
+  margin: 0 0 15px 0;
+}
+
+.matchup-list p {
+  margin: 10px 0;
+  font-size: 1rem;
+  color: #333;
+}
+
+.matchup-list strong {
+  color: #764ba2;
+}
+
+/* Confirmed Status */
+.confirmed-status {
+  background: #e8f5e9;
+  border: 2px solid #4caf50;
+  padding: 15px;
+  border-radius: 8px;
+  color: #2e7d32;
+  font-weight: 600;
+  text-align: center;
+  margin-top: 15px;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .conference-setup {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .status-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .save-btn,
+  .generate-btn,
+  .confirm-btn {
+    width: 100%;
+    margin-bottom: 10px;
+  }
+}
