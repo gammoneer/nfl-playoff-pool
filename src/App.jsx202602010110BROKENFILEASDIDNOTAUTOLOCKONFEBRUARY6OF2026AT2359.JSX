@@ -1639,13 +1639,12 @@ const exportPlayersToExcel = async () => {
     const now = new Date();
     const pstTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
     
-    // Always go back to FRIDAY regardless of whether game is Saturday or Sunday
+    // Auto-lock date is Saturday (game day)
+    // We want to lock on FRIDAY at 11:59 PM (day before)
     const gameDayDate = new Date(autoLockDate + 'T00:00:00');
     const lockDateTime = new Date(gameDayDate);
-    const dayOfWeek = gameDayDate.getDay(); // 0=Sun, 6=Sat
-    const daysBackToFriday = dayOfWeek === 6 ? 1 : dayOfWeek === 0 ? 2 : (dayOfWeek - 5 + 7) % 7;
-    lockDateTime.setDate(lockDateTime.getDate() - daysBackToFriday);
-    lockDateTime.setHours(23, 59, 59, 999); // Friday 11:59:59.999 PM
+    lockDateTime.setDate(lockDateTime.getDate() - 1); // Go back 1 day (Friday)
+    lockDateTime.setHours(23, 59, 59, 999); // Set to 11:59:59.999 PM
     
     return pstTime >= lockDateTime;
   };
@@ -4001,13 +4000,8 @@ const handleCloseWeekAndConfigureNext = async (weekKey) => {
     // Check each week's auto lock date to see if THIS weekend has games
     const gameWeekends = Object.values(AUTO_LOCK_DATES).map(date => {
       const gameDay = new Date(date + 'T00:00:00');
-      
-      // Always calculate back to FRIDAY regardless of game day
-      const dayOfWeek = gameDay.getDay(); // 0=Sun, 6=Sat
-      const daysBackToFriday = dayOfWeek === 6 ? 1 : dayOfWeek === 0 ? 2 : (dayOfWeek - 5 + 7) % 7;
-      
       const fri = new Date(gameDay);
-      fri.setDate(fri.getDate() - daysBackToFriday);
+      fri.setDate(fri.getDate() - 1);
       fri.setHours(23, 59, 0, 0);
       const mon = new Date(gameDay);
       mon.setDate(mon.getDate() + (gameDay.getDay() === 0 ? 1 : 2));
