@@ -629,6 +629,7 @@ function PlayoffTeamsSetup({
             <strong>Week 4:</strong> {isWeek4Configured() ? '✅ Configured' : '⚠️ Not Configured'}
           </div>
         </div>
+      </div>
 
       {/* WEEK 1 - Manual Setup */}
       <div className="setup-section">
