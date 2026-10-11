@@ -1,0 +1,66 @@
+Good news — it's fully flexible, not hardcoded. Here's what it pulls from:
+
+prizePool object in Firebase (PM-controlled):
+
+Field	What it controls	Default if missing
+prizePool.pool3Pot	The Prize #21 pot dollar amount displayed	$0
+prizePool.pool3EntryFee	Per-player Pool #3 contribution shown in PM setup	$2
+prizePool.pool3OULine	The Over/Under line	44.5
+
+So the PM sets the pot amount directly in Firebase under prizePool.pool3Pot — it doesn't auto-calculate from number of players. That means you enter it manually (e.g. $90 for 45 × $2, or $67.50 for 45 × $1.50).
+
+What this means practically:
+
+You decide the fee structure before the season
+You enter the final pot amount into Firebase once registration closes and you know how many players signed up
+The app displays whatever dollar figure you put there — no recalculation needed
+
+The pool3EntryFee field is just a display note in the PM setup panel so you remember what per-player rate you used. It doesn't calculate anything automatically.
+
+So if you go with 45 players × $2 = $90, you'd set prizePool.pool3Pot = 90 in Firebase and that's what shows on screen.
+
+So I will not do anything until the first Friday deadline as that is when the players must be paid up before Friday 11:59 PM of first week so I know once all players signed up and registered and paid up fully so I know exactly what entire setup will be an no other players will be allowed to sign up after that unless special permission and then I have to tweak it all after deadline but I think I will stop it at deadline as it makes it too complicated otherwise.
+
+That's the right call — clean and simple. Here's how it plays out:
+
+Your workflow at Wild Card Weekend deadline (Friday 11:59 PM):
+
+Count paid/registered players — that's your final number, no more after that
+Calculate the pots:
+Pool #3 pot = players × $2 (or whatever you decide)
+Perfect Score bonus = (total − Pool #3 pot) × 10%
+Each of 20 prizes = remainder × 90% ÷ 20
+Enter into Firebase:
+prizePool.pool3Pot = your calculated dollar amount
+Any other prize amounts you track
+Done — app displays everything correctly from that point forward
+
+Why hard-stopping at the deadline is the right decision:
+
+Late entries create a two-tier problem — early players picked blind (Pool #2), late players got to see the leaderboard before submitting
+Pot recalculation mid-pool is messy and confusing for players
+Your rulebook already says maximum 50 players and registration closes at Wild Card Weekend deadline — you're just enforcing what's already written
+"Special permission" late entries are exactly what your rulebook's 7.4 section ("What the Pool Manager MAY NOT Do") was designed to prevent for picks — same logic applies to registration
+
+The only exception worth keeping is if someone pays before the deadline but you haven't processed their code yet — that's a you-side delay, not their fault, so worth honouring. But anyone who hasn't paid by Friday 11:59 PM is simply out.
+
+Keeps the pool fair, the math clean, and your stress level low.
+
+yes I agree as long as player pays no later than one hour before deadline and then I send code access to new player and then I tell them there is no exception to this but you must enter your picks before 11:59PM Friday before first wildcard games start or else you get RNG picks automatically so must get it in immediately period end of story no other way around it
+
+Exactly right. That's already in your rulebook (Section 2.3) and it's airtight:
+
+Pay by 10:59 PM (1 hour before deadline)
+You send the code immediately
+They enter picks before 11:59 PM — their problem, not yours
+Miss the deadline → RNG, no exceptions
+
+The 1-hour buffer is smart because it gives you time to process the payment, create their player code in Firebase, and send it to them — without you being rushed right at the deadline yourself.
+
+One practical tip: once you hit that 1-hour mark (10:59 PM), stop accepting payments entirely even if someone sends one. If money arrives at 11:15 PM, refund it and tell them the pool is closed. Otherwise you're scrambling to set up a new player account in the last 45 minutes while also watching the deadline — not worth it.
+
+The message you send late registrants can be simple:
+
+"You're in. Your code is XXXXXX. You have until 11:59 PM tonight to enter your picks at [website]. No extensions. If you miss the deadline your picks will be randomly generated — that's the rule for everyone."
+
+Short, clear, no wiggle room. They can't come back later and say they didn't know.
